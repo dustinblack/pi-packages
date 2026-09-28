@@ -1,0 +1,17 @@
+{
+  "corpus": "HELD-OUT playbook-skills-ssmp parent session 01a06fb6 (review/upgrade an agentic skill suite with live REAPER checks), 903 events, no pi-delegate workers. Written from user messages/answers BEFORE any Mom run on it, after the aging-review change was frozen.",
+  "original": { "ref": "s0:6df05718", "mustInclude": "skills" },
+  "decisions": [
+    { "after": "s0:542649d5", "pattern": "roadmap|six|production capabilit", "state": "accepted", "cites": "s0:542649d5" },
+    { "after": "s0:a512d158", "pattern": "scratch", "state": "accepted", "cites": "s0:a512d158" },
+    { "after": "s0:494234cc", "pattern": "test project", "state": "accepted", "cites": "s0:494234cc" },
+    { "after": "s0:0c94469e", "pattern": "chunk", "state": "accepted", "cites": "s0:0c94469e" },
+    { "after": "s0:3c3e3700", "pattern": "review", "state": "accepted", "cites": "s0:3c3e3700" },
+    { "after": "s0:7e0b39de", "pattern": "commit|push", "state": "accepted", "cites": "s0:7e0b39de" }
+  ],
+  "consult": { "ref": "s0:b3315acd", "pattern": "broken link|phase7|phase-7|link" },
+  "stale": [
+    { "label": "load the original (missing-sample) project for live verification after user can't mount samples", "pattern": "(load|restore|reopen)\\w*[^.]{0,40}original project", "unless": "can't|cannot|unable|not mount|missing|instead|supersed|blocked|unavailable|without" },
+    { "label": "reviewer after every chunk (user: no need if small)", "pattern": "review\\w*[^.]{0,30}(after )?every chunk", "unless": "no need|not |skip|small|only" }
+  ]
+}

@@ -1,0 +1,43 @@
+[
+  {
+    "label": "buzz: retain Tauri desktop choice after relay expansion",
+    "bundle": "/tmp/mom-heldout-buzz-20260927",
+    "after": "s0:2c77772c",
+    "source": "s0:8bab40c5",
+    "pattern": "Tauri|desktop app",
+    "state": "accepted"
+  },
+  {
+    "label": "buzz: retain private-kind wire format after relay expansion",
+    "bundle": "/tmp/mom-heldout-buzz-20260927",
+    "after": "s0:2c77772c",
+    "source": "s0:59596baa",
+    "pattern": "(?:Buzz.{0,45}private|private.{0,45}(?:kind|wire))",
+    "state": "accepted"
+  },
+  {
+    "label": "pi-packages: slim feed still only proposed before approval",
+    "finalRequired": false,
+    "bundle": "/tmp/mom-slim-approved-v2-20260927",
+    "after": "s0:760b8f61",
+    "source": "s0:947105af",
+    "pattern": "slim|narrative|lightweight tool",
+    "state": "proposed"
+  },
+  {
+    "label": "pi-packages: slim feed accepted only after approval",
+    "bundle": "/tmp/mom-slim-approved-v2-20260927",
+    "after": "s0:50b39c79",
+    "source": "s0:50b39c79",
+    "pattern": "slim|narrative|lightweight tool",
+    "state": "accepted"
+  },
+  {
+    "label": "ssmp: full roadmap remains approved after chunking",
+    "bundle": "/tmp/mom-heldout-ssmp-20260927",
+    "after": "s0:0c94469e",
+    "source": "s0:542649d5",
+    "pattern": "full (?:approved )?roadmap|six (?:production )?capabilit",
+    "state": "accepted"
+  }
+]

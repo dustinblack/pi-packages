@@ -1,0 +1,21 @@
+{
+  "corpus": "HELD-OUT buzz parent session 019fcabf (strip buzz to the 'tipsy' Nostr chat client), 1626 events, no pi-delegate workers. Written from user messages/answers BEFORE any Mom run on it; not used for tuning.",
+  "original": { "ref": "s0:26adfa27", "mustInclude": "Nostr" },
+  "decisions": [
+    { "after": "s0:da050b05", "pattern": "sister|strip", "state": "accepted", "cites": "s0:da050b05" },
+    { "after": "s0:8bab40c5", "pattern": "tauri", "state": "accepted", "cites": "s0:8bab40c5" },
+    { "after": "s0:59596baa", "pattern": "kinds?", "state": "accepted", "cites": "s0:59596baa" },
+    { "after": "s0:e840a189", "pattern": "nostr-rs-relay", "state": "accepted", "cites": "s0:e840a189" },
+    { "after": "s0:f837571f", "pattern": "agent", "state": "accepted", "cites": "s0:f837571f" },
+    { "after": "s0:43a63e71", "pattern": "profile", "state": "accepted", "cites": "s0:43a63e71" },
+    { "after": "s0:c0b8c8ed", "pattern": "two-sided|rust", "state": "accepted", "cites": "s0:c0b8c8ed" }
+  ],
+  "consult": { "ref": "s0:55485000", "pattern": "TypeError|sub\\(\\)|positional" },
+  "stale": [
+    { "label": "adopting an existing client (user rejected: 'Those are all ass')", "pattern": "adopt\\w*[^.]{0,30}existing (nostr )?client", "unless": "reject|not |instead|declin|supersed|rather than" },
+    { "label": "own relays only (user later: make any relay addable)", "pattern": "own relays?[^.]{0,20}(only|first)", "unless": "any relay|addable|arbitrary|non-buzz|other relays?|later|superseded|expanded" }
+  ],
+  "watch": [
+    { "label": "full agents removal (user chose keep mentioning, drop management)", "pattern": "full (agents? )?removal|remove features/agents entirely" }
+  ]
+}

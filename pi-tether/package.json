@@ -1,0 +1,33 @@
+{
+  "name": "@ssweens/pi-tether",
+  "version": "0.1.0",
+  "description": "Mom keeps track of your goal, what's unfinished, and where to return after a detour.",
+  "type": "module",
+  "license": "MIT",
+  "author": "ssweens",
+  "keywords": ["pi-package", "pi-extension", "threads", "tangents", "orientation", "focus"],
+  "files": ["src/", "README.md", "CHANGELOG.md", "LICENSE"],
+  "scripts": {
+    "check": "npm run typecheck && npm test",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts"
+  },
+  "pi": {
+    "extensions": ["./src/index.ts"]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": ">=0.86.1",
+    "@earendil-works/pi-ai": ">=0.86.1",
+    "@earendil-works/pi-tui": ">=0.86.1",
+    "typebox": "^1.3.27"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.19",
+    "@earendil-works/pi-coding-agent": "0.86.1",
+    "@earendil-works/pi-ai": "0.86.1",
+    "@earendil-works/pi-tui": "0.86.1",
+    "typebox": "1.3.27",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
+  }
+}

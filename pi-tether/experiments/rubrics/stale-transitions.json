@@ -1,0 +1,34 @@
+[
+  {
+    "label": "buzz: own-relay-only scope replaced by addable arbitrary relays",
+    "bundle": "/tmp/mom-heldout-buzz-20260927",
+    "introduced": "s0:8bab40c5",
+    "replacedBy": "s0:2c77772c",
+    "outdatedClaim": "(?:own relay(?:\\(s\\)|s)?|user's own relay)[^.]{0,90}(?:first|only|broader [^.]{0,45}not the [^.]*(?:target|scope))",
+    "exception": "historical|previously|used to|no longer|superseded|replaced|not limited"
+  },
+  {
+    "label": "pi-packages: parent-only completion/progress limitation replaced by typed in-process feed",
+    "bundle": "/tmp/mom-slim-approved-v2-20260927",
+    "introduced": "s0:61332fe3",
+    "replacedBy": "s0:04b14e3e",
+    "outdatedClaim": "(?:currently|only|not)[^.]{0,100}(?:completion only|completion to the parent|no progress pings|not progress pings|needs an explicit reporting channel)",
+    "exception": "previously|historical|before (?:the|a) (?:feed|milestone)|now receives|resolved|has been replaced"
+  },
+  {
+    "label": "pi-packages: Astra consult waiting after returned worker report",
+    "bundle": "/tmp/mom-slim-approved-v2-20260927",
+    "introduced": "s0:25caa5c5",
+    "replacedBy": "wf7fed72712bf:4a4fd588",
+    "outdatedClaim": "(?:Astra|architecture challenge)[\\s\\S]{0,300}(?:[Nn]o response|pending|still running|has not returned|not available yet)",
+    "exception": "previously|historical|no longer|returned|resolved"
+  },
+  {
+    "label": "ssmp: fixture generation pending after lead reported assets generated",
+    "bundle": "/tmp/mom-heldout-ssmp-20260927",
+    "introduced": "s0:e9f9cffd",
+    "replacedBy": "s0:d50b476f",
+    "outdatedClaim": "(?:fixture(?:[ -]generation|s)|generate deterministic assets|assets)[\\s\\S]{0,300}(?:in progress|pending|no return|not yet|started inspecting|outcomes remain unknown)",
+    "exception": "previously|historical|no longer|now (?:generated|verified)|repaired|resolved"
+  }
+]

@@ -1,0 +1,23 @@
+{
+  "corpus": "pi-packages parent + 7 pi-delegate workers through the user's slim-feed approval (1094 events)",
+  "original": { "ref": "s0:c9c8130b", "mustInclude": "9ef739b2" },
+  "decisions": [
+    { "after": "s0:61332fe3", "pattern": "mother", "state": "accepted", "cites": "s0:61332fe3" },
+    { "after": "s0:04b14e3e", "pattern": "in-process|milestone", "state": "accepted", "cites": "s0:04b14e3e" },
+    { "after": "s0:760b8f61", "pattern": "slim|narrative|lightweight tool", "state": "proposed" },
+    { "after": "s0:50b39c79", "pattern": "slim|narrative|lightweight tool", "state": "accepted", "cites": "s0:50b39c79" }
+  ],
+  "consult": { "ref": "s0:164c6f5b", "pattern": "TS1005|comma" },
+  "incorporated": [
+    { "worker": "wf7fed72712bf", "after": "s0:760b8f61", "forbid": "incorporation[^.]{0,20}\\b(unknown|pending)\\b|(findings?|results?)[^.]{0,30}\\b(are|is|remain)\\s+pending" }
+  ],
+  "stale": [
+    { "label": "routinely read all tool output", "pattern": "(must|should)\\s+(follow|read|process|observe|absorb|ingest)[^.]{0,100}(tool calls/results|tool results|tool output)", "unless": "on demand|lookup|when needed|inspect|retriev|reference" }
+  ],
+  "watch": [
+    { "label": "mandatory tidy before landing", "pattern": "(must|requires?|required)[^.]{0,60}tidy[^.]{0,40}(before|to) land|clean tidy" },
+    { "label": "semantic pass over all tool output", "pattern": "(process|read|reread|re-read|examine|understand)\\w*[^.]{0,30}(every|all|entire|full)[^.]{0,30}(tool output|tool results|stream)" },
+    { "label": "lead-maintained ledger", "pattern": "lead[- ]maintain|lead (calls|must call) tether" },
+    { "label": "persistent mother conversation", "pattern": "persistent (mother|sidecar)|mother session" }
+  ]
+}

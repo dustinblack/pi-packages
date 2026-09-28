@@ -1,0 +1,314 @@
+import { Type, type Static } from "typebox";
+import { Check } from "typebox/value";
+
+const object = { additionalProperties: false } as const;
+const id = Type.String({ pattern: "^[A-Za-z][A-Za-z0-9_-]{0,63}$" });
+// Codex strict tools reject uniqueItems; check uniqueness locally.
+const refs = Type.Array(Type.String({ minLength: 1 }), { minItems: 1 });
+const pointer = Type.Union([id, Type.Null()]);
+const relation = Type.Union([Type.Literal("returns_to"), Type.Literal("informs"), Type.Literal("governs"), Type.Literal("depends_on")]);
+const endeavorKind = Type.Union([Type.Literal("feature"), Type.Literal("theory"), Type.Literal("postulate"), Type.Literal("try")]);
+const annotationKind = Type.Union([Type.Literal("rule"), Type.Literal("choice"), Type.Literal("observation")]);
+const nodeFields = {
+	id, kind: Type.Union([endeavorKind, annotationKind]),
+	parent: pointer,
+	state: Type.Union([Type.Literal("proposed"), Type.Literal("active"), Type.Literal("parked"), Type.Literal("settled"), Type.Literal("unknown")]),
+	label: Type.String({ minLength: 1, maxLength: 160 }),
+	intent: Type.String({ maxLength: 1200 }), observed: Type.String({ maxLength: 2400 }),
+	actor: Type.String({ maxLength: 200, description: "Observed actor identity, or empty if unknown/not applicable." }), sources: refs,
+};
+export const NodeInput = Type.Object(nodeFields, object);
+const History = Type.Object({ checkpoint: Type.String({ minLength: 1 }), nodes: Type.Array(id, { minItems: 1, uniqueItems: true }),
+	reason: Type.String({ minLength: 1 }), sources: refs,
+	// Original endpoints in the prior checkpoint, not new self-edges in the active map.
+	returns: Type.Array(Type.Object({ from: id, to: id }, object)),
+}, object);
+const Node = Type.Object({ ...nodeFields, history: Type.Optional(History) }, object);
+// v3 is historical input only; new transactions accept only endeavor/annotation kinds.
+const ThreadNode = Type.Object({ ...nodeFields, kind: Type.Union([Type.Literal("thread"), Type.Literal("decision"), Type.Literal("finding")]), history: Type.Optional(History) }, object);
+const edgeFields = { from: id, relation, to: id };
+export const Edge = Type.Object({ ...edgeFields, sources: refs }, object);
+const reason = { reason: Type.String({ minLength: 1 }), sources: refs };
+export const Edit = Type.Union([
+	Type.Object({ op: Type.Literal("put_node"), node: NodeInput }, object),
+	Type.Object({ op: Type.Literal("put_edge"), edge: Edge }, object),
+	Type.Object({ op: Type.Literal("remove_edge"), ...edgeFields }, object),
+	Type.Object({ op: Type.Literal("remove_node"), id, ...reason }, object),
+	Type.Object({ op: Type.Literal("fold"), thread: id, ...reason }, object),
+	Type.Object({ op: Type.Literal("merge"), thread: id, into: id, ...reason }, object),
+]);
+export const Unfinished = Type.Array(Type.Object({ node: id,
+	label: { ...nodeFields.label, description: "Copy this node's current label exactly; do not substitute its ID." },
+	disposition: Type.Union([Type.Literal("carried"), Type.Literal("reparented"), Type.Literal("resolved")]),
+	target: pointer, sources: refs,
+}, object), { maxItems: 64, description: "Before settling or folding, account for unfinished work and continuing permission holds, including those still only in endeavor prose. Attach active rule annotations for continuing holds. List every active/parked descendant: carried to the parent/root, reparented to another surviving endeavor, or resolved with evidence. Empty means you claim nothing remains within the closing scope. This is a model declaration, not host verification of prose." });
+export type UnfinishedItems = Static<typeof Unfinished>;
+export const GraphSchema = Type.Object({ revision: Type.Integer({ minimum: 0 }), purpose: pointer,
+	focus: pointer, nodes: Type.Array(Node), edges: Type.Array(Edge) }, object);
+const ThreadGraphSchema = Type.Object({ revision: GraphSchema.properties.revision, purpose: pointer,
+	focus: pointer, nodes: Type.Array(ThreadNode), edges: Type.Array(Edge) }, object);
+export type ThreadGraph = Static<typeof ThreadGraphSchema>;
+export type WorkGraph = Static<typeof GraphSchema>;
+export type GraphNode = Static<typeof Node>;
+export type GraphEdge = Static<typeof Edge>;
+export type GraphEdit = Static<typeof Edit>;
+export const GRAPH_CHAR_LIMIT = 24000;
+export const emptyGraph = (): WorkGraph => ({ revision: 0, purpose: null, focus: null, nodes: [], edges: [] });
+const edgeKey = (e: Pick<GraphEdge, "from" | "relation" | "to">) => `${e.from}/${e.relation}/${e.to}`;
+
+/** Annotations are attached records, never independent work centers. */
+export const isEndeavor = (node: { kind: string }): boolean => ["feature", "theory", "postulate", "try"].includes(node.kind);
+
+/** Preserve v3 identity and history; do not infer feature/theory semantics from old prose. */
+export function upgradeThreadGraph(graph: ThreadGraph): WorkGraph {
+	return { ...structuredClone(graph), nodes: graph.nodes.map(node => ({ ...structuredClone(node),
+		kind: node.kind === "thread" ? "try" : node.kind === "finding" ? "observation" : node.state === "active" ? "rule" : "choice",
+	})) };
+}
+export function checkThreadGraph(value: unknown): asserts value is ThreadGraph {
+	if (!Check(ThreadGraphSchema, value)) throw new Error("Invalid saved v3 thread map.");
+	checkGraphStructure(upgradeThreadGraph(value));
+	if (JSON.stringify(value).length > GRAPH_CHAR_LIMIT) throw new Error(`Saved v3 thread map exceeds ${GRAPH_CHAR_LIMIT} characters.`);
+}
+
+function checkForest(nodes: ReadonlyMap<string, GraphNode>) {
+	for (const node of nodes.values()) {
+		if (node.parent === null && !isEndeavor(node)) throw new Error(`Only an endeavor can be a root; attach annotation ${node.id} to its endeavor.`);
+		const seen = new Set([node.id]);
+		let parent = node.parent;
+		while (parent !== null) {
+			if (seen.has(parent)) throw new Error(`Endeavor parent cycle at ${parent}.`);
+			seen.add(parent);
+			const ancestor = nodes.get(parent);
+			if (!ancestor || !isEndeavor(ancestor)) throw new Error(`Parent must be an existing endeavor: ${node.id} -> ${parent}`);
+			parent = ancestor.parent;
+		}
+	}
+}
+function subtree(nodes: ReadonlyMap<string, GraphNode>, root: string) {
+	const included = new Set([root]);
+	for (const key of included) for (const node of nodes.values()) if (node.parent === key) included.add(node.id);
+	return included;
+}
+
+/** Parent links are a forest. Cross-links may cycle. Neither structural check certifies semantic truth. */
+export function checkGraph(value: unknown): asserts value is WorkGraph {
+	if (!Check(GraphSchema, value)) throw new Error("Invalid endeavor map shape.");
+	checkGraphStructure(value);
+	if (JSON.stringify(value).length > GRAPH_CHAR_LIMIT) throw new Error(`Graph exceeds ${GRAPH_CHAR_LIMIT} characters; compact it without dropping unresolved work.`);
+}
+function checkGraphStructure(value: WorkGraph): void {
+	for (const group of [value.nodes, value.edges]) for (const item of group) {
+		if (new Set(item.sources).size !== item.sources.length) throw new Error("Duplicate graph source reference.");
+	}
+	const nodes = new Map(value.nodes.map(n => [n.id, n]));
+	if (nodes.size !== value.nodes.length) throw new Error("Duplicate graph node ID.");
+	checkForest(nodes);
+	if (value.nodes.length && (!value.purpose || !value.focus)) throw new Error("A nonempty graph needs purpose and focus nodes.");
+	for (const p of [value.purpose, value.focus]) if (p !== null && !nodes.has(p)) throw new Error(`Unknown purpose/focus node: ${p}`);
+	if (value.purpose && nodes.get(value.purpose)!.parent !== null) throw new Error("Purpose must identify a root endeavor (the main line).");
+	const edges = new Set<string>();
+	for (const edge of value.edges) {
+		if (!nodes.has(edge.from) || !nodes.has(edge.to)) throw new Error(`Dangling graph connection: ${edgeKey(edge)}`);
+		if (edge.from === edge.to || edges.has(edgeKey(edge))) throw new Error(`Self/duplicate graph connection: ${edgeKey(edge)}`);
+		edges.add(edgeKey(edge));
+	}
+}
+
+/** Check declared close-out effects against nodes, not the meaning of conversation or intent prose. */
+export function checkUnfinished(previous: WorkGraph, upserts: readonly GraphNode[], folds: readonly { thread: string }[], after: WorkGraph,
+	items: UnfinishedItems, known: ReadonlySet<string>): void {
+	const old = new Map(previous.nodes.map(n => [n.id, n])), proposed = new Map(old), result = new Map(after.nodes.map(n => [n.id, n]));
+	for (const node of upserts) proposed.set(node.id, node);
+	const closing = new Set(folds.map(f => f.thread));
+	for (const node of upserts) if (isEndeavor(node) && node.state === "settled" && old.get(node.id)?.state !== "settled") closing.add(node.id);
+	const required = new Set<string>(), scopesByNode = new Map<string, Set<string>>();
+	for (const index of [old, proposed]) for (const node of index.values()) {
+		if (node.state !== "active" && node.state !== "parked") continue;
+		const seen = new Set<string>();
+		let parent = node.parent;
+		while (parent && !seen.has(parent)) {
+			if (closing.has(parent)) {
+				required.add(node.id);
+				const scopes = scopesByNode.get(node.id) ?? new Set<string>();
+				scopes.add(parent); scopesByNode.set(node.id, scopes);
+			}
+			seen.add(parent); parent = index.get(parent)?.parent ?? null;
+		}
+	}
+	const parentTargets = new Set<string>(), landingByScope = new Map<string, string>();
+	for (const key of closing) {
+		const scope = proposed.get(key) ?? old.get(key);
+		let target = scope?.parent ?? scope?.id;
+		const seen = new Set<string>();
+		while (target && !result.has(target) && !seen.has(target)) {
+			seen.add(target); target = proposed.get(target)?.parent ?? old.get(target)?.parent ?? undefined;
+		}
+		if (target && result.has(target) && isEndeavor(result.get(target)!)) { parentTargets.add(target); landingByScope.set(key, target); }
+	}
+	if (!closing.size && items.length) throw new Error("This transaction closes no endeavor. Set unfinished=[]; if completion was intended, settle or fold the endeavor in this transaction first.");
+	const declared = new Set<string>();
+	for (const item of items) {
+		if (declared.has(item.node)) throw new Error(`Duplicate unfinished disposition: ${item.node}.`);
+		declared.add(item.node);
+		const node = proposed.get(item.node) ?? old.get(item.node), live = result.get(item.node);
+		if (!node) throw new Error(`Unknown unfinished disposition node: ${item.node}. Use an active/parked descendant of a closing endeavor.`);
+		if (node.label !== item.label) throw new Error(`Unfinished disposition label for ${item.node} must exactly match ${JSON.stringify(node.label)}; received ${JSON.stringify(item.label)}.`);
+		if (!item.sources.length || new Set(item.sources).size !== item.sources.length) throw new Error(`Unfinished disposition needs distinct sources: ${item.node}.`);
+		for (const ref of item.sources) if (!known.has(ref)) {
+			const matches = [...known].filter(observed => observed.startsWith(ref));
+			throw new Error(`Unknown unfinished disposition source for ${item.node}: ${ref}.${matches.length === 1 ? ` Use the exact observed source ${matches[0]}.` : ""}`);
+		}
+		if (item.disposition === "resolved") {
+			if (item.target !== null || (live && live.state !== "settled")) throw new Error(`Resolved disposition needs ${item.node} closed and target=null.`);
+		} else {
+			if (!item.target || !result.has(item.target) || !isEndeavor(result.get(item.target)!) || !live || !["active", "parked"].includes(live.state)) {
+				throw new Error(`${item.disposition} disposition needs ${item.node} active/parked under surviving thread ${item.target}.`);
+			}
+			if (item.disposition === "carried") {
+				const scopes = scopesByNode.get(item.node);
+				if (scopes ? ![...scopes].some(scope => landingByScope.get(scope) === item.target) : !parentTargets.has(item.target)) throw new Error(`Carried disposition needs ${item.node} in the closing thread's surviving parent/root account, not ${item.target}.`);
+				let ancestor = live.parent;
+				while (ancestor && ancestor !== item.target) ancestor = result.get(ancestor)?.parent ?? null;
+				if (!ancestor) throw new Error(`Carried disposition needs ${item.node} inside surviving thread ${item.target}, directly or in a retained cluster.`);
+			} else if (live.parent !== item.target || old.get(item.node)?.parent === item.target) throw new Error(`Reparented disposition needs ${item.node} moved to ${item.target}, not left in place.`);
+		}
+	}
+	const missing = [...required].filter(id => !declared.has(id));
+	if (missing.length) throw new Error(`Missing unfinished disposition for ${missing.join(",")}: declare carried, reparented, or resolved with sources.`);
+}
+
+/** Private maps prevent failed transactions or later updates from mutating published history. */
+export function editGraph(previous: WorkGraph, revision: number, edits: readonly GraphEdit[], purpose: string | null, focus: string | null,
+	known: ReadonlySet<string>, checkpoint?: string): WorkGraph {
+	if (revision !== previous.revision) throw new Error(`Stale graph revision ${revision}; current revision is ${previous.revision}.`);
+	const nodes = new Map(previous.nodes.map(n => [n.id, n]));
+	let edges = new Map(previous.edges.map(e => [edgeKey(e), e]));
+	const oldIds = new Set(nodes.keys()), removed = new Set<string>(), updated = new Set<string>();
+	const histories = new Map<string, NonNullable<GraphNode["history"]>>();
+	const checkSources = (sources: readonly string[]) => {
+		if (new Set(sources).size !== sources.length) throw new Error("Duplicate graph source reference.");
+		for (const ref of sources) if (!known.has(ref)) {
+			const matches = [...known].filter(observed => observed.startsWith(ref));
+			throw new Error(`Unknown or unobserved source: ${ref}.${matches.length === 1 ? ` Use the exact observed source ${matches[0]}.` : ""}`);
+		}
+	};
+	for (const edit of edits) {
+		if (!Check(Edit, edit)) throw new Error("Invalid graph edit shape.");
+		if (edit.op === "put_node") {
+			if (removed.has(edit.node.id)) throw new Error(`Cannot reuse a removed node ID in the same transaction: ${edit.node.id}`);
+			checkSources(edit.node.sources);
+			const history = nodes.get(edit.node.id)?.history;
+			nodes.set(edit.node.id, { ...edit.node, ...(history ? { history } : {}) }); updated.add(edit.node.id);
+		} else if (edit.op === "put_edge") {
+			checkSources(edit.edge.sources); edges.set(edgeKey(edit.edge), edit.edge);
+		} else if (edit.op === "remove_edge") {
+			if (!edges.delete(edgeKey(edit))) throw new Error(`Unknown connection: ${edgeKey(edit)}`);
+		} else if (edit.op === "remove_node") {
+			checkSources(edit.sources);
+			if (!nodes.delete(edit.id)) throw new Error(`Unknown node: ${edit.id}`);
+			removed.add(edit.id); // Any children and cross-links must be handled explicitly.
+		} else {
+			checkSources(edit.sources); checkForest(nodes);
+			const source = nodes.get(edit.thread);
+			if (!source || !isEndeavor(source) || !oldIds.has(source.id) || !checkpoint) throw new Error("Folding or merging needs an endeavor from the previous saved map.");
+			const inside = subtree(nodes, source.id);
+			const target = nodes.get(edit.op === "fold" ? source.parent ?? "" : edit.into);
+			if (!target || !isEndeavor(target)) throw new Error("Fold needs its immediate parent endeavor; merge needs a surviving endeavor target.");
+			if (inside.has(target.id)) throw new Error("Cannot merge a thread into itself or its descendant.");
+			if (edit.op === "fold" && source.state !== "settled") throw new Error("Fold only a resolved thread; carry its unfinished descendants upward.");
+			if (edit.op === "merge" && source.state !== "settled" && target.state === "settled") throw new Error("An unfinished thread needs an unfinished merge target.");
+			const retiring = new Set<string>([source.id]);
+			if (edit.op === "fold") {
+				const keep = new Set<string>();
+				for (const key of inside) {
+					const node = nodes.get(key)!;
+					if (node.state !== "settled") {
+						keep.add(key);
+						if (isEndeavor(node)) for (const child of subtree(nodes, key)) keep.add(child);
+					}
+				}
+				for (const key of inside) if (!keep.has(key)) retiring.add(key);
+			}
+			for (const key of retiring) if (!oldIds.has(key) || histories.has(key)) throw new Error(`Cannot contract unpublished or newly contracted history: ${key}`);
+			// Changing a governing endpoint can widen a scoped hold to unrelated siblings.
+			for (const edge of edges.values()) if (edge.relation === "governs" && retiring.has(edge.from) !== retiring.has(edge.to)) {
+				throw new Error("A governs connection needs explicit sourced handling before contraction; do not widen its scope automatically.");
+			}
+			if (!updated.has(target.id)) throw new Error(`${edit.op} needs the ${edit.op === "fold" ? "parent" : "destination"} target upserted in this batch: ${target.id}.`);
+			const missing = edit.sources.filter(ref => !target.sources.includes(ref));
+			const earlier = histories.get(target.id);
+			const history: NonNullable<GraphNode["history"]> = {
+				checkpoint, nodes: [...new Set([...(earlier?.nodes ?? (oldIds.has(target.id) ? [target.id] : [])), ...[...inside].filter(key => oldIds.has(key))])],
+				reason: earlier ? `${earlier.reason}; ${edit.reason}` : edit.reason,
+				sources: [...new Set([...(earlier?.sources ?? []), ...edit.sources,
+					...previous.nodes.filter(node => retiring.has(node.id)).flatMap(node => node.sources),
+					...[...retiring].flatMap(key => nodes.get(key)!.sources)])], returns: [...(earlier?.returns ?? [])],
+			};
+			for (const key of retiring) { nodes.delete(key); removed.add(key); }
+			for (const node of nodes.values()) if (node.parent && retiring.has(node.parent)) nodes.set(node.id, { ...node, parent: target.id });
+			const redirected = new Map<string, GraphEdge>();
+			for (const edge of edges.values()) {
+				const from = retiring.has(edge.from) ? target.id : edge.from, to = retiring.has(edge.to) ? target.id : edge.to;
+				if (from === to) {
+					if (edge.relation === "returns_to" && !history.returns.some(r => r.from === edge.from && r.to === edge.to)) history.returns.push({ from: edge.from, to: edge.to });
+					continue;
+				}
+				const next = { ...edge, from, to }, key = edgeKey(next), existing = redirected.get(key);
+				redirected.set(key, existing ? { ...next, sources: [...new Set([...existing.sources, ...next.sources])] } : next);
+			}
+			edges = redirected; histories.set(target.id, history);
+			// The declared operation supplies provenance; retired exploration stays in history only.
+			nodes.set(target.id, { ...nodes.get(target.id)!, ...(missing.length ? { sources: [...target.sources, ...missing] } : {}), history });
+		}
+	}
+	const next: WorkGraph = { revision: previous.revision + (edits.length || purpose !== previous.purpose || focus !== previous.focus ? 1 : 0),
+		purpose, focus, nodes: [...nodes.values()], edges: [...edges.values()] };
+	checkGraph(next);
+	return next;
+}
+
+/** Neighborhoods retain the forest's orientation even at depth zero; cross-links remain separate. */
+export function graphSlice(graph: WorkGraph | ThreadGraph, selected?: readonly string[], depth = 1) {
+	if (!Number.isSafeInteger(depth) || depth < 0 || depth > 3) throw new Error("Graph depth must be 0..3.");
+	const index = new Map<string, GraphNode | Static<typeof ThreadNode>>(graph.nodes.map(n => [n.id, n]));
+	if (selected?.some(key => !index.has(key))) throw new Error("Unknown graph node in selection.");
+	const path = (key: string | null) => {
+		const result: string[] = [];
+		while (key) { result.unshift(key); key = index.get(key)!.parent; }
+		return result;
+	};
+	const roots = graph.nodes.filter(n => n.parent === null).map(n => n.id), focusPath = path(graph.focus);
+	const included = new Set(selected ?? index.keys());
+	let frontier = new Set(included);
+	for (let hop = 0; selected && hop < depth; hop++) {
+		const next = new Set<string>();
+		for (const node of graph.nodes) if (node.parent) {
+			if (frontier.has(node.parent)) next.add(node.id);
+			if (frontier.has(node.id)) next.add(node.parent);
+		}
+		for (const edge of graph.edges) {
+			if (frontier.has(edge.from)) next.add(edge.to);
+			if (frontier.has(edge.to)) next.add(edge.from);
+		}
+		frontier = new Set([...next].filter(key => !included.has(key)));
+		for (const key of frontier) included.add(key);
+	}
+	const edges = graph.edges.filter(e => included.has(e.from) || included.has(e.to));
+	const boundary = new Set([...roots, ...focusPath, ...edges.flatMap(e => [e.from, e.to])]);
+	for (const key of included) for (const ancestor of path(key)) boundary.add(ancestor);
+	// Cross-link endpoints also need their ancestry, not orphaned labels.
+	for (const key of boundary) for (const ancestor of path(key)) boundary.add(ancestor);
+	// Ancestor context includes its attached rules, choices and observations, not just labels.
+	// v3 annotations remain readable here without changing their saved kinds.
+	const ancestorContext = new Set(boundary);
+	for (const node of graph.nodes) if (node.parent && ancestorContext.has(node.parent) && !isEndeavor(node) && node.kind !== "thread") boundary.add(node.id);
+	// Include direct children as boundaries so an endeavor doesn't look like a leaf.
+	for (const node of graph.nodes) if (node.parent && included.has(node.parent)) boundary.add(node.id);
+	for (const key of included) boundary.delete(key);
+	return { revision: graph.revision, purpose: graph.purpose, focus: graph.focus, roots, focusPath,
+		nodes: graph.nodes.filter(n => included.has(n.id)), edges,
+		boundaryNodes: graph.nodes.filter(n => boundary.has(n.id)),
+		totalNodes: graph.nodes.length, omittedNodes: graph.nodes.length - included.size };
+}
+
