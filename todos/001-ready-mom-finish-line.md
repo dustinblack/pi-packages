@@ -9,13 +9,13 @@ dependencies: []
 
 ## Where we are
 
-trunk:    010 — prune Mom's sidecar to map, notice, and usage state
+trunk:    005 — review every compaction and deliver one corrective note when needed
 tangents: none open
 
 ## Findings
 
 - Design of record: `AwesomeNotes/Coding Agents AI stuff/Mom - complete design map 2026-09-29.md` (every rule with its session line pointer) plus `MOM-HANDOFF.md`. Pointers `[n]` below are raw line indices in `~/.pi/agent/sessions/--Users-ssweens-src-pi-packages--/2026-09-26T23-49-53-444Z_01a0e020-12a4-7474-819f-ad784bb5febd.jsonl`.
-- Mom's sidecar-only state, settled-boundary waking, advisor, presentation, and tests landed at `65856a8`. Todo 003's bounded background update and durable gap recovery landed at `17e508b`. Todo 004's literal-only history ranking landed through merge `178e6e8`; todo 009's enabled-only lead pivot/assent instructions landed through merge `45a85e6`. 95 Tether + 38 delegate tests pass.
+- Mom's sidecar-only state, settled-boundary waking, advisor, presentation, and tests landed at `65856a8`. Todo 003's bounded background update and durable gap recovery landed at `17e508b`; todo 004's literal-only history ranking through `178e6e8`; todo 009's enabled-only lead pivot/assent instructions through `45a85e6`; and todo 010's map/notice/usage-only sidecar through `77350ec`. 99 Tether + 38 delegate tests pass.
 - Live: the `mom` tool and widget show "could not update this account; last saved view only", with stale nodes marked current.
 - Update budget: background updates now use one proposal plus at most one aggregated repair, with `commit_graph` as their only tool. Explicit questions retain five calls, two searches, and two reads. A failed exact range waits for newer settled material or explicit refresh; two deterministic failures create an atomic visible gap so newer evidence proceeds, while provider/source/invalidation/storage failures never skip. `/mom refresh` retries the oldest gap → 003 complete at `17e508b`.
 - Compaction does not wake Mom, and the option-B note is not implemented. This conflicts with the user's direction [5753][5840] → 005.
@@ -32,7 +32,7 @@ tangents: none open
 - 007 — ready — making-mom, delegates
 - 008 — ready — making-mom, delegates
 - 009 — complete — `be537b4` + merge `45a85e6` — lead receives pivot/assent rules only while Mom is enabled
-- 010 — ready — making-mom, delegates
+- 010 — complete — `d4cb4d9` + `d55f39e8` + merge `77350ec` — sidecar pruned to map, notice, and usage
 - 011 — ready — making-mom, delegates
 - 012 — ready — making-mom, delegates
 - 013 — ready — making-mom, delegates
