@@ -33,6 +33,24 @@ test("compaction review captures the raw replaced entries, including for an empt
 	assert.equal(review.rawEntryCount, 1);
 });
 
+test("repeated compaction starts at the previous first-kept entry and retains its active hold", () => {
+	const at = new Date().toISOString();
+	const entries = [
+		{ id: "old", parentId: null, type: "message", timestamp: at, message: { role: "user", content: "Already replaced." } },
+		{ id: "hold", parentId: "old", type: "message", timestamp: at, message: { role: "user", content: "Do not modify KEEP.txt." } },
+		{ id: "work", parentId: "hold", type: "message", timestamp: at, message: { role: "assistant", content: "Starting the authorized migration." } },
+		{ id: "prior-compact", parentId: "work", type: "compaction", timestamp: at, summary: "Migration only.", firstKeptEntryId: "hold", tokensBefore: 100 },
+		{ id: "newer", parentId: "prior-compact", type: "message", timestamp: at, message: { role: "assistant", content: "Migration continued." } },
+		{ id: "next-kept", parentId: "newer", type: "message", timestamp: at, message: { role: "assistant", content: "Recent work remains." } },
+	];
+	const pending = prepareCompactionReview(beforeEvent(entries, "next-kept"), "session");
+	assert.deepEqual(pending.rawEntries.map(entry => entry.id), ["hold", "work", "prior-compact", "newer"]);
+	const review = finishCompactionReview(pending, { compactionEntry: { id: "next-compact", timestamp: at, firstKeptEntryId: "next-kept", summary: "Migration continued." } } as any,
+		new Set(["session:hold"]));
+	assert.match(review.rawReplacedEvents, /Do not modify KEEP\.txt/);
+	assert.doesNotMatch(review.rawReplacedEvents, /Already replaced/);
+});
+
 test("a compaction that drops an active hold causes one deferred advisory and no lead call", { timeout: 15000 }, async () => {
 	const h = await setup(true);
 	try {

@@ -1,5 +1,5 @@
 ---
-status: complete
+status: ready
 issue_id: "005"
 tags: [mom, pi-tether, compaction]
 dependencies: ["003"]
@@ -27,6 +27,10 @@ After every compaction, Mom checks the result against her map. If something stil
 - [x] Test: an empty-summary compaction is reviewed against the raw replaced segment
 - [x] No lead turn is started; the note reaches the lead on its next request
 - [x] Live capture of one real compaction review
+
+## Review finding
+
+- P1: repeated compactions started raw capture at the prior compaction entry. Pi's next replaced context begins at that prior compaction's `firstKeptEntryId`, so active raw messages between that entry and the prior compaction record could be omitted from review.
 
 ## Evidence
 
