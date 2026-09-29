@@ -1,0 +1,39 @@
+Todo 006 real PTY post-fix capture (sanitized)
+Captured 2026-09-29 in isolated tmux session.
+
+Turn 1
+  User: For this live acceptance session, the current work is to validate that Mom updates in a real Pi terminal. Reply exactly TURN_ONE_SETTLED. Do not use tools.
+  Lead: TURN_ONE_SETTLED
+  Widget after Mom settled:
+    Mom · up to date · last saved 0s ago
+    └─ Validate Mom updates in a real Pi terminal · you are here · main line · 0/1 done
+
+/mom map after turn 1
+  Endeavor: Validate Mom updates in a real Pi terminal [pi_acceptance] — in progress · current
+  Purpose: Validate that Mom updates occur in a real Pi terminal during the live acceptance session.
+
+Turn 2
+  User: Add this durable acceptance requirement to the current work: evidence must record the session and Mom sidecar hashes. Reply exactly TURN_TWO_SETTLED. Do not use tools.
+  Lead: TURN_TWO_SETTLED
+  Widget after Mom settled:
+    Mom · up to date · last saved 0s ago
+    └─ Validate Mom updates in a real Pi terminal · you are here · main line · 0/1 done
+
+/mom map after turn 2
+  Endeavor: Validate Mom updates in a real Pi terminal [pi_acceptance] — in progress · current
+  For this live acceptance session, evidence must record the session and Mom sidecar hashes.
+
+/mom detail
+  missingSources: []
+  skippedEvidence: []
+  sessionUsage.calls: 2
+  sessionUsage.input: 5921
+  sessionUsage.output: 734
+  sessionUsage.cacheRead: 2688
+  sessionUsage.cacheWrite: 0
+  sessionUsage.nominalCost: 0.00211876
+  sessionUsage.elapsedMs: 17058
+  saved.revision: 2
+  saved.nodes: 2
+
+No "Mom couldn't update her notes" or permanent feed error appeared. The current marker was suppressed during catch-up and appeared only with `Mom · up to date` after accepted coverage.

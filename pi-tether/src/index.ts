@@ -271,7 +271,7 @@ export default function piTether(pi: ExtensionAPI) {
 			}
 		},
 	});
-	pi.registerCommand("mom", { description: "Mom: status · graph [endeavor] [depth] · detail · ask <question> · correct <text> · source <id> [offset] · refresh · pause · resume",
+	pi.registerCommand("mom", { description: "Mom: status · map|graph [endeavor] [depth] · detail · ask <question> · correct <text> · source <id> [offset] · refresh · pause · resume",
 		handler: async (args, context) => {
 			const [command, ...parts] = args.trim().split(/\s+/);
 			const text = parts.join(" ");
@@ -296,7 +296,7 @@ export default function piTether(pi: ExtensionAPI) {
 						details: { origin: "user-command" } }, { triggerTurn: false });
 					wake(); return;
 				}
-				if (command === "graph") {
+				if (command === "graph" || command === "map") {
 					await ready;
 					if (openingError || !mom) throw new Error(openingError ?? "Mom session is unavailable.");
 					context.ui.notify(readText(presentGraph(mom.readGraph({ nodes: parts[0] ? [parts[0]] : undefined, depth: parts[1] ? Number(parts[1]) : undefined })), Boolean(parts[0])), "info"); return;
@@ -309,7 +309,7 @@ export default function piTether(pi: ExtensionAPI) {
 				}
 				if (command === "refresh") { await run(undefined, undefined, true); context.ui.notify(cached(), "info"); return; }
 				if (command === "ask" && text) { const answer = await run(text); context.ui.notify(answer ?? "Mom returned no answer.", "info"); return; }
-				throw new Error("Use /mom, status, graph, detail, ask, correct, source, refresh, pause, or resume.");
+				throw new Error("Use /mom, status, map, graph, detail, ask, correct, source, refresh, pause, or resume.");
 			} catch (error) {
 				readError = String(error);
 				context.ui.notify("Mom couldn't complete that request. Your last saved view is unchanged. Use /mom detail for the reason and /mom for your place in the work.", "error");
