@@ -33,7 +33,7 @@ Mechanical coverage includes:
 - no Mom state custom entries in the session transcript;
 - branch-safe sidecar restore, failure retry, source lookup, hierarchy, carry, and display behavior.
 
-Scripted tests establish runtime mechanics, not general semantic reliability. The isolated Luna-low capture at `pi-tether/experiments/evidence/todo-007-real-luna-purpose-map.json` did produce one mother root with the original Tether→Mom purpose, current acceptance work, a parked replay branch, a PageIndex alternative, a cold-reload blocker, and reopenable sources. It needed the allowed second call to repair an invalid purpose pointer. This one synthetic source-labeled case is evidence for the contract path, not a reliability claim.
+Scripted tests establish runtime mechanics, not general semantic reliability. The isolated Luna-low capture at `pi-tether/experiments/evidence/todo-007-real-luna-purpose-map.json` ran production Mom over a copied real-session backlog with a fresh temp-only sidecar. Three accepted batches kept one stable mother root, advanced source/worker cursors, and rendered literal source-backed English `Why` text while staying within the two-call background ceiling (2, 2, and 1 calls). The source hash stayed unchanged. The captured prefix had no parked endeavor or `alternative_to` relation, so this proof does not claim either category or general reliability.
 
 ## Verification and next step
 

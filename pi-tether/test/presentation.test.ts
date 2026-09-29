@@ -39,14 +39,13 @@ test("default carry story prioritizes the unresolved hold, not the finished work
 	assert.equal(result, summaryText(view));
 	const lines = result.split("\n");
 	assert.equal(lines[0], "Mother thread: Label for main [main] — finished · current");
-	assert.match(lines[1]!, /^  Current · in force: \[hold\] The question remains unanswered: do not answer yet/);
-	assert.match(lines[2]!, /^    Why: \[src:session:hold\]/);
-	assert.match(result, /Rules in force \(3\):\n    Keep protected.txt untouched/);
+	assert.match(lines[1]!, /^  Current · in force: \[hold\] Why: The question remains unanswered: do not answer yet.*\[src:session:hold\]/);
+	assert.match(result, /Rules in force \(3\):\n    Why: Keep protected.txt untouched/);
 	assert.match(result, /Waiting on you \(1\):\n    Leave the wording decision parked for the lead/);
 	assert.match(result, /Recorded outcomes \(2\):\n    Label for approved/);
 	assert.match(result, /Folded away → history saved-before/);
 	assert.doesNotMatch(result, /Recorded details|[{}]|governs|["“”]|Original request|Evidence for/);
-	assert.match(result, /Why: \[src:session:(?:hold|protect)\]/);
+	assert.match(result, /Why: (?:The question remains unanswered|Keep protected\.txt untouched).*\[src:session:(?:hold|protect)\]/);
 	assert.equal(result.match(/The question remains unanswered/g)?.length, 1);
 	assert.equal(result.match(/\[main\]/g)?.length, 1);
 	assert.equal(result.match(/\[hold\]/g)?.length, 1);
@@ -113,7 +112,7 @@ test("recorded rule scopes remain exact, including annotation endpoints", () => 
 	const raw = carriedGraph();
 	raw.edges.find(e => e.from === "protect")!.to = "wording";
 	const result = readText(presentGraph(raw));
-	assert.match(result, /Keep protected.txt untouched[^\n]*\n      Why: \[src:session:protect\]\n      Applies to: Label for wording/);
+	assert.match(result, /Why: Keep protected.txt untouched[^\n]*\[src:session:protect\]\n      Applies to: Label for wording/);
 	assert.doesNotMatch(result, /governs/);
 	assert.equal(presentGraph(raw).connections.find(c => c.fromAnnotation === "protect")!.toAnnotation, "wording");
 });
@@ -134,7 +133,7 @@ test("selected notes retain one handle and win their bounded group without repea
 	const raw = carriedGraph();
 	const selected = raw.nodes.find(n => n.id === "complete")!;
 	const result = readText(presentGraph({ ...raw, nodes: [selected], boundaryNodes: raw.nodes.filter(n => n !== selected), omittedNodes: 7, totalNodes: 8 }));
-	assert.match(result, /Rules in force \(3\):\n    \[complete\] Do not reopen implementation/);
+	assert.match(result, /Rules in force \(3\):\n    \[complete\] Why: Do not reopen implementation/);
 	assert.equal(result.match(/\[complete\]/g)?.length, 1);
 	assert.equal(result.match(/\[main\]/g)?.length, 1);
 	assert.doesNotMatch(result, /\[protect\]|\[readonly\]/);
@@ -146,7 +145,7 @@ test("long modifiers and extra scope targets are visibly truncated, never silent
 	raw.edges = raw.edges.filter(e => e.from !== "protect");
 	for (const to of ["approved", "result", "wording"]) raw.edges.push({ from: "protect", to, relation: "governs", sources: ["scope:source"] });
 	const view = presentGraph(raw), result = readText(view);
-	assert.match(result, /Keep the shared interface unchanged[^\n]*…\n      Why: \[src:session:protect\]\n      Applies to: Label for approved; Label for result; … 1 more/);
+	assert.match(result, /Why: Keep the shared interface unchanged[^\n]*… \[src:session:protect\]\n      Applies to: Label for approved; Label for result; … 1 more/);
 	assert.ok(result.split("\n").every(line => line.length <= 250));
 	assert.match(readText(view, true), /only within the original limited scope/);
 	assert.equal(view.connections.filter(c => c.fromAnnotation === "protect").length, 3);
@@ -163,7 +162,7 @@ test("selected/historical reads expose boundary and selection without implying c
 	assert.match(result, /Selection: 1 records; 7 of 8 outside selection, 6 not loaded/);
 	assert.match(result, /Context \(1\): name\/state only/);
 	assert.doesNotMatch(result, /· current|Original request/);
-	assert.match(result, /Why: \[src:session:hold\]/);
+	assert.match(result, /Why: The question remains unanswered[^\n]*\[src:session:hold\]/);
 	assert.deepEqual(view.selected, ["hold"]);
 	assert.deepEqual(view.focusPath, ["main"]);
 	assert.equal(view.endeavors[0]!.summaryOnly, true);

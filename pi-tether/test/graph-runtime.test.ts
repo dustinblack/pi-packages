@@ -30,7 +30,8 @@ test("agents read current neighborhoods, folded history and original sources wit
 			const body = input(request), ref = /\[src:([^\]]+)\]/.exec(body.newEvents)![1];
 			const put = (id: string, kind: string, state: string, parent: string | null = "main") => ({
 				id, kind, parent, state, label: id,
-				intent: id === "main" ? body.graph.nodes.find((node: any) => node.id === "main")?.intent ?? body.original.text : id === "hold" ? "No file edits." : id,
+				intent: id === "main" ? body.graph.nodes.find((node: any) => node.id === "main")?.intent ?? body.original.text
+					: id === "research" ? "Research returned with two findings" : id === "pending" ? "defer wording" : id === "hold" ? "No file edits" : id,
 				observed: "Reported in the source.", actor: "lead", sources: [ref],
 			});
 			const edge = (from: string, relation: string, to: string) => ({ from, relation, to, sources: [ref] });

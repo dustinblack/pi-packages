@@ -42,11 +42,10 @@ test("one persisted mother-thread root coordinates current, interrupted, blocker
 	assert.match(text, /Endeavor: considered alternative \[considered_alternative\] — proposed/);
 	assert.match(text, /Depends on: blocking proof/);
 	assert.match(text, /Alternative to: current work/);
-	assert.match(text, /Purpose: Build Tether into Mom/);
-	assert.match(text, /Why: \[src:s:origin\]/);
+	assert.match(text, /Why: Build Tether into Mom while preserving the session's original purpose\. \[src:s:origin\]/);
 });
 
-test("unrooted maps, root replacement, and invented rationale fields are rejected", () => {
+test("roots and alternatives preserve the mother-thread structural contract", () => {
 	assert.throws(() => editGraph(emptyGraph(), 0, [
 		put(node("one", null, "active", "s:origin", "One purpose.")),
 		put(node("two", null, "active", "s:current", "Peer purpose.")),
@@ -54,18 +53,34 @@ test("unrooted maps, root replacement, and invented rationale fields are rejecte
 	const graph = purposeMap();
 	assert.throws(() => editGraph(graph, graph.revision, [], "current_work", "current_work", refs), /Mother-thread root identity is stable/);
 	assert.throws(() => checkGraph({ ...graph, motherThread: null }), /stable mother-thread root/);
+	const rule = node("rule", "mother", "active", "s:current", "Keep the map read-only.", "rule");
+	assert.throws(() => editGraph(graph, graph.revision, [put(rule), edge("current_work", "alternative_to", "rule", "s:current")],
+		"mother", "current_work", refs), /endpoints must both be endeavors/);
+	assert.throws(() => editGraph(graph, graph.revision, [put(rule), edge("rule", "alternative_to", "current_work", "s:current")],
+		"mother", "current_work", refs), /endpoints must both be endeavors/);
+});
 
-	const user: FeedEvent = { ref: "s:user", actor: "lead", kind: "user", at: "", text: "Keep the original purpose." };
-	const known = new Map([[user.ref, user]]), root = node("mother", null, "active", user.ref, "Keep the original purpose.");
-	const transaction = { revision: 0, purpose: "mother", focus: "mother", unfinished: [], upsertNodes: [{ ...root, rationale: "Because efficiency demands it." }],
+test("public Why accepts full literal quotes and rejects overlap, paraphrase, invented fields, and assistant-only roots", () => {
+	const user: FeedEvent = { ref: "s:user", actor: "lead", kind: "user", at: "", text: "Keep this original session purpose while mapping work." };
+	const ruleSource: FeedEvent = { ref: "s:rule", actor: "lead", kind: "user", at: "", text: "Do not push or close the todo." };
+	const known = new Map([[user.ref, user], [ruleSource.ref, ruleSource]]), root = node("mother", null, "active", user.ref, "Keep this original session purpose");
+	const rule = node("hold", "mother", "active", ruleSource.ref, "Do not push or close the todo", "rule");
+	const transaction = { revision: 0, purpose: "mother", focus: "mother", unfinished: [], upsertNodes: [root, rule],
 		upsertEdges: [], removeEdges: [], merges: [], folds: [], removeNodes: [], supersessions: [], note: null };
-	assert.throws(() => acceptGraph(transaction, emptyGraph(), undefined, known, new Set([user.ref]), new Set()), /Invalid graph transaction shape/);
-	const ungrounded = { ...transaction, upsertNodes: [node("mother", null, "active", user.ref, "Improve unrelated operational efficiency.")] };
-	assert.throws(() => acceptGraph(ungrounded, emptyGraph(), undefined, known, new Set([user.ref]), new Set()), /must quote an identifying phrase/);
+	const accepted = acceptGraph(transaction, emptyGraph(), undefined, known, new Set(known.keys()), new Set());
+	assert.equal(accepted.graph.nodes.length, 2);
+	assert.throws(() => acceptGraph({ ...transaction, upsertNodes: [{ ...root, rationale: "Because efficiency demands it." }, rule] }, emptyGraph(), undefined,
+		known, new Set(known.keys()), new Set()), /Invalid graph transaction shape/);
+	// The former three-word anchor accepted "Keep this original" even though the
+	// rest was invented and unrelated. Full-intent grounding must reject it.
+	const genericOverlap = { ...transaction, upsertNodes: [node("mother", null, "active", user.ref, "Keep this original goal for an unrelated deployment."), rule] };
+	assert.throws(() => acceptGraph(genericOverlap, emptyGraph(), undefined, known, new Set(known.keys()), new Set()), /normalized contiguous quote/);
+	const paraphrasedRule = { ...transaction, upsertNodes: [root, { ...rule, intent: "Never publish or finish this task." }] };
+	assert.throws(() => acceptGraph(paraphrasedRule, emptyGraph(), undefined, known, new Set(known.keys()), new Set()), /Public Why for hold/);
 	const assistant: FeedEvent = { ref: "s:assistant", actor: "lead", kind: "assistant", at: "", text: "I invented a purpose." };
 	const assistantKnown = new Map([[assistant.ref, assistant]]);
-	assert.throws(() => acceptGraph({ ...transaction, upsertNodes: [node("mother", null, "active", assistant.ref, "Invented purpose.")] }, emptyGraph(), undefined,
-		assistantKnown, new Set([assistant.ref]), new Set()), /must quote an identifying phrase/);
+	assert.throws(() => acceptGraph({ ...transaction, upsertNodes: [node("mother", null, "active", assistant.ref, "I invented a purpose")] }, emptyGraph(), undefined,
+		assistantKnown, new Set([assistant.ref]), new Set()), /cited user purpose source/);
 });
 
 test("current-format forest cutover is deterministic, idempotent, source-preserving, and cold-stable", { timeout: 15000 }, async () => {
@@ -101,33 +116,30 @@ test("current-format forest cutover is deterministic, idempotent, source-preserv
 	} finally { mom.close(); await h.close(); }
 });
 
-test("cold catch-up builds chapter-level hierarchy within one-call healthy update budgets", { timeout: 15000 }, async () => {
-	const h = await setup(); let mom = h.createMom(), step = 0;
+test("one deterministic cold catch-up maps a multi-chapter backlog within one healthy call", { timeout: 15000 }, async () => {
+	const h = await setup(); let mom = h.createMom();
 	try {
+		await h.runtime.session.prompt("Build Tether into Mom with a durable purpose map.");
+		await h.runtime.session.prompt("Pause implementation and validate the production map first.");
+		await h.runtime.session.prompt("Keep replay navigation as a considered alternative.");
 		h.api.onUnscripted((request) => {
 			if (!isMomRequest(request)) return { text: "Lead continued." };
-			const body = input(request), ref = /\[src:([^\]]+)\]/.exec(body.newEvents)?.[1] ?? body.original.ref;
-			const base = { revision: body.graph.revision, purpose: "mother", focus: step === 0 ? "implementation" : "acceptance",
-				unfinished: [], upsertEdges: [], removeEdges: [], merges: [], folds: [], removeNodes: [], supersessions: [], note: null };
-			if (step++ === 0) return { tool: { name: "commit_graph", arguments: { ...base, upsertNodes: [
-				node("mother", null, "active", ref, "Build Tether into Mom with a durable purpose map."),
-				node("implementation", "mother", "active", ref, "Implement Mom's first production map."),
-			] } } };
-			if (step === 2) {
-				const implementation = body.graph.nodes.find((item: GraphNode) => item.id === "implementation") as GraphNode;
-				return { tool: { name: "commit_graph", arguments: { ...base, upsertNodes: [
-					{ ...implementation, state: "parked", sources: [...new Set([...implementation.sources, ref])] },
-					node("acceptance", "mother", "active", ref, "Validate the production map before returning to implementation."),
-				] } } };
-			}
-			return { tool: { name: "commit_graph", arguments: { ...base, focus: "acceptance", upsertNodes: [
-				node("replay_alternative", "mother", "proposed", ref, "Consider replay navigation as an alternative."),
-			], upsertEdges: [{ from: "replay_alternative", relation: "alternative_to", to: "acceptance", sources: [ref] }] } } };
+			const body = input(request), source = (phrase: string) => {
+				const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+				return new RegExp(`\\[src:([^\\]]+)\\][^\\n]*\\n${escaped}`).exec(body.newEvents)?.[1] ?? body.original.ref;
+			};
+			const origin = body.original.ref, pivot = source("Pause implementation"), alternative = source("Keep replay navigation");
+			return { tool: { name: "commit_graph", arguments: { revision: body.graph.revision, purpose: "mother", focus: "acceptance", unfinished: [],
+				upsertNodes: [
+					node("mother", null, "active", origin, "Build Tether into Mom with a durable purpose map"),
+					node("implementation", "mother", "parked", pivot, "Pause implementation and validate the production map first"),
+					node("acceptance", "mother", "active", pivot, "validate the production map first"),
+					node("replay_alternative", "mother", "proposed", alternative, "Keep replay navigation as a considered alternative"),
+				], upsertEdges: [{ from: "replay_alternative", relation: "alternative_to", to: "acceptance", sources: [alternative] }],
+				removeEdges: [], merges: [], folds: [], removeNodes: [], supersessions: [], note: null } } };
 		});
-		await h.runtime.session.prompt("Build Tether into Mom with a durable purpose map."); await mom.open(); await mom.update();
-		await h.runtime.session.prompt("Pause implementation and validate the production map first."); await mom.update();
-		await h.runtime.session.prompt("Keep replay navigation as a considered alternative."); await mom.update();
-		assert.equal(h.requests().length, 3); assert.equal(mom.usage.calls, 3, "each healthy catch-up boundary costs one call");
+		await mom.open(); await mom.update();
+		assert.equal(h.requests().length, 1); assert.equal(mom.usage.calls, 1, "the settled multi-chapter backlog costs one healthy proposal call");
 		assert.deepEqual(mom.graph.nodes.filter(item => item.parent === "mother").map(item => item.id).sort(), ["acceptance", "implementation", "replay_alternative"]);
 		const before = hash({ graph: mom.graph, cut: mom.checkpoint!.cut }), checkpointId = mom.checkpointId;
 		mom.close(); await h.runtime.session.reload(); mom = h.createMom(); await mom.open();

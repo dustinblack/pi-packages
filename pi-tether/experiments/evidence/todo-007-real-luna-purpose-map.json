@@ -1,430 +1,306 @@
 {
-  "schema": "todo-007-real-luna-capture",
-  "capturedAt": "2026-09-29T18:17:56.216Z",
+  "schema": "todo-007-real-session-cold-catchup-v2",
+  "capturedAt": "2026-09-29T18:48:23.964Z",
   "model": {
     "provider": "openai-codex",
     "id": "gpt-5.6-luna",
     "reasoning": "low"
   },
-  "isolation": "Synthetic source-labeled session fixture; no user session JSONL or .mom file was opened or written.",
-  "promptSha256": "7abed6e8a09063a2c2f27bb624edcbab2e9867052885280aaa42cd4b5a67895e",
-  "fixture": [
-    {
-      "ref": "capture:user:origin",
-      "at": "2026-09-29T00:00:00Z",
-      "actor": "lead",
-      "kind": "user",
-      "text": "Build Tether into Mom: keep one durable purpose map of the whole session, from the original purpose through current work and detours."
-    },
-    {
-      "ref": "capture:assistant:implementation",
-      "at": "2026-09-29T00:01:00Z",
-      "actor": "lead",
-      "kind": "assistant",
-      "text": "I started implementing the production Mom map."
-    },
-    {
-      "ref": "capture:user:pivot",
-      "at": "2026-09-29T00:02:00Z",
-      "actor": "lead",
-      "kind": "user",
-      "text": "Pause the transcript replay branch. Production map acceptance is the current work, and we must return to replay afterward."
-    },
-    {
-      "ref": "capture:assistant:blocker",
-      "at": "2026-09-29T00:03:00Z",
-      "actor": "lead",
-      "kind": "assistant",
-      "text": "Production map acceptance is blocked on a cold-reload proof."
-    },
-    {
-      "ref": "capture:user:alternative",
-      "at": "2026-09-29T00:04:00Z",
-      "actor": "lead",
-      "kind": "user",
-      "text": "Keep PageIndex navigation as a considered alternative, not the current plan."
-    }
-  ],
-  "calls": [
-    {
-      "round": 1,
-      "stopReason": "toolUse",
-      "operations": [
-        {
-          "name": "commit_graph",
-          "arguments": {
-            "revision": 0,
-            "purpose": "Build Tether into Mom: keep one durable purpose map of the whole session, from the original purpose through current work and detours.",
-            "focus": "production_acceptance",
-            "unfinished": [],
-            "upsertNodes": [
-              {
-                "id": "root",
-                "kind": "feature",
-                "parent": null,
-                "state": "active",
-                "label": "Maintain Mom's durable session purpose map",
-                "intent": "Build Tether into Mom so the whole session is represented in one durable purpose map, from the original purpose through current work and detours.",
-                "observed": "The session's original purpose is to maintain a durable purpose map.",
-                "actor": "lead user",
-                "sources": [
-                  "capture:user:origin"
-                ]
-              },
-              {
-                "id": "production_acceptance",
-                "kind": "feature",
-                "parent": "root",
-                "state": "active",
-                "label": "Accept the production Mom map",
-                "intent": "Make production map acceptance the current work; acceptance remains blocked on a cold-reload proof.",
-                "observed": "Production map acceptance is the current work and is reported blocked on a cold-reload proof.",
-                "actor": "lead assistant",
-                "sources": [
-                  "capture:user:pivot",
-                  "capture:assistant:blocker"
-                ]
-              },
-              {
-                "id": "transcript_replay",
-                "kind": "try",
-                "parent": "root",
-                "state": "parked",
-                "label": "Replay the transcript",
-                "intent": "Pause transcript replay while production map acceptance is current; return to replay afterward.",
-                "observed": "The user explicitly paused this branch and required a later return.",
-                "actor": "lead user",
-                "sources": [
-                  "capture:user:pivot"
-                ]
-              },
-              {
-                "id": "pageindex_navigation",
-                "kind": "try",
-                "parent": "root",
-                "state": "proposed",
-                "label": "Consider PageIndex navigation",
-                "intent": "Keep PageIndex navigation as a considered alternative, not the current plan.",
-                "observed": "PageIndex navigation is retained as an alternative to the current production acceptance plan.",
-                "actor": "lead user",
-                "sources": [
-                  "capture:user:alternative"
-                ]
-              },
-              {
-                "id": "cold_reload_proof",
-                "kind": "rule",
-                "parent": "production_acceptance",
-                "state": "active",
-                "label": "Obtain a cold-reload proof before acceptance",
-                "intent": "Production map acceptance is blocked until a cold-reload proof is obtained; this is a continuing prerequisite for the current acceptance work.",
-                "observed": "The production map acceptance was reported blocked on a cold-reload proof.",
-                "actor": "lead assistant",
-                "sources": [
-                  "capture:assistant:blocker"
-                ]
-              }
-            ],
-            "upsertEdges": [
-              {
-                "from": "production_acceptance",
-                "relation": "depends_on",
-                "to": "cold_reload_proof",
-                "sources": [
-                  "capture:assistant:blocker"
-                ]
-              },
-              {
-                "from": "pageindex_navigation",
-                "relation": "alternative_to",
-                "to": "production_acceptance",
-                "sources": [
-                  "capture:user:alternative"
-                ]
-              },
-              {
-                "from": "transcript_replay",
-                "relation": "returns_to",
-                "to": "root",
-                "sources": [
-                  "capture:user:pivot"
-                ]
-              }
-            ],
-            "removeEdges": [],
-            "merges": [],
-            "folds": [],
-            "removeNodes": [],
-            "supersessions": [],
-            "note": null,
-            "answer": null
-          }
-        }
-      ],
-      "usage": {
-        "input": 4302,
-        "output": 644,
-        "cacheRead": 0,
-        "cacheWrite": 0,
-        "reasoning": 63,
-        "totalTokens": 4946,
-        "cost": {
-          "input": 0.0008604000000000001,
-          "output": 0.0007727999999999999,
-          "cacheRead": 0,
-          "cacheWrite": 0,
-          "total": 0.0016332
-        }
-      },
-      "elapsedMs": 14219,
-      "error": null,
-      "rejection": "Error: Invalid endeavor map shape: /purpose: must match pattern \"^[A-Za-z][A-Za-z0-9_-]{0,63}$\"; /purpose: must be null; /purpose: must match a schema in anyOf; /motherThread: must match pattern \"^[A-Za-z][A-Za-z0-9_-]{0,63}$\"."
-    },
-    {
-      "round": 2,
-      "stopReason": "toolUse",
-      "operations": [
-        {
-          "name": "commit_graph",
-          "arguments": {
-            "revision": 0,
-            "purpose": "root",
-            "focus": "production_acceptance",
-            "unfinished": [],
-            "upsertNodes": [
-              {
-                "id": "root",
-                "kind": "feature",
-                "parent": null,
-                "state": "active",
-                "label": "Maintain Mom's durable session purpose map",
-                "intent": "Build Tether into Mom so the whole session is represented in one durable purpose map, from the original purpose through current work and detours.",
-                "observed": "The session's original purpose is to maintain a durable purpose map.",
-                "actor": "lead user",
-                "sources": [
-                  "capture:user:origin"
-                ]
-              },
-              {
-                "id": "production_acceptance",
-                "kind": "feature",
-                "parent": "root",
-                "state": "active",
-                "label": "Accept the production Mom map",
-                "intent": "Make production map acceptance the current work; acceptance remains blocked on a cold-reload proof.",
-                "observed": "Production map acceptance is the current work and is reported blocked on a cold-reload proof.",
-                "actor": "lead assistant",
-                "sources": [
-                  "capture:user:pivot",
-                  "capture:assistant:blocker"
-                ]
-              },
-              {
-                "id": "transcript_replay",
-                "kind": "try",
-                "parent": "root",
-                "state": "parked",
-                "label": "Replay the transcript",
-                "intent": "Pause transcript replay while production map acceptance is current; return to replay afterward.",
-                "observed": "The user explicitly paused this branch and required a later return.",
-                "actor": "lead user",
-                "sources": [
-                  "capture:user:pivot"
-                ]
-              },
-              {
-                "id": "pageindex_navigation",
-                "kind": "try",
-                "parent": "root",
-                "state": "proposed",
-                "label": "Consider PageIndex navigation",
-                "intent": "Keep PageIndex navigation as a considered alternative, not the current plan.",
-                "observed": "PageIndex navigation is retained as an alternative to the current production acceptance plan.",
-                "actor": "lead user",
-                "sources": [
-                  "capture:user:alternative"
-                ]
-              },
-              {
-                "id": "cold_reload_proof",
-                "kind": "rule",
-                "parent": "production_acceptance",
-                "state": "active",
-                "label": "Obtain a cold-reload proof before acceptance",
-                "intent": "Production map acceptance is blocked until a cold-reload proof is obtained; this is a continuing prerequisite for the current acceptance work.",
-                "observed": "The production map acceptance was reported blocked on a cold-reload proof.",
-                "actor": "lead assistant",
-                "sources": [
-                  "capture:assistant:blocker"
-                ]
-              }
-            ],
-            "upsertEdges": [
-              {
-                "from": "production_acceptance",
-                "relation": "depends_on",
-                "to": "cold_reload_proof",
-                "sources": [
-                  "capture:assistant:blocker"
-                ]
-              },
-              {
-                "from": "pageindex_navigation",
-                "relation": "alternative_to",
-                "to": "production_acceptance",
-                "sources": [
-                  "capture:user:alternative"
-                ]
-              },
-              {
-                "from": "transcript_replay",
-                "relation": "returns_to",
-                "to": "root",
-                "sources": [
-                  "capture:user:pivot"
-                ]
-              }
-            ],
-            "removeEdges": [],
-            "merges": [],
-            "folds": [],
-            "removeNodes": [],
-            "supersessions": [],
-            "note": null,
-            "answer": null
-          }
-        }
-      ],
-      "usage": {
-        "input": 1593,
-        "output": 582,
-        "cacheRead": 3456,
-        "cacheWrite": 0,
-        "reasoning": 26,
-        "totalTokens": 5631,
-        "cost": {
-          "input": 0.00031860000000000005,
-          "output": 0.0006984,
-          "cacheRead": 0.00006912,
-          "cacheWrite": 0,
-          "total": 0.00108612
-        }
-      },
-      "elapsedMs": 13449,
-      "error": null
-    }
-  ],
-  "checks": {
-    "exactlyOneRoot": true,
-    "persistedMotherRoot": true,
-    "originalPurpose": true,
-    "currentWork": true,
-    "interruptedBranch": true,
-    "consideredAlternative": true,
-    "blocker": true,
-    "allClaimsSourced": true
+  "production": {
+    "extension": "pi-tether/src/index.ts",
+    "implementation": "Mom",
+    "backgroundCallCeiling": 2,
+    "sidecarSuffix": ".mom"
   },
-  "graph": {
-    "revision": 1,
-    "motherThread": "root",
-    "purpose": "root",
-    "focus": "production_acceptance",
+  "isolation": "The source JSONL was copied before launch. Pi opened only the isolated copy as its session, and Mom created a fresh sidecar beside that copy. The source transcript was read-only evidence and retained the same SHA-256 before and after.",
+  "hashes": {
+    "sourceBeforeSha256": "65a2e7b0124929c7a4cb9580b15a247fb71242724bf52a9ab52f661dc4ae7499",
+    "sourceAfterSha256": "65a2e7b0124929c7a4cb9580b15a247fb71242724bf52a9ab52f661dc4ae7499",
+    "tempSessionInitialSha256": "65a2e7b0124929c7a4cb9580b15a247fb71242724bf52a9ab52f661dc4ae7499",
+    "tempSessionAfterSha256": "1c1bf7d33e11274efb210cb41725f0260e34ef23864669146730b59751b8a424",
+    "tempSidecarSha256": "845f0a71a2608e169890ae49c254f15cd2aefc64e8002e0f0c8fbc321c2f6c63",
+    "promptSha256": "115be6b9afb361b8ac3c92ce05d39242b1e57205e3e0fdbeb1ec20613fa4a543"
+  },
+  "files": {
+    "source": "2026-09-26T23-49-53-444Z_01a0e020-12a4-7474-819f-ad784bb5febd.jsonl",
+    "tempSession": "isolated-temp/session.jsonl",
+    "tempSidecar": "isolated-temp/session.mom"
+  },
+  "checks": {
+    "sourceUnchanged": true,
+    "tempOnlySidecar": true,
+    "stableMotherRoot": true,
+    "callsPerBackgroundBatchAtMostTwo": true,
+    "currentWork": true,
+    "sourceBackedEnglishWhy": true,
+    "interruptedParkedBranch": false,
+    "consideredAlternative": false
+  },
+  "limitations": [
+    "The captured cold-catch-up prefix contains no parked endeavor and no alternative_to relation in the accepted graph; this capture does not claim either category.",
+    "The 75-second run accepted three bounded backlog batches and stopped with later source history still pending; it proves multi-chapter cold catch-up, not full-session completion."
+  ],
+  "batches": [
+    {
+      "revision": 1,
+      "motherThread": "mother",
+      "focus": "aaron_audit",
+      "calls": 2,
+      "cumulativeCalls": 2,
+      "cursor": {
+        "parent": "f2577ae1",
+        "workers": []
+      },
+      "graphSha256": "1fcf751b5c7a54ff44afdad195f1842d434d825d84205266c92a0f5b1619690e"
+    },
+    {
+      "revision": 2,
+      "motherThread": "mother",
+      "focus": "tether_landing",
+      "calls": 2,
+      "cumulativeCalls": 4,
+      "cursor": {
+        "parent": "c8279712",
+        "workers": [
+          {
+            "runId": "scout-245c7f28-9ec7-4295-ba1c-b0d724ba4cf6",
+            "sessionId": "01a0e02c-56c1-7474-819f-ad7a1ed4879b",
+            "offset": 0,
+            "messages": 0,
+            "lastId": null,
+            "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "file": "2026-09-27T00-03-17-313Z_01a0e02c-56c1-7474-819f-ad7a1ed4879b.jsonl"
+          }
+        ]
+      },
+      "graphSha256": "e26032c4e24809e27954644baea01a623d386c5f05e69b44efa02ff9f317eed7"
+    },
+    {
+      "revision": 3,
+      "motherThread": "mother",
+      "focus": "tether_landing",
+      "calls": 1,
+      "cumulativeCalls": 5,
+      "cursor": {
+        "parent": "fbfe2782",
+        "workers": [
+          {
+            "runId": "scout-245c7f28-9ec7-4295-ba1c-b0d724ba4cf6",
+            "sessionId": "01a0e02c-56c1-7474-819f-ad7a1ed4879b",
+            "offset": 0,
+            "messages": 0,
+            "lastId": null,
+            "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "file": "2026-09-27T00-03-17-313Z_01a0e02c-56c1-7474-819f-ad7a1ed4879b.jsonl"
+          },
+          {
+            "runId": "scout-372e3ad0-170b-43e9-ab1b-36f702c3974e",
+            "sessionId": "01a0e053-4612-7474-819f-ad814f6e0bea",
+            "offset": 0,
+            "messages": 0,
+            "lastId": null,
+            "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "file": "2026-09-27T00-45-48-946Z_01a0e053-4612-7474-819f-ad814f6e0bea.jsonl"
+          }
+        ]
+      },
+      "graphSha256": "0ddd8c2b428acdada1d96b41660958cef9b4c69af9e2ace74e7da5c3350f8fbd"
+    }
+  ],
+  "finalCursor": {
+    "parent": "fbfe2782",
+    "workers": [
+      {
+        "runId": "scout-245c7f28-9ec7-4295-ba1c-b0d724ba4cf6",
+        "sessionId": "01a0e02c-56c1-7474-819f-ad7a1ed4879b",
+        "offset": 0,
+        "messages": 0,
+        "lastId": null,
+        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "file": "2026-09-27T00-03-17-313Z_01a0e02c-56c1-7474-819f-ad7a1ed4879b.jsonl"
+      },
+      {
+        "runId": "scout-372e3ad0-170b-43e9-ab1b-36f702c3974e",
+        "sessionId": "01a0e053-4612-7474-819f-ad814f6e0bea",
+        "offset": 0,
+        "messages": 0,
+        "lastId": null,
+        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "file": "2026-09-27T00-45-48-946Z_01a0e053-4612-7474-819f-ad814f6e0bea.jsonl"
+      }
+    ]
+  },
+  "finalGraph": {
+    "revision": 3,
+    "motherThread": "mother",
+    "purpose": "mother",
+    "focus": "tether_landing",
     "nodes": [
       {
-        "id": "root",
-        "kind": "feature",
+        "id": "mother",
+        "kind": "try",
         "parent": null,
         "state": "active",
-        "label": "Maintain Mom's durable session purpose map",
-        "intent": "Build Tether into Mom so the whole session is represented in one durable purpose map, from the original purpose through current work and detours.",
-        "observed": "The session's original purpose is to maintain a durable purpose map.",
-        "actor": "lead user",
+        "label": "Resume and evaluate the prior Claude Code work",
+        "intent": "Dig into Claude Code session 9ef739b2-a82f-4d9c-ad69-0d1013ad5066 and let's pick up where it left off",
+        "observed": "The recovered session left an uncommitted pi-tether extension with passing automated checks and a remaining real-work trial. The current continuation is auditing it against the Aaron flow.",
+        "actor": "",
         "sources": [
-          "capture:user:origin"
+          "01a0e020-12a4-7474-819f-ad784bb5febd:c9c8130b",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:d7adab30"
         ]
       },
       {
-        "id": "production_acceptance",
+        "id": "aaron_audit",
+        "kind": "theory",
+        "parent": "mother",
+        "state": "active",
+        "label": "Audit pi-tether against the Aaron flow",
+        "intent": "Audit it against the Aaron flow from that thread",
+        "observed": "The prior assessment says pi-tether has automated coverage and prior live UI exercise, but has not yet validated consistent model recognition of tangents or normal work with pi-omp enabled. The audit has begun with tether and history lookups; no audit conclusion is recorded yet.",
+        "actor": "",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:438cf1eb",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:97416790",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:d7922690",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:f2577ae1"
+        ]
+      },
+      {
+        "id": "tether_landing",
         "kind": "feature",
-        "parent": "root",
+        "parent": "mother",
         "state": "active",
-        "label": "Accept the production Mom map",
-        "intent": "Make production map acceptance the current work; acceptance remains blocked on a cold-reload proof.",
-        "observed": "Production map acceptance is the current work and is reported blocked on a cold-reload proof.",
-        "actor": "lead assistant",
+        "label": "Build hierarchical lead-and-trail Tether with landing",
+        "intent": "The missing capability is not more ledger display. It is a return/landing/tidy protocol: Tether keeps the map, and a trailing agent or fresh-eyes subagent periodically reconciles the map with the session and working directory.",
+        "observed": "The user chose safe auto-clean for narrowly defined temporary artifacts, with everything else reported, and required subagents/delegates for the landing work. Implementation activity continued afterward, including multiple edits and shell checks; no final implementation outcome is recorded in this slice.",
+        "actor": "",
         "sources": [
-          "capture:user:pivot",
-          "capture:assistant:blocker"
+          "01a0e020-12a4-7474-819f-ad784bb5febd:6725f8ef",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:b7bba13a",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:91d38ef5",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:6a2ffbdf",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:c8279712:b1",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:2a94cb3c",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:2171796b"
         ]
       },
       {
-        "id": "transcript_replay",
-        "kind": "try",
-        "parent": "root",
-        "state": "parked",
-        "label": "Replay the transcript",
-        "intent": "Pause transcript replay while production map acceptance is current; return to replay afterward.",
-        "observed": "The user explicitly paused this branch and required a later return.",
-        "actor": "lead user",
+        "id": "residue_policy",
+        "kind": "choice",
+        "parent": "tether_landing",
+        "state": "settled",
+        "label": "Use safe auto-clean for narrowly defined temporary artifacts",
+        "intent": "Use safe auto-clean for narrowly defined temporary artifacts while reporting everything else.",
+        "observed": "The user selected “Safe auto-clean.”",
+        "actor": "user",
         "sources": [
-          "capture:user:pivot"
+          "01a0e020-12a4-7474-819f-ad784bb5febd:2a94cb3c"
         ]
       },
       {
-        "id": "pageindex_navigation",
-        "kind": "try",
-        "parent": "root",
-        "state": "proposed",
-        "label": "Consider PageIndex navigation",
-        "intent": "Keep PageIndex navigation as a considered alternative, not the current plan.",
-        "observed": "PageIndex navigation is retained as an alternative to the current production acceptance plan.",
-        "actor": "lead user",
-        "sources": [
-          "capture:user:alternative"
-        ]
-      },
-      {
-        "id": "cold_reload_proof",
+        "id": "no_silent_cleanup",
         "kind": "rule",
-        "parent": "production_acceptance",
+        "parent": "tether_landing",
         "state": "active",
-        "label": "Obtain a cold-reload proof before acceptance",
-        "intent": "Production map acceptance is blocked until a cold-reload proof is obtained; this is a continuing prerequisite for the current acceptance work.",
-        "observed": "The production map acceptance was reported blocked on a cold-reload proof.",
-        "actor": "lead assistant",
+        "label": "Do not silently delete or overwrite user work",
+        "intent": "“Never silently delete or overwrite user work.”",
+        "observed": "The proposed landing boundary requires inspection, attribution, surfacing unexplained residue, and scoped confirmed cleanup rather than silent mutation.",
+        "actor": "",
         "sources": [
-          "capture:assistant:blocker"
+          "01a0e020-12a4-7474-819f-ad784bb5febd:6a2ffbdf"
+        ]
+      },
+      {
+        "id": "delegate_landing",
+        "kind": "rule",
+        "parent": "tether_landing",
+        "state": "active",
+        "label": "Use subagents and delegates for landing work",
+        "intent": "And it should use subagents/delegates",
+        "observed": "The user required subagents/delegates as part of the Tether landing and residue-handling approach.",
+        "actor": "user",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:2171796b"
         ]
       }
     ],
     "edges": [
       {
-        "from": "production_acceptance",
-        "relation": "depends_on",
-        "to": "cold_reload_proof",
-        "sources": [
-          "capture:assistant:blocker"
-        ]
-      },
-      {
-        "from": "pageindex_navigation",
-        "relation": "alternative_to",
-        "to": "production_acceptance",
-        "sources": [
-          "capture:user:alternative"
-        ]
-      },
-      {
-        "from": "transcript_replay",
+        "from": "tether_landing",
         "relation": "returns_to",
-        "to": "root",
+        "to": "mother",
         "sources": [
-          "capture:user:pivot"
+          "01a0e020-12a4-7474-819f-ad784bb5febd:91d38ef5"
+        ]
+      },
+      {
+        "from": "residue_policy",
+        "relation": "depends_on",
+        "to": "no_silent_cleanup",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:c8279712:b1"
         ]
       }
     ]
   },
-  "story": "Mother thread: Maintain Mom's durable session purpose map [root] — in progress\n  Purpose: Build Tether into Mom so the whole session is represented in one durable purpose map,…\n  Why: [src:capture:user:origin]\nEndeavor: Accept the production Mom map [production_acceptance] — in progress · current\n  Within: Maintain Mom's durable session purpose map\n  Rules in force (1):\n    Production map acceptance is blocked until a cold-reload proof is obtained; this is a…\n      Why: [src:capture:assistant:blocker]\n  Purpose: Make production map acceptance the current work; acceptance remains blocked on a…\n  Why: [src:capture:user:pivot]; [src:capture:assistant:blocker]\n  Depends on: Obtain a cold-reload proof before acceptance\nEndeavor: Consider PageIndex navigation [pageindex_navigation] — proposed\n  Within: Maintain Mom's durable session purpose map\n  Purpose: Keep PageIndex navigation as a considered alternative, not the current plan.\n  Why: [src:capture:user:alternative]\n  Alternative to: Accept the production Mom map\nEndeavor: Replay the transcript [transcript_replay] — waiting\n  Within: Maintain Mom's durable session purpose map\n  Purpose: Pause transcript replay while production map acceptance is current; return to replay…\n  Why: [src:capture:user:pivot]\n  Returns to: Maintain Mom's durable session purpose map\nDetails: select an endeavor for full annotations and sources.",
-  "graphSha256": "fb466cbbb52dac4bae779694135fab7d3f6d98901f41ed0d6791e8d384e57155",
-  "presentationValidatedAt": "2026-09-29T18:22:54.556Z"
+  "finalGraphSha256": "0ddd8c2b428acdada1d96b41660958cef9b4c69af9e2ace74e7da5c3350f8fbd",
+  "whyEvidence": [
+    {
+      "node": "mother",
+      "intent": "Dig into Claude Code session 9ef739b2-a82f-4d9c-ad69-0d1013ad5066 and let's pick up where it left off",
+      "source": "01a0e020-12a4-7474-819f-ad784bb5febd:c9c8130b",
+      "actor": "lead",
+      "kind": "user",
+      "text": "Dig into Claude Code session 9ef739b2-a82f-4d9c-ad69-0d1013ad5066 and let's pick up where it left off"
+    },
+    {
+      "node": "aaron_audit",
+      "intent": "Audit it against the Aaron flow from that thread",
+      "source": "01a0e020-12a4-7474-819f-ad784bb5febd:438cf1eb",
+      "actor": "lead",
+      "kind": "user",
+      "text": "Audit it against the Aaron flow from that thread"
+    },
+    {
+      "node": "tether_landing",
+      "intent": "The missing capability is not more ledger display. It is a return/landing/tidy protocol: Tether keeps the map, and a trailing agent or fresh-eyes subagent periodically reconciles the map with the session and working directory.",
+      "source": "01a0e020-12a4-7474-819f-ad784bb5febd:6a2ffbdf",
+      "actor": "lead",
+      "kind": "assistant",
+      "text": "No. **Current Tether does not reorganize or clean anything behind us.**\n\nIt only:\n\n- Stores the latest thread snapshot in the Pi session.\n- Shows active/open threads.\n- Lets the agent or user rename, park, activate, complete, or drop entries.\n- Re-injects that state after reload/compaction.\n\nIt does **not**:\n\n- Build parent/child ancestry.\n- Re-anchor a tangent to the original purpose.\n- Fold findings back into parent tasks.\n- Inspect `git status`.\n- Attribute files to tasks.\n- Detect abandoned work.\n- Clean temporary files or directories.\n- Reorganize task state after the fact.\n- Run a tidy/landing pass.\n\n`done` currently means only “remove this thread from the live list.” It does not mean the working directory is clean or the result has been landed.\n\n## Desired trailing flow\n\nThe Tether role should be:\n\n```text\nUser leads\n  ↓\nTether records why work was spawned and where it came from\n  ↓\nAgent/delegate works at depth\n  ↓\nTether checks the result against the parent purpose\n  ↓\nFindings and files are accounted for\n  ↓\nChild is folded back, parked, or explicitly abandoned\n  ↓\nParent continues with a clean state\n```\n\nAt return/landing, it should reconcile:\n\n- Current root purpose.\n- Parent and child tasks.\n- Outcome and remaining work.\n- Files changed.\n- Validation performed.\n- Untracked or unexplained files.\n- Open side work.\n- Exact next step.\n\n## Important safety boundary\n\n“Clean” cannot mean “delete everything that is not in the current task.” Some dirty files are intentional user work.\n\nThe safe behavior is:\n\n1. Inspect the working tree.\n2. Attribute changes where possible.\n3. Surface unexplained residue.\n4. Propose cleanup or parking.\n5. Execute only scoped, confirmed cleanup.\n6. Never silently delete or overwrite user work.\n\nSo the missing capability is not more ledger display. It is a **return/landing/tidy protocol**: Tether keeps the map, and a trailing agent or fresh-eyes subagent periodically reconciles the map with the session and working directory."
+    },
+    {
+      "node": "no_silent_cleanup",
+      "intent": "“Never silently delete or overwrite user work.”",
+      "source": "01a0e020-12a4-7474-819f-ad784bb5febd:6a2ffbdf",
+      "actor": "lead",
+      "kind": "assistant",
+      "text": "No. **Current Tether does not reorganize or clean anything behind us.**\n\nIt only:\n\n- Stores the latest thread snapshot in the Pi session.\n- Shows active/open threads.\n- Lets the agent or user rename, park, activate, complete, or drop entries.\n- Re-injects that state after reload/compaction.\n\nIt does **not**:\n\n- Build parent/child ancestry.\n- Re-anchor a tangent to the original purpose.\n- Fold findings back into parent tasks.\n- Inspect `git status`.\n- Attribute files to tasks.\n- Detect abandoned work.\n- Clean temporary files or directories.\n- Reorganize task state after the fact.\n- Run a tidy/landing pass.\n\n`done` currently means only “remove this thread from the live list.” It does not mean the working directory is clean or the result has been landed.\n\n## Desired trailing flow\n\nThe Tether role should be:\n\n```text\nUser leads\n  ↓\nTether records why work was spawned and where it came from\n  ↓\nAgent/delegate works at depth\n  ↓\nTether checks the result against the parent purpose\n  ↓\nFindings and files are accounted for\n  ↓\nChild is folded back, parked, or explicitly abandoned\n  ↓\nParent continues with a clean state\n```\n\nAt return/landing, it should reconcile:\n\n- Current root purpose.\n- Parent and child tasks.\n- Outcome and remaining work.\n- Files changed.\n- Validation performed.\n- Untracked or unexplained files.\n- Open side work.\n- Exact next step.\n\n## Important safety boundary\n\n“Clean” cannot mean “delete everything that is not in the current task.” Some dirty files are intentional user work.\n\nThe safe behavior is:\n\n1. Inspect the working tree.\n2. Attribute changes where possible.\n3. Surface unexplained residue.\n4. Propose cleanup or parking.\n5. Execute only scoped, confirmed cleanup.\n6. Never silently delete or overwrite user work.\n\nSo the missing capability is not more ledger display. It is a **return/landing/tidy protocol**: Tether keeps the map, and a trailing agent or fresh-eyes subagent periodically reconciles the map with the session and working directory."
+    },
+    {
+      "node": "delegate_landing",
+      "intent": "And it should use subagents/delegates",
+      "source": "01a0e020-12a4-7474-819f-ad784bb5febd:2171796b",
+      "actor": "lead",
+      "kind": "user",
+      "text": "And it should use subagents/delegates"
+    }
+  ],
+  "citedSourceLineSha256": {
+    "97416790": "7ce543ff6075310f7c7b6cdd770fb44e909dfeb7cb5507ed5a261b335617b78f",
+    "c9c8130b": "e2ae45044301197ad104acf4be11a86c24e7ff2943faa155d82e24c4f8b0d16c",
+    "d7adab30": "524acd5fb39f9e6df8201b1e1d432df0c5107b14574aaaee87ce7e1ae33a736d",
+    "438cf1eb": "021af3e90d00e33224572ca11209c58b7fc111e80704781c7bc85d43367c7df3",
+    "d7922690": "08fc7dd963ca432ee77911b20602b29706b92e311172cc95cfd385d39d624f66",
+    "f2577ae1": "c525d7af81928af700bb9ec3d49d360f012e80b35a0f9685458ba3f793412836",
+    "6725f8ef": "9ce8473ba6b3c80b750c063578e157c713c2eb85d35d8a7563445d0fd2eac6f8",
+    "b7bba13a": "70e67cf2471de31ec17a4866dcd0784e3cece5389b7973955fe9d34eba6cdd0e",
+    "91d38ef5": "4ac19eb79c768ac1a7371cd1e1761e9018913b2c562009ab821c764bb37fe511",
+    "6a2ffbdf": "8faeeb059cecbd09eab13cf691f8ebf1c569ffcc43209e73884d7cd38cadab5c",
+    "c8279712": "9d491190b3e1147de41bd760e2d42df4460fbcb2046c47217c682e72c43459f1",
+    "2a94cb3c": "81142bffa9d5a94709639ef88d892f807d74aa84db2de4bacec436b9df41222a",
+    "2171796b": "60cd42c5eb68c2f1e1eddc8290e6b66ec2b0a08a8183ce5f554cba4ad3d32e2f"
+  },
+  "story": "Mother thread: Resume and evaluate the prior Claude Code work [mother] — in progress\n  Why: Dig into Claude Code session 9ef739b2-a82f-4d9c-ad69-0d1013ad5066 and let's pick up where it left… [src:01a0e020-12a4-7474-819f-ad784bb5febd:c9c8130b]; [src:01a0e020-12a4-7474-819f-ad784bb5febd:d7adab30]\nEndeavor: Build hierarchical lead-and-trail Tether with landing [tether_landing] — in progress · current\n  Within: Resume and evaluate the prior Claude Code work\n  Rules in force (2):\n    Why: Never silently delete or overwrite user work. [src:01a0e020-12a4-7474-819f-ad784bb5febd:6a2ffbdf]\n    Why: And it should use subagents/delegates [src:01a0e020-12a4-7474-819f-ad784bb5febd:2171796b]\n  Recorded outcomes (1):\n    Use safe auto-clean for narrowly defined temporary artifacts\n  Why: The missing capability is not more ledger display. It is a return/landing/tidy protocol: Tether… [src:01a0e020-12a4-7474-819f-ad784bb5febd:6725f8ef]; [src:01a0e020-12a4-7474-819f-ad784bb5febd:b7bba13a]; … 5 more\n  Depends on: Do not silently delete or overwrite user work\n  Returns to: Resume and evaluate the prior Claude Code work\nEndeavor: Audit pi-tether against the Aaron flow [aaron_audit] — in progress\n  Within: Resume and evaluate the prior Claude Code work\n  Why: Audit it against the Aaron flow from that thread [src:01a0e020-12a4-7474-819f-ad784bb5febd:438cf1eb]; [src:01a0e020-12a4-7474-819f-ad784bb5febd:97416790]; … 2 more\nDetails: select an endeavor for full annotations and sources."
 }

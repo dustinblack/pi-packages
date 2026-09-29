@@ -130,8 +130,12 @@ function checkGraphStructure(value: Static<typeof LegacyGraphSchema> & { motherT
 	}
 	const edges = new Set<string>();
 	for (const edge of value.edges) {
-		if (!nodes.has(edge.from) || !nodes.has(edge.to)) throw new Error(`Dangling graph connection: ${edgeKey(edge)}`);
+		const from = nodes.get(edge.from), to = nodes.get(edge.to);
+		if (!from || !to) throw new Error(`Dangling graph connection: ${edgeKey(edge)}`);
 		if (edge.from === edge.to || edges.has(edgeKey(edge))) throw new Error(`Self/duplicate graph connection: ${edgeKey(edge)}`);
+		if (edge.relation === "alternative_to" && (!isEndeavor(from) || !isEndeavor(to))) {
+			throw new Error(`Alternative connection endpoints must both be endeavors: ${edgeKey(edge)}`);
+		}
 		edges.add(edgeKey(edge));
 	}
 }
