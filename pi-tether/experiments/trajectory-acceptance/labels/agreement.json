@@ -1,0 +1,259 @@
+{
+  "version": 1,
+  "phase": "independent labels preserved; adjudication pending; no production Mom/Luna scoring",
+  "inputs": {
+    "packet": {
+      "path": "/private/tmp/todo-008-trajectory/validator-packet.json",
+      "sha256": "9c516e360ac2e56b1c7166411f5a70c756d7507355c1b935d516df8aa4e2dc58"
+    },
+    "astraOriginalSha256": "1ecd06d7f24813718801c44e5df44a435e6e1c842df6dfcc766bb1317e827d6a",
+    "solOriginalSha256": "be31dc20df76c827a89e56dc6d28b20f87704b508a6775cce1743da9df88e009",
+    "astraPreservedSha256": "1ecd06d7f24813718801c44e5df44a435e6e1c842df6dfcc766bb1317e827d6a",
+    "solPreservedSha256": "be31dc20df76c827a89e56dc6d28b20f87704b508a6775cce1743da9df88e009",
+    "sanitization": "No credential-pattern matches; copies preserve all validator fields byte-for-byte."
+  },
+  "schemaValidation": {
+    "status": "pass",
+    "caseCountEach": 15,
+    "uniqueCaseIds": true,
+    "caseIdsMatchPacket": true,
+    "labelsAllowed": true,
+    "confidenceRange": "0..1",
+    "allCitedRefsInCaseContext": true,
+    "packetShaMatches": true
+  },
+  "labelAgreement": {
+    "exactCount": 13,
+    "total": 15,
+    "rate": 0.8666666666666667,
+    "percent": 86.67,
+    "agreedCaseIds": [
+      "pi-pivot-01",
+      "pi-assent-01",
+      "pi-conflict-01",
+      "pi-return-01",
+      "pi-stale-01",
+      "buzz-pivot-01",
+      "buzz-assent-01",
+      "buzz-conflict-01",
+      "buzz-return-01",
+      "buzz-stale-01",
+      "ssmp-conflict-01",
+      "ssmp-return-01",
+      "ssmp-stale-01"
+    ],
+    "disputedCaseIds": [
+      "ssmp-pivot-01",
+      "ssmp-assent-01"
+    ],
+    "disputes": [
+      {
+        "caseId": "ssmp-pivot-01",
+        "astra": "redirect",
+        "sol": "reorganize"
+      },
+      {
+        "caseId": "ssmp-assent-01",
+        "astra": "accept",
+        "sol": "expand"
+      }
+    ],
+    "perCorpus": {
+      "pi-packages": {
+        "exactCount": 5,
+        "total": 5
+      },
+      "buzz": {
+        "exactCount": 5,
+        "total": 5
+      },
+      "ssmp": {
+        "exactCount": 3,
+        "total": 5
+      }
+    },
+    "confusionMatrix": {
+      "rows": "Astra",
+      "columns": "Sol",
+      "labels": [
+        "accept",
+        "expand",
+        "contract",
+        "redirect",
+        "reorganize"
+      ],
+      "counts": {
+        "accept": {
+          "accept": 4,
+          "expand": 1,
+          "contract": 0,
+          "redirect": 0,
+          "reorganize": 0
+        },
+        "expand": {
+          "accept": 0,
+          "expand": 1,
+          "contract": 0,
+          "redirect": 0,
+          "reorganize": 0
+        },
+        "contract": {
+          "accept": 0,
+          "expand": 0,
+          "contract": 4,
+          "redirect": 0,
+          "reorganize": 0
+        },
+        "redirect": {
+          "accept": 0,
+          "expand": 0,
+          "contract": 0,
+          "redirect": 3,
+          "reorganize": 1
+        },
+        "reorganize": {
+          "accept": 0,
+          "expand": 0,
+          "contract": 0,
+          "redirect": 0,
+          "reorganize": 1
+        }
+      }
+    },
+    "perClass": {
+      "accept": {
+        "astraCount": 5,
+        "solCount": 4,
+        "exactBothCount": 4,
+        "eitherCount": 5,
+        "setAgreementRate": 0.8
+      },
+      "expand": {
+        "astraCount": 1,
+        "solCount": 2,
+        "exactBothCount": 1,
+        "eitherCount": 2,
+        "setAgreementRate": 0.5
+      },
+      "contract": {
+        "astraCount": 4,
+        "solCount": 4,
+        "exactBothCount": 4,
+        "eitherCount": 4,
+        "setAgreementRate": 1.0
+      },
+      "redirect": {
+        "astraCount": 4,
+        "solCount": 3,
+        "exactBothCount": 3,
+        "eitherCount": 4,
+        "setAgreementRate": 0.75
+      },
+      "reorganize": {
+        "astraCount": 1,
+        "solCount": 2,
+        "exactBothCount": 1,
+        "eitherCount": 2,
+        "setAgreementRate": 0.5
+      }
+    }
+  },
+  "confidence": {
+    "flagsAreDescriptiveNotScoringWeights": true,
+    "lowThresholdExclusive": 0.8,
+    "largeGapThresholdInclusive": 0.2,
+    "astra": {
+      "mean": 0.88,
+      "min": 0.73,
+      "max": 0.99,
+      "belowThreshold": [
+        {
+          "caseId": "pi-conflict-01",
+          "confidence": 0.77
+        },
+        {
+          "caseId": "pi-stale-01",
+          "confidence": 0.79
+        },
+        {
+          "caseId": "ssmp-assent-01",
+          "confidence": 0.76
+        },
+        {
+          "caseId": "ssmp-return-01",
+          "confidence": 0.73
+        }
+      ]
+    },
+    "sol": {
+      "mean": 0.89,
+      "min": 0.64,
+      "max": 0.99,
+      "belowThreshold": [
+        {
+          "caseId": "pi-conflict-01",
+          "confidence": 0.64
+        },
+        {
+          "caseId": "ssmp-conflict-01",
+          "confidence": 0.75
+        },
+        {
+          "caseId": "ssmp-return-01",
+          "confidence": 0.72
+        }
+      ]
+    },
+    "largeGaps": [
+      {
+        "caseId": "ssmp-assent-01",
+        "astra": 0.76,
+        "sol": 0.96,
+        "absoluteGap": 0.2
+      }
+    ]
+  },
+  "criticalObligationAgreement": {
+    "fields": [
+      "unsupportedCurrentPurpose",
+      "rejectedAlternative",
+      "unresolvedReturn"
+    ],
+    "fieldPresenceAgreement": {
+      "count": 45,
+      "total": 45,
+      "rate": 1
+    },
+    "valenceAgreement": null,
+    "valenceNotComparableReason": "Astra encoded each obligation as narrative text while Sol encoded boolean flags; the pre-registration did not define a conversion. No post-hoc semantic coercion was applied.",
+    "typedValueMismatches": 45,
+    "citationAgreement": {
+      "exactCaseRefSetCount": 1,
+      "totalCases": 15,
+      "rate": 0.06666666666666667,
+      "microRefIntersection": 30,
+      "microRefUnion": 56,
+      "microJaccard": 0.5357142857142857
+    }
+  },
+  "preregisteredAdjudicationRule": "On disagreement, a third independent model receives the same blind case de novo, without identities, prior rationales, vote counts, rubrics, maps, results, or Luna output; a matching pair is final. If all three labels differ, all three re-read only that case and must document a unanimous consensus before any Luna run.",
+  "adjudication": {
+    "required": true,
+    "status": "not run",
+    "caseIds": [
+      "ssmp-pivot-01",
+      "ssmp-assent-01"
+    ],
+    "packetPath": "/private/tmp/todo-008-trajectory/adjudication-packet.json",
+    "packetSha256": "e96b7e8dbb562e6d914e55d8cf5aa02ab60558b1cbd479c11e6d3e56c8f62fc1",
+    "modelCriteria": [
+      "third independent model",
+      "fresh context",
+      "not either prior validator context",
+      "not production Luna scorer",
+      "no labels, rationales, identities, confidence, or vote counts",
+      "one movement per case with supplied-ref citations"
+    ]
+  },
+  "productionScoringRun": false
+}

@@ -1,0 +1,342 @@
+{
+  "validator": "Astra (independent validator A)",
+  "model": "OpenAI (exact model identifier unavailable)",
+  "packetSha": "9c516e360ac2e56b1c7166411f5a70c756d7507355c1b935d516df8aa4e2dc58",
+  "cases": [
+    {
+      "caseId": "pi-pivot-01",
+      "label": "reorganize",
+      "confidence": 0.86,
+      "rationale": "The tethering purpose remains, but history, progress and orientation move to a separate mother process rather than a lead-managed sequence of steps.",
+      "decisiveRefs": [
+        "s0:37804f94",
+        "s0:6fd17dfa",
+        "s0:61332fe3"
+      ],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": "No evidence that tethering or dogfooding is abandoned.",
+        "rejectedAlternative": "Managing all the tethering steps ourselves is displaced by a separate mother.",
+        "unresolvedReturn": "Preserve history, original intent, explorations and reminders while settling how the mother operates.",
+        "refs": [
+          "s0:37804f94",
+          "s0:6fd17dfa",
+          "s0:61332fe3"
+        ]
+      }
+    },
+    {
+      "caseId": "pi-assent-01",
+      "label": "accept",
+      "confidence": 0.91,
+      "rationale": "In-process feed selects an implementation within the continuing Mom design; the evidence does not establish a replacement purpose or a changed scope.",
+      "decisiveRefs": [
+        "s0:0fe8fa5a",
+        "s0:04b14e3e",
+        "s0:a18a500c"
+      ],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": "A new purpose beyond Mom keeping work tethered is unsupported.",
+        "rejectedAlternative": "pi-intercom is mentioned as an available idea, not explicitly rejected.",
+        "unresolvedReturn": "The subsequent mapping requirement remains to be addressed; feed selection does not discharge it.",
+        "refs": [
+          "s0:0fe8fa5a",
+          "s0:04b14e3e",
+          "s0:a18a500c"
+        ]
+      }
+    },
+    {
+      "caseId": "pi-conflict-01",
+      "label": "accept",
+      "confidence": 0.77,
+      "rationale": "The forceful objection reinforces the already stated usage and latency constraint. It asks for better reasoning, without yet selecting a different approach.",
+      "decisiveRefs": [
+        "s0:faad3c93",
+        "s0:bf65cdd0",
+        "s0:e014f775",
+        "s0:947105af"
+      ],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": "An expensive full-information ingestion mandate is unsupported.",
+        "rejectedAlternative": "A design that doubles usage or slows work is challenged, but no particular replacement is settled at the boundary.",
+        "unresolvedReturn": "Determine how Mom digests enough information cheaply; tether state updates and slim observations remain exploratory here.",
+        "refs": [
+          "s0:faad3c93",
+          "s0:bf65cdd0",
+          "s0:e014f775",
+          "s0:947105af"
+        ]
+      }
+    },
+    {
+      "caseId": "pi-return-01",
+      "label": "contract",
+      "confidence": 0.83,
+      "rationale": "The open whole-picture design exploration gains explicit resource limits: avoid doubling model usage and avoid slowing the work. The Mom objective is retained.",
+      "decisiveRefs": [
+        "s0:25caa5c5",
+        "s0:faad3c93",
+        "s0:bf65cdd0"
+      ],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": "Unbounded model consumption is not an authorized means of achieving the Mom design.",
+        "rejectedAlternative": "High-overhead approaches are constrained, not every possible mother process.",
+        "unresolvedReturn": "Return to a viable information-ingestion design within the usage and latency limits; the tether question remains open.",
+        "refs": [
+          "s0:25caa5c5",
+          "s0:faad3c93",
+          "s0:bf65cdd0"
+        ]
+      }
+    },
+    {
+      "caseId": "pi-stale-01",
+      "label": "contract",
+      "confidence": 0.79,
+      "rationale": "The proposed information stream is narrowed to already-visible observations rather than tool-call content or extra ledger/model calls, with deeper inspection retained on demand and subsequent assent.",
+      "decisiveRefs": [
+        "s0:e014f775",
+        "s0:947105af",
+        "s0:50b39c79"
+      ],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": "Always ingesting full tool content is unsupported by this narrower direction.",
+        "rejectedAlternative": "Routine extra ledger or model calls are avoided if the slim stream suffices; not an absolute ban on deeper inspection.",
+        "unresolvedReturn": "Verify that the slim stream is sufficient, retaining Mom’s ability to dig into tool content when needed.",
+        "refs": [
+          "s0:e014f775",
+          "s0:947105af",
+          "s0:50b39c79"
+        ]
+      }
+    },
+    {
+      "caseId": "buzz-pivot-01",
+      "label": "redirect",
+      "confidence": 0.99,
+      "rationale": "The user rejects choosing an existing chat client and instead orders a stripped-down Buzz sister project, subsequently named tipsy.",
+      "decisiveRefs": [
+        "s0:266d1eca",
+        "s0:da050b05",
+        "s0:8bab40c5"
+      ],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": "Continuing to recommend existing clients is no longer the requested task.",
+        "rejectedAlternative": "The offered existing clients are explicitly rejected.",
+        "unresolvedReturn": "Build the sister project with the chosen desktop form and initial own-relay scope; retain private kinds.",
+        "refs": [
+          "s0:266d1eca",
+          "s0:da050b05",
+          "s0:8bab40c5"
+        ]
+      }
+    },
+    {
+      "caseId": "buzz-assent-01",
+      "label": "accept",
+      "confidence": 0.95,
+      "rationale": "Keeping Buzz private kinds preserves compatibility in the already requested sister project. The later generic-relay addition is a separate scope change, not this boundary.",
+      "decisiveRefs": [
+        "s0:da050b05",
+        "s0:8bab40c5",
+        "s0:59596baa",
+        "s0:1c59f52c"
+      ],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": "Replacing Buzz kinds with generic-only semantics is unsupported.",
+        "rejectedAlternative": "No named competing protocol is explicitly rejected; dropping private kinds is inconsistent with the choice.",
+        "unresolvedReturn": "Continue the simple sister project; subsequent relay testing must retain the chosen kinds.",
+        "refs": [
+          "s0:da050b05",
+          "s0:8bab40c5",
+          "s0:59596baa",
+          "s0:1c59f52c"
+        ]
+      }
+    },
+    {
+      "caseId": "buzz-conflict-01",
+      "label": "expand",
+      "confidence": 0.98,
+      "rationale": "The instruction broadens a simple non-Buzz relay test into making any relay addable, while expressly retaining Buzz-kind support.",
+      "decisiveRefs": [
+        "s0:59596baa",
+        "s0:1c59f52c",
+        "s0:2c77772c",
+        "s0:e840a189"
+      ],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": "Generic relay support does not authorize dropping Buzz compatibility.",
+        "rejectedAlternative": "Restricting support to only the original or single test relay is superseded by any-relay addability.",
+        "unresolvedReturn": "Spin up the chosen nostr-rs-relay and test broader relay support without losing Buzz kinds or simplicity.",
+        "refs": [
+          "s0:59596baa",
+          "s0:1c59f52c",
+          "s0:2c77772c",
+          "s0:e840a189"
+        ]
+      }
+    },
+    {
+      "caseId": "buzz-return-01",
+      "label": "accept",
+      "confidence": 0.99,
+      "rationale": "Continue, auto-continue and keep going preserve existing work. The sparse evidence supplies no new deliverable or canceled obligation.",
+      "decisiveRefs": [
+        "s0:a1250b16",
+        "s0:b145efe3",
+        "s0:42aee4fd",
+        "s0:e9d418fe"
+      ],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": "A fresh scope or a completed project cannot be inferred from continue.",
+        "rejectedAlternative": "No alternative is rejected in this context.",
+        "unresolvedReturn": "Resume outstanding work after git initialization and carry it to completion; the meaning of the earlier 1 is not recoverable here.",
+        "refs": [
+          "s0:a1250b16",
+          "s0:b145efe3",
+          "s0:42aee4fd",
+          "s0:e9d418fe"
+        ]
+      }
+    },
+    {
+      "caseId": "buzz-stale-01",
+      "label": "contract",
+      "confidence": 0.99,
+      "rationale": "Keep mentioning but drop management explicitly removes a feature area while preserving the smaller one; later generic assent does not explicitly restore management.",
+      "decisiveRefs": [
+        "s0:f837571f",
+        "s0:50f748d3",
+        "s0:bfee19ac"
+      ],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": "Agent management is no longer supported as current scope.",
+        "rejectedAlternative": "The larger management feature is explicitly dropped.",
+        "unresolvedReturn": "Finish agent mentioning and other unaffected work; all refers to the surviving scope absent an explicit reversal.",
+        "refs": [
+          "s0:f837571f",
+          "s0:50f748d3",
+          "s0:bfee19ac"
+        ]
+      }
+    },
+    {
+      "caseId": "ssmp-pivot-01",
+      "label": "redirect",
+      "confidence": 0.88,
+      "rationale": "The immediate work changes from overcoming the frozen Reaper/progress problem to fully drafting audit-derived fixes before session end. Later chunking preserves follow-through.",
+      "decisiveRefs": [
+        "s0:5b2a18b4",
+        "s0:7ac45e2b",
+        "s0:46f05f8d",
+        "s0:0c94469e"
+      ],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": "Indefinite live troubleshooting is not the new immediate priority.",
+        "rejectedAlternative": "Continuing without first preserving the audit fixes is displaced; live work is not permanently banned.",
+        "unresolvedReturn": "Capture the suggested fixes completely and retain them for chunked follow-through.",
+        "refs": [
+          "s0:5b2a18b4",
+          "s0:7ac45e2b",
+          "s0:46f05f8d",
+          "s0:0c94469e"
+        ]
+      }
+    },
+    {
+      "caseId": "ssmp-assent-01",
+      "label": "accept",
+      "confidence": 0.76,
+      "rationale": "The user had already authorized updates; implement the full roadmap confirms that direction. No narrower prior roadmap is shown from which to infer expansion.",
+      "decisiveRefs": [
+        "s0:6df05718",
+        "s0:2f67af54",
+        "s0:542649d5",
+        "s0:f6c169b9"
+      ],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": "Remaining at review-only is unsupported after the existing update authorization.",
+        "rejectedAlternative": "A partial roadmap is not explicitly established or rejected in the supplied before evidence.",
+        "unresolvedReturn": "Complete the full roadmap; the subsequent reminder specifically preserves three open items and all six capabilities.",
+        "refs": [
+          "s0:6df05718",
+          "s0:2f67af54",
+          "s0:542649d5",
+          "s0:f6c169b9"
+        ]
+      }
+    },
+    {
+      "caseId": "ssmp-conflict-01",
+      "label": "redirect",
+      "confidence": 0.81,
+      "rationale": "The chosen project is challenged as unusable for the requested live slice because samples are missing. The later mounting failure and Live D choice support changing the immediate execution path, not canceling live validation.",
+      "decisiveRefs": [
+        "s0:46984f5c",
+        "s0:32f0bc26",
+        "s0:0a36e982",
+        "s0:bf0fbca9",
+        "s0:c313b62e"
+      ],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": "Treating the broken project as ready for the live slice is unsupported.",
+        "rejectedAlternative": "Unqualified use of that project is rejected; the evidence does not authorize abandoning the live slice.",
+        "unresolvedReturn": "Resolve or bypass the missing-sample/mount obstacle and return to live testing, with the assistant responsible for loading.",
+        "refs": [
+          "s0:46984f5c",
+          "s0:32f0bc26",
+          "s0:0a36e982",
+          "s0:bf0fbca9",
+          "s0:c313b62e"
+        ]
+      }
+    },
+    {
+      "caseId": "ssmp-return-01",
+      "label": "redirect",
+      "confidence": 0.73,
+      "rationale": "After the broken-project and mounting obstacles, the user selects Live D now as the actionable next route. This redirects immediate work out of the blocked route without proving the old obstacle was repaired.",
+      "decisiveRefs": [
+        "s0:0a36e982",
+        "s0:bf0fbca9",
+        "s0:c313b62e",
+        "s0:7e0b39de"
+      ],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": "A claim that missing samples or mounting were fixed is unsupported.",
+        "rejectedAlternative": "The blocked route is bypassed in favor of Live D; permanent abandonment of its underlying requirements is not evidenced.",
+        "unresolvedReturn": "Carry out Live D and preserve any unresolved validation requirements; later commit-and-push authorization alone is not proof of their resolution.",
+        "refs": [
+          "s0:0a36e982",
+          "s0:bf0fbca9",
+          "s0:c313b62e",
+          "s0:7e0b39de"
+        ]
+      }
+    },
+    {
+      "caseId": "ssmp-stale-01",
+      "label": "contract",
+      "confidence": 0.96,
+      "rationale": "The user removes mandatory Sol review after every small chunk, narrowing review overhead rather than eliminating review or reducing the fixes themselves.",
+      "decisiveRefs": [
+        "s0:46f05f8d",
+        "s0:0c94469e",
+        "s0:3c3e3700",
+        "s0:46984f5c"
+      ],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": "A universal no-review policy is unsupported; the exception is conditional on small chunks.",
+        "rejectedAlternative": "Review after every small chunk is explicitly no longer required.",
+        "unresolvedReturn": "Retain complete audit fixes, chunked progress and appropriate review outside that exception; proceed to the chosen live slice.",
+        "refs": [
+          "s0:46f05f8d",
+          "s0:0c94469e",
+          "s0:3c3e3700",
+          "s0:46984f5c"
+        ]
+      }
+    }
+  ]
+}

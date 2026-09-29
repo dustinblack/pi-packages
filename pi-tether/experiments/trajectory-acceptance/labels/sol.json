@@ -1,0 +1,202 @@
+{
+  "validator": "independent-validator-b",
+  "model": "Codex 5.6 Sol",
+  "packetSha": "9c516e360ac2e56b1c7166411f5a70c756d7507355c1b935d516df8aa4e2dc58",
+  "cases": [
+    {
+      "caseId": "pi-pivot-01",
+      "label": "reorganize",
+      "confidence": 0.91,
+      "rationale": "The purpose of retaining history, original intent, progress, and task discipline remains intact, but responsibility is reorganized into a separate parallel mother thread to which agents report.",
+      "decisiveRefs": ["s0:6fd17dfa", "s0:61332fe3", "s0:b3de2315"],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": false,
+        "rejectedAlternative": true,
+        "unresolvedReturn": false,
+        "refs": ["s0:37804f94", "s0:6fd17dfa", "s0:61332fe3"]
+      }
+    },
+    {
+      "caseId": "pi-assent-01",
+      "label": "accept",
+      "confidence": 0.83,
+      "rationale": "Selecting an in-process feed settles an implementation option without evidencing a change to Mom's established tracking and tether-mapping purpose.",
+      "decisiveRefs": ["s0:0fe8fa5a", "s0:04b14e3e", "s0:a18a500c"],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": false,
+        "rejectedAlternative": false,
+        "unresolvedReturn": false,
+        "refs": ["s0:04b14e3e", "s0:a18a500c"]
+      }
+    },
+    {
+      "caseId": "pi-conflict-01",
+      "label": "accept",
+      "confidence": 0.64,
+      "rationale": "The deictic admonition to think ahead does not itself establish a new scope or purpose; the following message continues working within the existing Mom design while seeking a sufficiently slim information feed.",
+      "decisiveRefs": ["s0:faad3c93", "s0:bf65cdd0", "s0:947105af"],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": true,
+        "rejectedAlternative": false,
+        "unresolvedReturn": false,
+        "refs": ["s0:bf65cdd0", "s0:947105af"]
+      }
+    },
+    {
+      "caseId": "pi-return-01",
+      "label": "contract",
+      "confidence": 0.89,
+      "rationale": "The boundary adds explicit resource and latency limits: the Mom approach should neither double model usage nor slow work down, narrowing acceptable designs without changing the overall goal.",
+      "decisiveRefs": ["s0:25caa5c5", "s0:faad3c93"],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": false,
+        "rejectedAlternative": true,
+        "unresolvedReturn": false,
+        "refs": ["s0:faad3c93"]
+      }
+    },
+    {
+      "caseId": "pi-stale-01",
+      "label": "contract",
+      "confidence": 0.95,
+      "rationale": "The chosen path deliberately shrinks Mom's routine input to observations already emitted during work and avoids extra ledger or model calls, while preserving optional deeper inspection.",
+      "decisiveRefs": ["s0:947105af", "s0:50b39c79"],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": false,
+        "rejectedAlternative": true,
+        "unresolvedReturn": false,
+        "refs": ["s0:947105af", "s0:50b39c79"]
+      }
+    },
+    {
+      "caseId": "buzz-pivot-01",
+      "label": "redirect",
+      "confidence": 0.99,
+      "rationale": "The user rejects the surveyed existing clients and redirects the work to building a stripped-down Buzz sister project, subsequently specified as the Tauri app tipsy.",
+      "decisiveRefs": ["s0:266d1eca", "s0:da050b05", "s0:8bab40c5"],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": false,
+        "rejectedAlternative": true,
+        "unresolvedReturn": false,
+        "refs": ["s0:266d1eca", "s0:da050b05"]
+      }
+    },
+    {
+      "caseId": "buzz-assent-01",
+      "label": "accept",
+      "confidence": 0.86,
+      "rationale": "Keeping Buzz's private kinds preserves a capability of the source project in the already-selected sister client; later generic-relay support is additive and does not revoke this boundary decision.",
+      "decisiveRefs": ["s0:da050b05", "s0:59596baa", "s0:2c77772c"],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": false,
+        "rejectedAlternative": false,
+        "unresolvedReturn": false,
+        "refs": ["s0:59596baa", "s0:2c77772c"]
+      }
+    },
+    {
+      "caseId": "buzz-conflict-01",
+      "label": "expand",
+      "confidence": 0.97,
+      "rationale": "Relay scope grows from Buzz-oriented support plus a simple non-Buzz test relay to making any relay addable, while explicitly retaining Buzz-kind compatibility.",
+      "decisiveRefs": ["s0:59596baa", "s0:1c59f52c", "s0:2c77772c"],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": false,
+        "rejectedAlternative": false,
+        "unresolvedReturn": false,
+        "refs": ["s0:1c59f52c", "s0:2c77772c"]
+      }
+    },
+    {
+      "caseId": "buzz-return-01",
+      "label": "accept",
+      "confidence": 0.99,
+      "rationale": "Repeated instructions to continue and auto-continue preserve the active implementation trajectory without changing its purpose, scope, or organization.",
+      "decisiveRefs": ["s0:b145efe3", "s0:42aee4fd", "s0:e9d418fe"],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": false,
+        "rejectedAlternative": false,
+        "unresolvedReturn": false,
+        "refs": ["s0:b145efe3", "s0:42aee4fd", "s0:e9d418fe"]
+      }
+    },
+    {
+      "caseId": "buzz-stale-01",
+      "label": "contract",
+      "confidence": 0.98,
+      "rationale": "The user explicitly retains agent mentioning but removes management, yielding a smaller feature set; later generic directions to proceed do not restore management.",
+      "decisiveRefs": ["s0:f837571f", "s0:50f748d3", "s0:bfee19ac"],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": false,
+        "rejectedAlternative": true,
+        "unresolvedReturn": false,
+        "refs": ["s0:f837571f"]
+      }
+    },
+    {
+      "caseId": "ssmp-pivot-01",
+      "label": "reorganize",
+      "confidence": 0.94,
+      "rationale": "The audit-fix objective is preserved, but the work is reordered to capture a complete proposed-fix draft before session end and then proceed in chunks.",
+      "decisiveRefs": ["s0:46f05f8d", "s0:0c94469e"],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": false,
+        "rejectedAlternative": false,
+        "unresolvedReturn": true,
+        "refs": ["s0:46f05f8d", "s0:0c94469e"]
+      }
+    },
+    {
+      "caseId": "ssmp-assent-01",
+      "label": "expand",
+      "confidence": 0.96,
+      "rationale": "The boundary commits implementation to the full roadmap rather than an unspecified or partial set of updates, as confirmed by the later instruction to complete all six capabilities.",
+      "decisiveRefs": ["s0:2f67af54", "s0:542649d5", "s0:f6c169b9"],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": false,
+        "rejectedAlternative": true,
+        "unresolvedReturn": false,
+        "refs": ["s0:542649d5", "s0:f6c169b9"]
+      }
+    },
+    {
+      "caseId": "ssmp-conflict-01",
+      "label": "redirect",
+      "confidence": 0.75,
+      "rationale": "The user rejects the assumed project as a viable live-slice source because required samples are missing; subsequent inability to mount it and selection of Live D require moving the validation target while preserving the broader live-validation goal.",
+      "decisiveRefs": ["s0:46984f5c", "s0:0a36e982", "s0:bf0fbca9", "s0:c313b62e"],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": false,
+        "rejectedAlternative": true,
+        "unresolvedReturn": true,
+        "refs": ["s0:0a36e982", "s0:bf0fbca9", "s0:c313b62e"]
+      }
+    },
+    {
+      "caseId": "ssmp-return-01",
+      "label": "redirect",
+      "confidence": 0.72,
+      "rationale": "After the prior project is identified as broken and unmountable, the user selects Live D as the immediate replacement target, resolving the blocked live-validation path through a different target.",
+      "decisiveRefs": ["s0:0a36e982", "s0:bf0fbca9", "s0:c313b62e"],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": false,
+        "rejectedAlternative": true,
+        "unresolvedReturn": false,
+        "refs": ["s0:bf0fbca9", "s0:c313b62e"]
+      }
+    },
+    {
+      "caseId": "ssmp-stale-01",
+      "label": "contract",
+      "confidence": 0.97,
+      "rationale": "Chunked execution remains, but mandatory Sol review after every chunk is removed for small chunks, explicitly reducing review frequency rather than abandoning review generally.",
+      "decisiveRefs": ["s0:0c94469e", "s0:3c3e3700"],
+      "criticalObligations": {
+        "unsupportedCurrentPurpose": false,
+        "rejectedAlternative": true,
+        "unresolvedReturn": false,
+        "refs": ["s0:0c94469e", "s0:3c3e3700"]
+      }
+    }
+  ]
+}
