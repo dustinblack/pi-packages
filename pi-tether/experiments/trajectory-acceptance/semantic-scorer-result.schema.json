@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-tether.local/trajectory-acceptance/semantic-scorer-result.schema.json",
+  "title": "Blind semantic trajectory scorer result v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "scorerCaseId", "packetSha256", "provider", "model", "attestation", "movement", "criticalGates"],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "scorerCaseId": { "type": "string", "pattern": "^case-[0-9]{3}$" },
+    "packetSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "provider": { "type": "string", "minLength": 1, "pattern": "^(?!.*[Oo]pen[Rr]outer).*$" },
+    "model": { "type": "string", "minLength": 1, "pattern": "^(?!.*[Ll]una).*$" },
+    "attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["freshContext", "sawOnlyPacket", "sawNoGoldOrOtherVotes", "conciseRationalesNotReasoningTrace"],
+      "properties": {
+        "freshContext": { "const": true },
+        "sawOnlyPacket": { "const": true },
+        "sawNoGoldOrOtherVotes": { "const": true },
+        "conciseRationalesNotReasoningTrace": { "const": true }
+      }
+    },
+    "movement": {
+      "allOf": [
+        { "$ref": "#/$defs/finding" },
+        {
+          "type": "object",
+          "required": ["label"],
+          "properties": { "label": { "enum": ["accept", "expand", "contract", "redirect", "reorganize"] } }
+        }
+      ]
+    },
+    "criticalGates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unsupported_current_purpose", "revived_rejected_alternative", "lost_unresolved_return"],
+      "properties": {
+        "unsupported_current_purpose": { "$ref": "#/$defs/gateFinding" },
+        "revived_rejected_alternative": { "$ref": "#/$defs/gateFinding" },
+        "lost_unresolved_return": { "$ref": "#/$defs/gateFinding" }
+      }
+    }
+  },
+  "$defs": {
+    "ref": { "type": "string", "pattern": "^[A-Za-z0-9_-]+:[A-Fa-f0-9]{8}$" },
+    "nodeId": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$" },
+    "edgeId": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}\\|(returns_to|informs|governs|depends_on|alternative_to)\\|[A-Za-z][A-Za-z0-9_-]{0,63}$" },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["refs", "nodeIds", "edgeIds", "rationale"],
+      "properties": {
+        "label": { "enum": ["accept", "expand", "contract", "redirect", "reorganize"] },
+        "refs": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/ref" } },
+        "nodeIds": { "type": "array", "items": { "$ref": "#/$defs/nodeId" } },
+        "edgeIds": { "type": "array", "items": { "$ref": "#/$defs/edgeId" } },
+        "rationale": { "type": "string", "minLength": 1, "maxLength": 800 }
+      }
+    },
+    "gateFinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verdict", "refs", "nodeIds", "edgeIds", "rationale"],
+      "properties": {
+        "verdict": { "enum": ["clear", "violation", "unknown"] },
+        "refs": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/ref" } },
+        "nodeIds": { "type": "array", "items": { "$ref": "#/$defs/nodeId" } },
+        "edgeIds": { "type": "array", "items": { "$ref": "#/$defs/edgeId" } },
+        "rationale": { "type": "string", "minLength": 1, "maxLength": 800 }
+      }
+    }
+  }
+}

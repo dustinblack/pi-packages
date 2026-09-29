@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schemaVersion", "status", "blind", "privateRoot", "limits"],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "status": { "enum": ["pending", "complete"] },
+    "blind": { "const": true },
+    "privateRoot": { "const": "/private/tmp/todo-008-trajectory/private-v2" },
+    "limits": {
+      "type": "object",
+      "required": ["maxCalls", "maxElapsedMs"],
+      "properties": { "maxCalls": { "const": 30 }, "maxElapsedMs": { "const": 720000 } },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

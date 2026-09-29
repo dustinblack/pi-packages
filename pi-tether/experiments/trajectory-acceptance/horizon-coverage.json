@@ -1,0 +1,597 @@
+{
+  "schemaVersion": 2,
+  "method": "The aligned horizon is the greatest feed event among each final-gold case decisiveRefs. Coverage requires a v1 after-map ending exactly at that ref; a later snapshot is rejected as future-contaminated. The script accessed raw case IDs, boundary refs, checkpoint IDs, and before/after maps only; it did not access prediction fields.",
+  "inputs": {
+    "manifestSha256": "a1988eccf79c08fb47b886222df6f9ea00f253bb9ada90258c419e8c91fe1fd7",
+    "finalGoldSha256": "6252416134a3467bb71c64f845e3722127b069b01c88b67b20793951abd408c8",
+    "privateV1RawPredictionsSha256": "d99a7e270b6ebf9aea85b837b8cf13631abcfdd8d7ce59532518522c3e3aaa86",
+    "feedSha256": {
+      "pi-packages": "8bc65ab75b88e696fede4af5be1c7820b2c1f8ebdf8eeaeac0a3343b76abad4f",
+      "buzz": "ad4e96bea1761613af8fbe81c53e4db35536c1809c3279ab29ce3f886090ae55",
+      "ssmp": "839847cd01f52b2f5c3c8aa6ebff18ca9dcbec42d48592cdb48b3f78947323bc"
+    }
+  },
+  "summary": {
+    "total": 15,
+    "covered": 5,
+    "needsAdditionalProductionReplay": 10
+  },
+  "cases": [
+    {
+      "caseId": "pi-pivot-01",
+      "corpus": "pi-packages",
+      "boundary": {
+        "event": 447,
+        "ref": "s0:6fd17dfa"
+      },
+      "decisiveRefs": [
+        {
+          "ref": "s0:37804f94",
+          "event": 394
+        },
+        {
+          "ref": "s0:6fd17dfa",
+          "event": 447
+        },
+        {
+          "ref": "s0:61332fe3",
+          "event": 464
+        },
+        {
+          "ref": "s0:b3de2315",
+          "event": 465
+        }
+      ],
+      "alignedHorizon": {
+        "ref": "s0:b3de2315",
+        "event": 465
+      },
+      "beforeSnapshot": {
+        "snapshotId": "checkpoint-0001",
+        "mapSha256": "1068219c81fd757e656abd0875af2fbdcc397c170b5b967654e3cb219e40f20c"
+      },
+      "coverage": {
+        "status": "needs-additional-production-replay",
+        "reason": "No v1 map snapshot ends exactly at the aligned horizon; snapshots containing later evidence are not eligible."
+      }
+    },
+    {
+      "caseId": "pi-assent-01",
+      "corpus": "pi-packages",
+      "boundary": {
+        "event": 805,
+        "ref": "s0:04b14e3e"
+      },
+      "decisiveRefs": [
+        {
+          "ref": "s0:0fe8fa5a",
+          "event": 772
+        },
+        {
+          "ref": "s0:04b14e3e",
+          "event": 805
+        },
+        {
+          "ref": "s0:a18a500c",
+          "event": 960
+        }
+      ],
+      "alignedHorizon": {
+        "ref": "s0:a18a500c",
+        "event": 960
+      },
+      "beforeSnapshot": {
+        "snapshotId": "checkpoint-0005",
+        "mapSha256": "da098a9caf35db6b3874a785ec3ff71c8b75d7518dbb0570accd7f90340bef6a"
+      },
+      "coverage": {
+        "status": "needs-additional-production-replay",
+        "reason": "No v1 map snapshot ends exactly at the aligned horizon; snapshots containing later evidence are not eligible."
+      }
+    },
+    {
+      "caseId": "pi-conflict-01",
+      "corpus": "pi-packages",
+      "boundary": {
+        "event": 1075,
+        "ref": "s0:bf65cdd0"
+      },
+      "decisiveRefs": [
+        {
+          "ref": "s0:faad3c93",
+          "event": 1067
+        },
+        {
+          "ref": "s0:bf65cdd0",
+          "event": 1075
+        },
+        {
+          "ref": "s0:e014f775",
+          "event": 1082
+        },
+        {
+          "ref": "s0:947105af",
+          "event": 1092
+        }
+      ],
+      "alignedHorizon": {
+        "ref": "s0:947105af",
+        "event": 1092
+      },
+      "beforeSnapshot": {
+        "snapshotId": "checkpoint-0011",
+        "mapSha256": "7a46983093a1c86eaf8e318a49a70b169616a4767fdabae05c5e229612145fa0"
+      },
+      "coverage": {
+        "status": "covered",
+        "snapshotId": "checkpoint-0017",
+        "mapSha256": "12a8ab91bac525589ba62fcc7302231bd74455404d588a3bda68863d6b598e94",
+        "consumedThroughRef": "s0:947105af"
+      }
+    },
+    {
+      "caseId": "pi-return-01",
+      "corpus": "pi-packages",
+      "boundary": {
+        "event": 1067,
+        "ref": "s0:faad3c93"
+      },
+      "decisiveRefs": [
+        {
+          "ref": "s0:25caa5c5",
+          "event": 992
+        },
+        {
+          "ref": "s0:faad3c93",
+          "event": 1067
+        },
+        {
+          "ref": "s0:bf65cdd0",
+          "event": 1075
+        }
+      ],
+      "alignedHorizon": {
+        "ref": "s0:bf65cdd0",
+        "event": 1075
+      },
+      "beforeSnapshot": {
+        "snapshotId": "checkpoint-0009",
+        "mapSha256": "84beedd6aec1b57ca49eb45d411250ebd38664492fa3f4abb4436bc67c0b5811"
+      },
+      "coverage": {
+        "status": "covered",
+        "snapshotId": "checkpoint-0013",
+        "mapSha256": "02b6aedb42d08832f2bf8d44e60992f08d96a3dee46917edf3ff84a91a748fa7",
+        "consumedThroughRef": "s0:bf65cdd0"
+      }
+    },
+    {
+      "caseId": "pi-stale-01",
+      "corpus": "pi-packages",
+      "boundary": {
+        "event": 1092,
+        "ref": "s0:947105af"
+      },
+      "decisiveRefs": [
+        {
+          "ref": "s0:e014f775",
+          "event": 1082
+        },
+        {
+          "ref": "s0:947105af",
+          "event": 1092
+        },
+        {
+          "ref": "s0:50b39c79",
+          "event": 1094
+        }
+      ],
+      "alignedHorizon": {
+        "ref": "s0:50b39c79",
+        "event": 1094
+      },
+      "beforeSnapshot": {
+        "snapshotId": "checkpoint-0015",
+        "mapSha256": "55eca4239ffb0cb8f0c54217bc8beb79ed15bc8f7ef6e63252c26868d1c2c162"
+      },
+      "coverage": {
+        "status": "needs-additional-production-replay",
+        "reason": "No v1 map snapshot ends exactly at the aligned horizon; snapshots containing later evidence are not eligible."
+      }
+    },
+    {
+      "caseId": "buzz-pivot-01",
+      "corpus": "buzz",
+      "boundary": {
+        "event": 49,
+        "ref": "s0:da050b05"
+      },
+      "decisiveRefs": [
+        {
+          "ref": "s0:266d1eca",
+          "event": 42
+        },
+        {
+          "ref": "s0:da050b05",
+          "event": 49
+        },
+        {
+          "ref": "s0:8bab40c5",
+          "event": 60
+        }
+      ],
+      "alignedHorizon": {
+        "ref": "s0:8bab40c5",
+        "event": 60
+      },
+      "beforeSnapshot": {
+        "snapshotId": "checkpoint-0001",
+        "mapSha256": "efd235b51cddc9093d86927732571e9c457f817c36e95347aca6b11f564163fd"
+      },
+      "coverage": {
+        "status": "needs-additional-production-replay",
+        "reason": "No v1 map snapshot ends exactly at the aligned horizon; snapshots containing later evidence are not eligible."
+      }
+    },
+    {
+      "caseId": "buzz-assent-01",
+      "corpus": "buzz",
+      "boundary": {
+        "event": 144,
+        "ref": "s0:59596baa"
+      },
+      "decisiveRefs": [
+        {
+          "ref": "s0:da050b05",
+          "event": 49
+        },
+        {
+          "ref": "s0:8bab40c5",
+          "event": 60
+        },
+        {
+          "ref": "s0:59596baa",
+          "event": 144
+        },
+        {
+          "ref": "s0:1c59f52c",
+          "event": 185
+        },
+        {
+          "ref": "s0:2c77772c",
+          "event": 190
+        }
+      ],
+      "alignedHorizon": {
+        "ref": "s0:2c77772c",
+        "event": 190
+      },
+      "beforeSnapshot": {
+        "snapshotId": "checkpoint-0005",
+        "mapSha256": "07432cb71b5169b317b25fbbd85e90ce7c662c1fb11b3fac9c55e173b6cb5a2f"
+      },
+      "coverage": {
+        "status": "covered",
+        "snapshotId": "checkpoint-0011",
+        "mapSha256": "afe7d1d475b7877771e3ea679759dbb7a77e810155847c983a0a38a80fa0c465",
+        "consumedThroughRef": "s0:2c77772c"
+      }
+    },
+    {
+      "caseId": "buzz-conflict-01",
+      "corpus": "buzz",
+      "boundary": {
+        "event": 190,
+        "ref": "s0:2c77772c"
+      },
+      "decisiveRefs": [
+        {
+          "ref": "s0:59596baa",
+          "event": 144
+        },
+        {
+          "ref": "s0:1c59f52c",
+          "event": 185
+        },
+        {
+          "ref": "s0:2c77772c",
+          "event": 190
+        },
+        {
+          "ref": "s0:e840a189",
+          "event": 203
+        }
+      ],
+      "alignedHorizon": {
+        "ref": "s0:e840a189",
+        "event": 203
+      },
+      "beforeSnapshot": {
+        "snapshotId": "checkpoint-0009",
+        "mapSha256": "7e52f935c3d6df403af94609f2cde2bb64e0633d9622bebba9a79f711a45025e"
+      },
+      "coverage": {
+        "status": "needs-additional-production-replay",
+        "reason": "No v1 map snapshot ends exactly at the aligned horizon; snapshots containing later evidence are not eligible."
+      }
+    },
+    {
+      "caseId": "buzz-return-01",
+      "corpus": "buzz",
+      "boundary": {
+        "event": 597,
+        "ref": "s0:b145efe3"
+      },
+      "decisiveRefs": [
+        {
+          "ref": "s0:a1250b16",
+          "event": 587
+        },
+        {
+          "ref": "s0:b145efe3",
+          "event": 597
+        },
+        {
+          "ref": "s0:42aee4fd",
+          "event": 637
+        },
+        {
+          "ref": "s0:e9d418fe",
+          "event": 737
+        }
+      ],
+      "alignedHorizon": {
+        "ref": "s0:e9d418fe",
+        "event": 737
+      },
+      "beforeSnapshot": {
+        "snapshotId": "checkpoint-0013",
+        "mapSha256": "6150a3bc140429afb07a34d4ceae174d35024b9c90f208b571c4a9f6f8c2f3dd"
+      },
+      "coverage": {
+        "status": "needs-additional-production-replay",
+        "reason": "No v1 map snapshot ends exactly at the aligned horizon; snapshots containing later evidence are not eligible."
+      }
+    },
+    {
+      "caseId": "buzz-stale-01",
+      "corpus": "buzz",
+      "boundary": {
+        "event": 1122,
+        "ref": "s0:f837571f"
+      },
+      "decisiveRefs": [
+        {
+          "ref": "s0:f837571f",
+          "event": 1122
+        },
+        {
+          "ref": "s0:50f748d3",
+          "event": 1196
+        },
+        {
+          "ref": "s0:bfee19ac",
+          "event": 1226
+        }
+      ],
+      "alignedHorizon": {
+        "ref": "s0:bfee19ac",
+        "event": 1226
+      },
+      "beforeSnapshot": {
+        "snapshotId": "checkpoint-0017",
+        "mapSha256": "8297ac1f07296a868d974aaa2f253916ebd2bfae3f530c0bfea7963b12a65c28"
+      },
+      "coverage": {
+        "status": "needs-additional-production-replay",
+        "reason": "No v1 map snapshot ends exactly at the aligned horizon; snapshots containing later evidence are not eligible."
+      }
+    },
+    {
+      "caseId": "ssmp-pivot-01",
+      "corpus": "ssmp",
+      "boundary": {
+        "event": 511,
+        "ref": "s0:46f05f8d"
+      },
+      "decisiveRefs": [
+        {
+          "ref": "s0:5b2a18b4",
+          "event": 477
+        },
+        {
+          "ref": "s0:7ac45e2b",
+          "event": 509
+        },
+        {
+          "ref": "s0:46f05f8d",
+          "event": 511
+        },
+        {
+          "ref": "s0:0c94469e",
+          "event": 562
+        },
+        {
+          "ref": "s0:3c3e3700",
+          "event": 567
+        }
+      ],
+      "alignedHorizon": {
+        "ref": "s0:3c3e3700",
+        "event": 567
+      },
+      "beforeSnapshot": {
+        "snapshotId": "checkpoint-0005",
+        "mapSha256": "09503849bf2bb979b4ceb10f2b50e5a64acb68e7d2a990ceeb1a0050c4a1e10d"
+      },
+      "coverage": {
+        "status": "covered",
+        "snapshotId": "checkpoint-0011",
+        "mapSha256": "3d031fb3690d626111fcb1847a47502639c47275ea606df463e8f4b7d6757742",
+        "consumedThroughRef": "s0:3c3e3700"
+      }
+    },
+    {
+      "caseId": "ssmp-assent-01",
+      "corpus": "ssmp",
+      "boundary": {
+        "event": 172,
+        "ref": "s0:542649d5"
+      },
+      "decisiveRefs": [
+        {
+          "ref": "s0:6df05718",
+          "event": 1
+        },
+        {
+          "ref": "s0:2f67af54",
+          "event": 168
+        },
+        {
+          "ref": "s0:542649d5",
+          "event": 172
+        },
+        {
+          "ref": "s0:a512d158",
+          "event": 213
+        },
+        {
+          "ref": "s0:f6c169b9",
+          "event": 271
+        }
+      ],
+      "alignedHorizon": {
+        "ref": "s0:f6c169b9",
+        "event": 271
+      },
+      "beforeSnapshot": {
+        "snapshotId": "checkpoint-0001",
+        "mapSha256": "be2b790a06b3b8c35685d51b8463ba720e0c5221cf6b0f4b50f527a1b28885e8"
+      },
+      "coverage": {
+        "status": "needs-additional-production-replay",
+        "reason": "No v1 map snapshot ends exactly at the aligned horizon; snapshots containing later evidence are not eligible."
+      }
+    },
+    {
+      "caseId": "ssmp-conflict-01",
+      "corpus": "ssmp",
+      "boundary": {
+        "event": 644,
+        "ref": "s0:0a36e982"
+      },
+      "decisiveRefs": [
+        {
+          "ref": "s0:46984f5c",
+          "event": 634
+        },
+        {
+          "ref": "s0:32f0bc26",
+          "event": 643
+        },
+        {
+          "ref": "s0:0a36e982",
+          "event": 644
+        },
+        {
+          "ref": "s0:bf0fbca9",
+          "event": 691
+        },
+        {
+          "ref": "s0:c313b62e",
+          "event": 743
+        }
+      ],
+      "alignedHorizon": {
+        "ref": "s0:c313b62e",
+        "event": 743
+      },
+      "beforeSnapshot": {
+        "snapshotId": "checkpoint-0013",
+        "mapSha256": "5eee211cff250ba78b0ec450b6d5c14d1ce8abe57ad60fecd89576f06abad5c5"
+      },
+      "coverage": {
+        "status": "covered",
+        "snapshotId": "checkpoint-0017",
+        "mapSha256": "c7cb632b3d7b6a74d0cd75262b963c31656071a875b62acaf54d30c6bbab3e4c",
+        "consumedThroughRef": "s0:c313b62e"
+      }
+    },
+    {
+      "caseId": "ssmp-return-01",
+      "corpus": "ssmp",
+      "boundary": {
+        "event": 743,
+        "ref": "s0:c313b62e"
+      },
+      "decisiveRefs": [
+        {
+          "ref": "s0:0a36e982",
+          "event": 644
+        },
+        {
+          "ref": "s0:bf0fbca9",
+          "event": 691
+        },
+        {
+          "ref": "s0:c313b62e",
+          "event": 743
+        },
+        {
+          "ref": "s0:7e0b39de",
+          "event": 887
+        }
+      ],
+      "alignedHorizon": {
+        "ref": "s0:7e0b39de",
+        "event": 887
+      },
+      "beforeSnapshot": {
+        "snapshotId": "checkpoint-0017",
+        "mapSha256": "c7cb632b3d7b6a74d0cd75262b963c31656071a875b62acaf54d30c6bbab3e4c"
+      },
+      "coverage": {
+        "status": "needs-additional-production-replay",
+        "reason": "No v1 map snapshot ends exactly at the aligned horizon; snapshots containing later evidence are not eligible."
+      }
+    },
+    {
+      "caseId": "ssmp-stale-01",
+      "corpus": "ssmp",
+      "boundary": {
+        "event": 567,
+        "ref": "s0:3c3e3700"
+      },
+      "decisiveRefs": [
+        {
+          "ref": "s0:46f05f8d",
+          "event": 511
+        },
+        {
+          "ref": "s0:0c94469e",
+          "event": 562
+        },
+        {
+          "ref": "s0:3c3e3700",
+          "event": 567
+        },
+        {
+          "ref": "s0:46984f5c",
+          "event": 634
+        }
+      ],
+      "alignedHorizon": {
+        "ref": "s0:46984f5c",
+        "event": 634
+      },
+      "beforeSnapshot": {
+        "snapshotId": "checkpoint-0009",
+        "mapSha256": "cd470d2c559c18a584889e4e099d5d597f9823f502e00dbb7aecdceb3c009d66"
+      },
+      "coverage": {
+        "status": "needs-additional-production-replay",
+        "reason": "No v1 map snapshot ends exactly at the aligned horizon; snapshots containing later evidence are not eligible."
+      }
+    }
+  ]
+}

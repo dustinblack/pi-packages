@@ -1,0 +1,239 @@
+{
+  "version": 1,
+  "phase": "pre-registration; no validator labels and no production Mom scores",
+  "protocolSha256": "30365176b9e4670308820b76058521d320a524c1bd3f3039125b62e6c71ad18e",
+  "privatePacket": {
+    "root": "/private/tmp/todo-008-trajectory",
+    "file": "validator-packet.json",
+    "sha256": "9c516e360ac2e56b1c7166411f5a70c756d7507355c1b935d516df8aa4e2dc58"
+  },
+  "bundles": [
+    {
+      "corpus": "pi-packages",
+      "path": "/private/tmp/todo-008-trajectory/pi-packages",
+      "events": 1094,
+      "gaps": 0,
+      "sourcesSha256": "81d8370cb5b5c4f895515dabc8ef874f6b9d6cf330ba5a7f92a4fbc9b6ee5d22",
+      "feedSha256": "8bc65ab75b88e696fede4af5be1c7820b2c1f8ebdf8eeaeac0a3343b76abad4f",
+      "recovery": "Byte-identical recovery of the preserved export named by committed pageindex evidence; every source range was revalidated against the eight original JSONLs. Direct re-export now encounters unrelated post-cutoff delegate pointers whose deleted temporary run-record path did not exist when this cutoff was preserved."
+    },
+    {
+      "corpus": "buzz",
+      "path": "/private/tmp/todo-008-trajectory/buzz",
+      "events": 1626,
+      "gaps": 0,
+      "sourcesSha256": "d6c4dd69f19bd3c0fb6de1742dafe667fb9ce1378e570cad169105c858be8841",
+      "feedSha256": "ad4e96bea1761613af8fbe81c53e4db35536c1809c3279ab29ce3f886090ae55",
+      "recovery": "Fresh export from the original JSONL; byte-identical to the preserved manifest."
+    },
+    {
+      "corpus": "ssmp",
+      "path": "/private/tmp/todo-008-trajectory/ssmp",
+      "events": 903,
+      "gaps": 0,
+      "sourcesSha256": "a2104123c8ae1f3eae436271f4cc57f051f5ffc609cce6c9fee206fa4b93f070",
+      "feedSha256": "839847cd01f52b2f5c3c8aa6ebff18ca9dcbec42d48592cdb48b3f78947323bc",
+      "recovery": "Fresh export from the original JSONL; byte-identical to the preserved manifest."
+    }
+  ],
+  "originalSources": [
+    {
+      "corpus": "pi-packages",
+      "stream": "s0",
+      "path": "~/.pi/agent/sessions/--Users-ssweens-src-pi-packages--/2026-09-26T23-49-53-444Z_01a0e020-12a4-7474-819f-ad784bb5febd.jsonl",
+      "bytes": 54915527,
+      "sha256": "2e71f526c763df111a87ee23624827dcc1472cfd608f5aad570be3fe3aa36139"
+    },
+    {
+      "corpus": "pi-packages",
+      "stream": "w2497cc3bce5c",
+      "path": "/Users/ssweens/src/pi-packages/.agents/pi/subsessions/2026-09-27T01-00-48-565Z_01a0e061-0035-7474-819f-ad82af7f1495.jsonl",
+      "bytes": 97516,
+      "sha256": "f844d1b30c9d0f7e26ea17dd7a4757c21fc4b26719e5e27ea73e0e3b613cf5d4"
+    },
+    {
+      "corpus": "pi-packages",
+      "stream": "w3f3310e500f7",
+      "path": "/Users/ssweens/src/pi-packages/.agents/pi/subsessions/2026-09-27T00-03-17-313Z_01a0e02c-56c1-7474-819f-ad7a1ed4879b.jsonl",
+      "bytes": 173587,
+      "sha256": "b87b6103fda5c68ad4f7a6a5b5551a49c8def80e665f229b9cd730ee924bd981"
+    },
+    {
+      "corpus": "pi-packages",
+      "stream": "w5aec4ac72de2",
+      "path": "/Users/ssweens/src/pi-packages/.agents/pi/subsessions/2026-09-27T00-45-48-946Z_01a0e053-4612-7474-819f-ad814f6e0bea.jsonl",
+      "bytes": 148156,
+      "sha256": "96082199d0e9e788fac797f79766666d95eb7c3789dad4d4c18a81bc38bac0fa"
+    },
+    {
+      "corpus": "pi-packages",
+      "stream": "we90eb82ce6eb",
+      "path": "/Users/ssweens/src/pi-packages/.agents/pi/subsessions/2026-09-27T02-06-10-672Z_01a0e09c-d8f0-7474-819f-ad8f9ccc74ba.jsonl",
+      "bytes": 116349,
+      "sha256": "3a21cdab9474be36a22533dc64c82a571905c359dd4a0b100fb7d41a0a4db7ea"
+    },
+    {
+      "corpus": "pi-packages",
+      "stream": "wf7fed72712bf",
+      "path": "/Users/ssweens/src/pi-packages/.agents/pi/subsessions/2026-09-27T03-41-05-574Z_01a0e0f3-bea6-7474-819f-ad93bdc83805.jsonl",
+      "bytes": 144955,
+      "sha256": "bdc412d03c7e8a5397e705402abba1dcff51bc931e1219b8b4db961a6ff83776"
+    },
+    {
+      "corpus": "pi-packages",
+      "stream": "w163a280dab32",
+      "path": "/Users/ssweens/src/pi-packages/.agents/pi/subsessions/2026-09-27T01-33-24-481Z_01a0e07e-d881-7474-819f-ad8d9af3dae9.jsonl",
+      "bytes": 86350,
+      "sha256": "f86ac3405efaf7865d1349a5cc1c94f8f4388087c9f15736e8b04998089f0418"
+    },
+    {
+      "corpus": "pi-packages",
+      "stream": "wdb8db2a6d18d",
+      "path": "/Users/ssweens/src/pi-packages/.agents/pi/subsessions/2026-09-27T01-15-11-527Z_01a0e06e-2b27-7474-819f-ad860f8604e5.jsonl",
+      "bytes": 186545,
+      "sha256": "341f9a792035f99ececab80faaafa1c5d2c6f52aa33b0ed25deef9736f159dd0"
+    },
+    {
+      "corpus": "buzz",
+      "stream": "s0",
+      "path": "~/.pi/agent/sessions/--Users-ssweens-src-buzz--/2026-08-04T03-09-21-606Z_019fcabf-4946-7c0f-b0b7-bd1d8d8acf64.jsonl",
+      "bytes": 2680869,
+      "sha256": "f4fa14db3f629d21168a432f4f2e8bc7b45631d67db62e819832cc383da68ac9"
+    },
+    {
+      "corpus": "ssmp",
+      "stream": "s0",
+      "path": "~/.pi/agent/sessions/--Users-ssweens-src-playbook-skills-ssmp--/2026-09-05T03-57-01-052Z_01a06fb6-6afc-71ab-b884-86a1a0f5ace6.jsonl",
+      "bytes": 3187311,
+      "sha256": "58143615eaa1ffba558c944dd5f8a266e2154b97978457e81996b1a852d4f936"
+    }
+  ],
+  "cases": [
+    {
+      "id": "pi-pivot-01",
+      "corpus": "pi-packages",
+      "coverage": "pivot",
+      "event": 447,
+      "ref": "s0:6fd17dfa",
+      "safeExcerpt": "almost like a mother thread session sub agent"
+    },
+    {
+      "id": "pi-assent-01",
+      "corpus": "pi-packages",
+      "coverage": "assent",
+      "event": 805,
+      "ref": "s0:04b14e3e",
+      "safeExcerpt": "In-process feed"
+    },
+    {
+      "id": "pi-conflict-01",
+      "corpus": "pi-packages",
+      "coverage": "conflict",
+      "event": 1075,
+      "ref": "s0:bf65cdd0",
+      "safeExcerpt": "how else does Mom digest all of that information?"
+    },
+    {
+      "id": "pi-return-01",
+      "corpus": "pi-packages",
+      "coverage": "return",
+      "event": 1067,
+      "ref": "s0:faad3c93",
+      "safeExcerpt": "we don't necessarily want to double or more the model usage"
+    },
+    {
+      "id": "pi-stale-01",
+      "corpus": "pi-packages",
+      "coverage": "stale",
+      "event": 1092,
+      "ref": "s0:947105af",
+      "safeExcerpt": "maybe that's shrunk enough without needing a bunch of extra ledger tool calls or model calls"
+    },
+    {
+      "id": "buzz-pivot-01",
+      "corpus": "buzz",
+      "coverage": "pivot",
+      "event": 49,
+      "ref": "s0:da050b05",
+      "safeExcerpt": "Strip down buzz in a new sister dir"
+    },
+    {
+      "id": "buzz-assent-01",
+      "corpus": "buzz",
+      "coverage": "assent",
+      "event": 144,
+      "ref": "s0:59596baa",
+      "safeExcerpt": "Keep buzz's private kinds"
+    },
+    {
+      "id": "buzz-conflict-01",
+      "corpus": "buzz",
+      "coverage": "conflict",
+      "event": 190,
+      "ref": "s0:2c77772c",
+      "safeExcerpt": "make any relay addable"
+    },
+    {
+      "id": "buzz-return-01",
+      "corpus": "buzz",
+      "coverage": "return",
+      "event": 597,
+      "ref": "s0:b145efe3",
+      "safeExcerpt": "continue"
+    },
+    {
+      "id": "buzz-stale-01",
+      "corpus": "buzz",
+      "coverage": "stale",
+      "event": 1122,
+      "ref": "s0:f837571f",
+      "safeExcerpt": "Keep agent mentioning, drop management"
+    },
+    {
+      "id": "ssmp-pivot-01",
+      "corpus": "ssmp",
+      "coverage": "pivot",
+      "event": 511,
+      "ref": "s0:46f05f8d",
+      "safeExcerpt": "draft our suggested fixes completely before we forget our audit results"
+    },
+    {
+      "id": "ssmp-assent-01",
+      "corpus": "ssmp",
+      "coverage": "assent",
+      "event": 172,
+      "ref": "s0:542649d5",
+      "safeExcerpt": "Implement the full roadmap"
+    },
+    {
+      "id": "ssmp-conflict-01",
+      "corpus": "ssmp",
+      "coverage": "conflict",
+      "event": 644,
+      "ref": "s0:0a36e982",
+      "safeExcerpt": "that project is ... BROKEN with missing samples"
+    },
+    {
+      "id": "ssmp-return-01",
+      "corpus": "ssmp",
+      "coverage": "return",
+      "event": 743,
+      "ref": "s0:c313b62e",
+      "safeExcerpt": "Live D now"
+    },
+    {
+      "id": "ssmp-stale-01",
+      "corpus": "ssmp",
+      "coverage": "stale",
+      "event": 567,
+      "ref": "s0:3c3e3700",
+      "safeExcerpt": "no need to do ... reviewer after every chunk if small"
+    }
+  ],
+  "validation": {
+    "sourceRangesChecked": 3202,
+    "bundleGaps": 0,
+    "expectedEventCountsMatched": true,
+    "caseRefsChecked": true
+  }
+}
