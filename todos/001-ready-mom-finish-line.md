@@ -9,16 +9,16 @@ dependencies: []
 
 ## Where we are
 
-trunk:    005 — active — correct repeated-compaction raw capture after review P1
+trunk:    006 — let the user talk directly with Mom and switch back without slash commands
 tangents: 013 — active — replace catch-up with token-based salience retrieval
 
 ## Findings
 
 - Design of record: `AwesomeNotes/Coding Agents AI stuff/Mom - complete design map 2026-09-29.md` (every rule with its session line pointer) plus `MOM-HANDOFF.md`. Pointers `[n]` below are raw line indices in `~/.pi/agent/sessions/--Users-ssweens-src-pi-packages--/2026-09-26T23-49-53-444Z_01a0e020-12a4-7474-819f-ad784bb5febd.jsonl`.
-- Mom's sidecar-only state, settled-boundary waking, advisor, presentation, and tests landed at `65856a8`. Todo 003's bounded background update and durable gap recovery landed at `17e508b`; todo 004's literal-only history ranking through `178e6e8`; todo 005's raw-segment compaction review at `608e83a`; todo 009's enabled-only lead pivot/assent instructions through `45a85e6`; and todo 010's map/notice/usage-only sidecar through `77350ec`. 102 Tether + 38 delegate tests pass.
+- Mom's sidecar-only state, settled-boundary waking, advisor, presentation, and tests landed at `65856a8`. Todo 003's bounded background update and durable gap recovery landed at `17e508b`; todo 004's literal-only history ranking through `178e6e8`; todo 005's raw-segment compaction review and repeated-boundary correction through `d50ae02`; todo 009's enabled-only lead pivot/assent instructions through `45a85e6`; and todo 010's map/notice/usage-only sidecar through `77350ec`. 103 Tether + 38 delegate tests pass.
 - Live: the `mom` tool and widget show "could not update this account; last saved view only", with stale nodes marked current.
 - Update budget: background updates now use one proposal plus at most one aggregated repair, with `commit_graph` as their only tool. Explicit questions retain five calls, two searches, and two reads. A failed exact range waits for newer settled material or explicit refresh; two deterministic failures create an atomic visible gap so newer evidence proceeds, while provider/source/invalidation/storage failures never skip. `/mom refresh` retries the oldest gap → 003 complete at `17e508b`.
-- Todo 005 is reopened after review P1: repeated-compaction capture began at the prior compaction record instead of that compaction's `firstKeptEntryId`, omitting still-replaced raw evidence. The option-B notice path remains landed while this boundary is corrected.
+- Every successful compaction receives one bounded Mom review against the actual replaced branch range plus the source-backed map. Review P1 corrected repeated compactions to begin at the previous compaction's `firstKeptEntryId`, retaining the active raw hold omitted by the earlier boundary. A dropped active item persists one deduplicated option-B advisory for the next user request without starting a turn → 005 complete through `d50ae02`.
 - Waking on every event cost 787 calls and $2.02 in one session [6766]. That is fixed in the working tree but not yet measured → 015.
 - Dead end: per-message and per-fragment classification. Removed at the user's direction [5315][5325]. Do not reintroduce it.
 
@@ -27,7 +27,7 @@ tangents: 013 — active — replace catch-up with token-based salience retrieva
 - 002 — complete — `65856a8` + closure commit — working tree landed and pushed
 - 003 — complete — `17e508b` + closure commit — one-call routine updates, bounded repair, durable visible gap and refresh recovery
 - 004 — complete — `0bb158b` + merge `178e6e8` — exact literal ranking restored without keyword heuristics
-- 005 — active — review P1 correction for repeated-compaction raw boundary
+- 005 — complete — `608e83a` + review fix `d50ae02` + closure commit — raw compaction review and one deferred corrective advisory
 - 006 — ready — making-mom, delegates
 - 007 — ready — making-mom, delegates
 - 008 — ready — making-mom, delegates

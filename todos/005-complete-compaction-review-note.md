@@ -1,5 +1,5 @@
 ---
-status: ready
+status: complete
 issue_id: "005"
 tags: [mom, pi-tether, compaction]
 dependencies: ["003"]
@@ -35,10 +35,11 @@ After every compaction, Mom checks the result against her map. If something stil
 ## Evidence
 
 - Substantive implementation: `608e83a` (`feat(pi-tether): review compactions with Mom (todo 005)`).
-- Raw mechanism: `session_before_compact` captures the exact branch entries from the preceding compaction boundary through `firstKeptEntryId`; active-map sources are rendered first into the bounded review input. `session_compact` binds the actual summary and compaction trigger to that immutable capture.
+- Raw mechanism: on a first compaction, capture begins at the branch root; on every repeated compaction it begins at the previous compaction's `firstKeptEntryId`, and ends immediately before the new `firstKeptEntryId`. Every still-replaced branch entry is retained in the immutable capture, and active-map source events are rendered first into the bounded review input. `session_compact` binds the actual summary and compaction trigger to that capture.
 - Notice flow: dropped active material saves one sidecar-only `nextRequest` advisory. Input/start hooks append it without `triggerTurn`; notice-key persistence deduplicates delivery. Later background updates retain it until delivery.
 - Real SDK/runtime capture: `pi-tether/experiments/evidence/todo-005-real-compaction-capture.json`. It records one compaction-review request, raw hold recovery, one omitted non-active raw event due to the 36,000-character bound, next-input delivery, no notice-created lead call, and no Mom state records in session JSONL.
-- `cd pi-tether && npm run check` — typecheck passed; 102 tests passed, 0 failed.
+- Review P1 correction: `d50ae02` (`fix(pi-tether): retain repeated compaction raw range (todo 005)`). The regression reconstructs a prior compaction whose active `KEEP.txt` hold is before the prior compaction record but at its `firstKeptEntryId`; the next review now includes that hold and all entries through the new boundary.
+- `cd pi-tether && npm run check` — typecheck passed; 103 tests passed, 0 failed.
 - `cd pi-delegate && npm run check` — typecheck passed; 38 tests passed, 0 failed.
 - `git diff --check` — passed before the substantive commit.
-- `git push origin main` — pushed `2cca2b1..608e83a` to `main`.
+- Initial implementation push: `2cca2b1..608e83a`; review-fix push: `f16e8ea..d50ae02`, both to `origin/main`.
