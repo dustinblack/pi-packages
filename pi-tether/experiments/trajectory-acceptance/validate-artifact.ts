@@ -11,6 +11,11 @@ assert.equal(artifact.blind, true);
 assert.equal(artifact.model, "openai-codex/gpt-5.6-luna");
 assert.equal(artifact.fallback, "none");
 assert.deepEqual(artifact.background, { proposalCalls: 1, maxRepairCalls: 1, retrieval: false });
+assert.equal(artifact.status, "complete");
+assert.deepEqual(artifact.attempts, { "pi-packages": 2, buzz: 1, ssmp: 1 });
+assert.equal(artifact.recoveredAttempt1.attempt.outcome, "aborted");
+assert.equal(artifact.recoveredAttempt1.knownCallEvidence.totalAttemptCalls, null);
+assert.equal(artifact.recoveredAttempt1.rejection.errors.length, 2);
 assert.equal(artifact.cases.length, 15);
 assert.equal(artifact.rawCalls.length, artifact.rawCallCount);
 assert.ok(artifact.rawCallCount <= 40);
@@ -23,6 +28,7 @@ for (const item of artifact.cases) {
 	for (const key of ["unsupportedCurrentPurpose", "revivedRejectedOrSupersededAlternative", "lostUnresolvedReturn"]) assert.equal(typeof item.criticalObservations[key], "boolean");
 }
 for (const call of artifact.rawCalls) {
+	assert.equal(call.attempt, artifact.attempts[call.corpus]);
 	assert.equal(call.model, artifact.model);
 	assert.equal(call.settings.reasoningEffort, "low");
 	assert.equal(call.settings.toolChoice, "required");

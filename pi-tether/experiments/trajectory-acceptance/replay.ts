@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, rename, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { ModelRegistry, ModelRuntime } from "@earendil-works/pi-coding-agent";
 import { Mom, DEFAULT_MODEL } from "../../src/mother.ts";
@@ -13,13 +13,14 @@ const BUNDLES = "/private/tmp/todo-008-trajectory";
 const MODEL = "openai-codex/gpt-5.6-luna";
 const CORPORA = ["pi-packages", "buzz", "ssmp"] as const;
 const MAX_CALLS = 40;
-const MAX_MS = 25 * 60_000;
+const MAX_MS = 20 * 60_000;
 const sha = (data: string | Buffer) => createHash("sha256").update(data).digest("hex");
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 
 interface PacketCase { id: string; corpus: string; coverage: string; boundaryEvent: number; boundaryRef: string; context: { ref: string; relation: string; text: string }[] }
 interface Packet { version: number; blind: boolean; cases: PacketCase[] }
-interface RawCall { sequence: number; caseId: string; phase: "pre-boundary" | "boundary" | "gap-refresh"; model: string; settings: Record<string, unknown>; request: unknown; response: unknown; usage: unknown }
+interface RawCall { sequence: number; corpus: string; attempt: number; caseId: string; phase: "pre-boundary" | "boundary" | "deterministic-retry" | "gap-refresh"; model: string; settings: Record<string, unknown>; request: unknown; response: unknown; usage: unknown }
+const ATTEMPTS: Record<string, number> = { "pi-packages": 2, buzz: 1, ssmp: 1 };
 
 class MemoryStore implements MomStore {
 	readonly records: SidecarRecord[] = [];
@@ -81,81 +82,107 @@ function jsonSafe(value: unknown) { return JSON.parse(JSON.stringify(value, (key
 
 export async function run(outputPath: string) {
 	if (DEFAULT_MODEL !== MODEL) throw new Error(`Production default changed: ${DEFAULT_MODEL}`);
-	const started = Date.now();
+	const started = Date.now(), partialPath = `${outputPath}.partial`, tempPath = `${outputPath}.tmp`;
 	const packet = JSON.parse(await readFile(PACKET, "utf8")) as Packet;
 	if (!packet.blind || packet.cases.length !== 15) throw new Error("Expected the sealed 15-case blind packet.");
+	const firstFailurePath = resolve("pi-tether/experiments/trajectory-acceptance/attempt-1-failure.json");
+	const firstFailure = JSON.parse(await readFile(firstFailurePath, "utf8"));
+	const inputs: Record<string, string> = { packet: await hashFile(PACKET), "pi-tether/experiments/trajectory-acceptance/attempt-1-failure.json": await hashFile(firstFailurePath) };
+	for (const corpus of CORPORA) for (const name of ["feed.jsonl", "feed.txt", "metrics.json", "sources.json"]) inputs[`${corpus}/${name}`] = await hashFile(`${BUNDLES}/${corpus}/${name}`);
+	for (const path of ["src/mother.ts", "src/contract.ts", "src/graph.ts", "src/feed.ts", "src/checkpoint.ts", "experiments/trajectory-acceptance/classifier.ts", "experiments/trajectory-acceptance/replay.ts"])
+		inputs[`pi-tether/${path}`] = await hashFile(resolve("pi-tether", path));
 	const runtime = await ModelRuntime.create({ allowModelNetwork: false });
 	const registry = new ModelRegistry(runtime);
 	const selected = registry.find("openai-codex", "gpt-5.6-luna");
 	if (!selected || selected.api !== "openai-codex-responses") throw new Error("Exact production Luna model/API unavailable; no fallback is permitted.");
-	const rawCalls: RawCall[] = [], cases: any[] = [], transcripts: any[] = [];
-	let activeCase = "", activePhase: RawCall["phase"] = "boundary";
+	const rawCalls: RawCall[] = [], cases: any[] = [], transcripts: any[] = [], updates: any[] = [];
+	let activeCorpus = "", activeAttempt = 0, activeCase = "", activePhase: RawCall["phase"] = "boundary", liveState: any = null;
+	const artifact = (status: string) => ({ schemaVersion: 1, blind: true, status, model: MODEL, fallback: "none", reasoning: "low",
+		background: { proposalCalls: 1, maxRepairCalls: 1, retrieval: false }, startedAt: new Date(started).toISOString(),
+		checkpointedAt: new Date().toISOString(), elapsedMs: Date.now() - started, inputs,
+		selection: "chronological lead user/user_answer evidence through each final selected boundary; no unrelated tail",
+		attempts: { "pi-packages": 2, buzz: 1, ssmp: 1 }, recoveredAttempt1: firstFailure,
+		rawCallCount: rawCalls.length, rawCalls, updates, transcripts, cases, liveState });
+	const checkpoint = async (status: string, final = false) => {
+		const value: any = artifact(status); value.contentSha256 = sha(JSON.stringify(value));
+		await writeFile(tempPath, JSON.stringify(value, null, 2) + "\n");
+		await rename(tempPath, final ? outputPath : partialPath);
+		return value;
+	};
 	const auditedRegistry = {
 		find(provider: string, id: string) { return provider === "openai-codex" && id === "gpt-5.6-luna" ? selected : undefined; },
 		async complete(model: any, context: any, options: any) {
-			if (Date.now() - started > MAX_MS) throw new Error("Replay exceeded 25 minutes before the next Luna call.");
-			if (rawCalls.length >= MAX_CALLS) throw new Error("Replay would exceed 40 Luna calls.");
+			if (Date.now() - started > MAX_MS) throw new Error("Replay exceeded 20 minutes before the next Luna call.");
+			if (rawCalls.length >= MAX_CALLS) throw new Error("Replay would exceed 40 new Luna calls.");
 			const settings = { api: model.api, maxTokens: options.maxTokens, reasoningEffort: options.reasoningEffort, toolChoice: options.toolChoice,
 				maxRetryDelayMs: options.maxRetryDelayMs, parallelToolCallsForcedFalse: true };
 			const response = await registry.complete(model, context, options);
-			rawCalls.push({ sequence: rawCalls.length + 1, caseId: activeCase, phase: activePhase, model: `${model.provider}/${model.id}`,
-				settings, request: jsonSafe(context), response: jsonSafe(response), usage: jsonSafe(response.usage) });
+			rawCalls.push({ sequence: rawCalls.length + 1, corpus: activeCorpus, attempt: activeAttempt, caseId: activeCase, phase: activePhase,
+				model: `${model.provider}/${model.id}`, settings, request: jsonSafe(context), response: jsonSafe(response), usage: jsonSafe(response.usage) });
+			await checkpoint("model-response");
 			return response;
 		},
 		streamSimple() { throw new Error("No fallback API is permitted."); },
 	};
 
 	for (const corpus of CORPORA) {
+		activeCorpus = corpus; activeAttempt = ATTEMPTS[corpus]!;
 		const feedPath = `${BUNDLES}/${corpus}/feed.jsonl`;
 		const lines = (await readFile(feedPath, "utf8")).trim().split("\n");
 		const all = lines.map(line => JSON.parse(line) as FeedEvent);
 		const corpusCases = packet.cases.filter(item => item.corpus === corpus).sort((a, b) => a.boundaryEvent - b.boundaryEvent);
-		const session = new ReplaySession(`todo-008-${corpus}`, process.cwd());
+		const session = new ReplaySession(`todo-008-${corpus}-attempt-${activeAttempt}`, process.cwd());
 		const store = new MemoryStore(session.getSessionId());
 		const ctx = { sessionManager: session, modelRegistry: auditedRegistry } as any;
 		const mom = new Mom({ ctx, model: MODEL, store, current: () => true, changed() {} });
 		await mom.open();
 		const stage = installFeedAdapter(mom, session);
+		const state = () => ({ corpus, attempt: activeAttempt, caseId: activeCase, phase: activePhase, checkpointId: mom.checkpointId ?? null,
+			graph: graph(mom), detail: clone(mom.detail()), failure: clone(mom.failure ?? null), gaps: clone(mom.gaps), usage: clone(mom.usage),
+			sidecarRecords: clone(store.records), cut: clone(mom.checkpoint?.cut ?? null) });
+		const update = async (phase: "pre-boundary" | "boundary") => {
+			const invoke = async (kind: RawCall["phase"], refresh = false) => {
+				activePhase = kind; const callStart = rawCalls.length; let error: string | null = null;
+				try { await mom.update(undefined, undefined, 0, refresh); } catch (caught) { error = String(caught); }
+				const calls = rawCalls.length - callStart;
+				if (calls > 2) throw new Error(`${activeCase}: ${kind} update exceeded production ceiling.`);
+				liveState = state(); updates.push({ corpus, attempt: activeAttempt, caseId: activeCase, phase: kind, refresh, calls,
+					repairs: Math.max(0, calls - 1), error, checkpointId: mom.checkpointId ?? null, failure: clone(mom.failure ?? null), gaps: clone(mom.gaps), usageAfter: clone(mom.usage) });
+				await checkpoint(error ? "update-failure" : "update-accepted"); return error;
+			};
+			let error = await invoke(phase);
+			if (error && mom.failure) error = await invoke("deterministic-retry");
+			if (error && mom.gaps.length) error = await invoke("gap-refresh", true);
+			return error;
+		};
 		let cursor = 0;
 		for (const item of corpusCases) {
 			const boundary = all[item.boundaryEvent - 1];
 			if (!boundary || boundary.ref !== item.boundaryRef) throw new Error(`${item.id}: packet boundary does not match immutable feed event ${item.boundaryEvent}.`);
 			if (!(boundary.actor === "lead" && ["user", "user_answer"].includes(boundary.kind))) throw new Error(`${item.id}: boundary is not a lead direction.`);
 			const eligible = all.slice(cursor, item.boundaryEvent - 1).filter(event => event.actor === "lead" && ["user", "user_answer"].includes(event.kind));
-			activeCase = item.id; activePhase = "pre-boundary";
-			if (eligible.length) { stage(eligible); const beforeCalls = rawCalls.length; await mom.update(); if (rawCalls.length - beforeCalls > 2) throw new Error(`${item.id}: pre-boundary update exceeded production ceiling.`); }
+			activeCase = item.id;
+			let preFailure: string | null = null;
+			if (eligible.length) { stage(eligible); preFailure = await update("pre-boundary"); }
 			const before = graph(mom), beforeCheckpoint = mom.checkpointId ?? null;
-			activePhase = "boundary"; stage([boundary]);
-			const callStart = rawCalls.length;
-			let failure: string | null = null;
-			try { await mom.update(); } catch (error) { failure = String(error); }
-			const callCount = rawCalls.length - callStart;
-			if (callCount > 2) throw new Error(`${item.id}: boundary update exceeded production ceiling.`);
-			const after = graph(mom), classification = failure ? null : classifyGraphDiff(before, after);
-			cases.push({ id: item.id, corpus, coverage: item.coverage, boundaryEvent: item.boundaryEvent, boundaryRef: item.boundaryRef,
+			stage([boundary]); const boundaryCallStart = rawCalls.length;
+			const boundaryFailure = await update("boundary");
+			const callCount = rawCalls.slice(boundaryCallStart).filter(call => call.caseId === item.id && call.phase === "boundary").length;
+			const after = graph(mom), failure = preFailure ?? boundaryFailure, classification = failure ? null : classifyGraphDiff(before, after);
+			cases.push({ id: item.id, corpus, attempt: activeAttempt, coverage: item.coverage, boundaryEvent: item.boundaryEvent, boundaryRef: item.boundaryRef,
 				beforeCheckpoint, afterCheckpoint: mom.checkpointId ?? null, before, after, diff: { beforeRevision: before.revision, afterRevision: after.revision },
 				prediction: classification?.label ?? null, classifierReasons: classification?.reasons ?? [], calls: callCount,
 				repairs: Math.max(0, callCount - 1), failure, gaps: clone(mom.gaps), usageAfter: clone(mom.usage),
 				criticalObservations: { unsupportedCurrentPurpose: null, revivedRejectedOrSupersededAlternative: null, lostUnresolvedReturn: null,
 					note: "To be completed from packet obligations and these raw maps before artifact commit." } });
-			if (failure) throw new Error(`${item.id}: production update failed; checkpoint retained. ${failure}`);
-			cursor = item.boundaryEvent;
+			cursor = item.boundaryEvent; liveState = state(); await checkpoint("case-complete");
 		}
 		mom.close();
-		transcripts.push({ corpus, lastProcessedEvent: cursor, finalSelectedBoundary: corpusCases.at(-1)!.boundaryEvent,
+		transcripts.push({ corpus, attempt: activeAttempt, lastProcessedEvent: cursor, finalSelectedBoundary: corpusCases.at(-1)!.boundaryEvent,
 			eligibleLeadDirectionsProcessed: mom.feed.events.length, gaps: clone(mom.gaps), usage: clone(mom.usage), sidecarRecords: clone(store.records) });
+		liveState = null; await checkpoint("transcript-complete");
 	}
-	const inputs: Record<string, string> = { packet: await hashFile(PACKET) };
-	for (const corpus of CORPORA) for (const name of ["feed.jsonl", "feed.txt", "metrics.json", "sources.json"]) inputs[`${corpus}/${name}`] = await hashFile(`${BUNDLES}/${corpus}/${name}`);
-	for (const path of ["src/mother.ts", "src/contract.ts", "src/graph.ts", "src/feed.ts", "src/checkpoint.ts", "experiments/trajectory-acceptance/classifier.ts", "experiments/trajectory-acceptance/replay.ts"])
-		inputs[`pi-tether/${path}`] = await hashFile(resolve("pi-tether", path));
-	const artifact: any = { schemaVersion: 1, blind: true, model: MODEL, fallback: "none", reasoning: "low", background: { proposalCalls: 1, maxRepairCalls: 1, retrieval: false },
-		startedAt: new Date(started).toISOString(), finishedAt: new Date().toISOString(), elapsedMs: Date.now() - started,
-		inputs, selection: "chronological lead user/user_answer evidence through each final selected boundary; no unrelated tail", rawCallCount: rawCalls.length,
-		rawCalls, transcripts, cases };
-	artifact.contentSha256 = sha(JSON.stringify(artifact));
-	await writeFile(outputPath, JSON.stringify(artifact, null, 2) + "\n");
-	return artifact;
+	return checkpoint("complete", true);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

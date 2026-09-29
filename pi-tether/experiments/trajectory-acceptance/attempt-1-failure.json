@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "blind": true,
+  "attempt": {
+    "corpus": "pi-packages",
+    "number": 1,
+    "outcome": "aborted",
+    "caseId": "pi-assent-01",
+    "phase": "pre-boundary"
+  },
+  "provenance": {
+    "source": "actual phase-4 process stderr plus committed production/harness control flow",
+    "preRunGitSha": "d642d7603c59f0281b61b9866e8d5392f90ff028",
+    "rawProviderRequestsAvailableAfterProcessExit": false,
+    "rawProviderResponsesAvailableAfterProcessExit": false,
+    "acceptedMapsAvailableAfterProcessExit": false,
+    "unknownTotalsNotInferred": true
+  },
+  "model": "openai-codex/gpt-5.6-luna",
+  "settings": {
+    "api": "openai-codex-responses",
+    "reasoningEffort": "low",
+    "toolChoice": "required",
+    "maxTokens": 6000,
+    "maxRetryDelayMs": 1000,
+    "parallelToolCalls": false,
+    "fallback": "none",
+    "backgroundRetrieval": false,
+    "proposalCalls": 1,
+    "maxRepairCalls": 1
+  },
+  "knownCallEvidence": {
+    "failedUpdateCalls": 2,
+    "failedUpdateRepairs": 1,
+    "totalAttemptCalls": null,
+    "totalAttemptRepairs": null,
+    "usage": null,
+    "note": "The aggregate acceptGraph error can be reached on this background path only after the initial proposal and its one repair are exhausted. Earlier successful update totals and provider usage were memory-only and are not invented."
+  },
+  "rejection": {
+    "type": "Graph transaction defects",
+    "errors": [
+      "Upsert tether_dogfooding omits prior user authority s0:351fc674; retain it or declare a later fresh user supersession.",
+      "Upsert tether_dogfooding omits prior user authority s0:6fd17dfa; retain it or declare a later fresh user supersession."
+    ],
+    "stackLocations": [
+      "pi-tether/src/contract.ts:257:28",
+      "pi-tether/src/mother.ts:248:19",
+      "pi-tether/experiments/trajectory-acceptance/replay.ts:126:81"
+    ]
+  },
+  "state": {
+    "savedTempSessionOrSidecar": false,
+    "checkpointGraph": null,
+    "checkpointGraphReason": "MemoryStore and accepted maps were lost when the process exited.",
+    "cursor": {
+      "lastKnownAcceptedBoundaryRef": "s0:6fd17dfa",
+      "fromSyntheticParent": "replay-000014",
+      "failedThroughSyntheticParent": "replay-000019",
+      "failedRefs": [
+        "s0:61332fe3",
+        "s0:b3de2315",
+        "s0:2f3c30f4",
+        "s0:d78db232",
+        "s0:0fe8fa5a"
+      ],
+      "derivation": "Exact immutable feed selection and deterministic ReplaySession cursor increments from the committed harness."
+    },
+    "failureRecord": {
+      "failures": 1,
+      "durability": "memory-only; process lost",
+      "error": "Graph transaction defects (two errors preserved above)"
+    },
+    "gaps": [],
+    "gapRefreshPerformed": false
+  },
+  "hashes": {
+    "packet": "9c516e360ac2e56b1c7166411f5a70c756d7507355c1b935d516df8aa4e2dc58",
+    "pi-packages/feed.jsonl": "8bc65ab75b88e696fede4af5be1c7820b2c1f8ebdf8eeaeac0a3343b76abad4f",
+    "pi-packages/feed.txt": "176aa5b14fe6b4c99034eff11bae79378517f849a6199b6d0803a277ab0158cc",
+    "pi-packages/metrics.json": "528f3e5ebd5d68e05fb36f58ea3c5fe15bf3805d035e8e43748bf71ca4592382",
+    "pi-packages/sources.json": "81d8370cb5b5c4f895515dabc8ef874f6b9d6cf330ba5a7f92a4fbc9b6ee5d22",
+    "pi-tether/src/mother.ts": "badbb1e13d802faf2099fb4f3725bc46240edf42af33526c24adf7520ee5498b",
+    "pi-tether/src/contract.ts": "e23927a78b53653c10214064057aea45a5fe642975e0c7625ab34d1d98bd3c3b",
+    "pi-tether/src/graph.ts": "c6dd5e5ebbfd8eec01ed065ee8d319eaf82c5c514449c44c79aacad410093f28",
+    "pi-tether/src/feed.ts": "91851ab56881d4691ee936b1a9caeb14e65725e270228d78b254492ebec64518",
+    "pi-tether/src/checkpoint.ts": "fce0ae1570a8b1a9cdda8263d8051ab745e10f15aa27da9a00212acf9a7b70eb",
+    "pi-tether/experiments/trajectory-acceptance/classifier.ts": "c0146c764a5382b312333e5cade293a22f20cd2e209fecc4c74824f7bee157ee",
+    "pi-tether/experiments/trajectory-acceptance/replay.ts": "c6bc22226d4d0bbe6ec8a4b820c9d0668e4fa62fe43a2e5a3df043614534bad0"
+  }
+}

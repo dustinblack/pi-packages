@@ -6,7 +6,9 @@ This directory's phase-4 harness imports production `Mom`; it does not carry an 
 
 The immutable recovered bundles are already the output of production's exact narrative feed extraction. The adapter admits only chronological lead `user` and `user_answer` evidence authorized by the blind packet/protocol. It does not expose assistant/model output, tool payloads, a future event, or events after a transcript's final selected boundary. For each case it first applies eligible directions strictly before the boundary, snapshots the accepted map, applies the one exact packet boundary event, and snapshots again. Each segment is checked against production's 24,000-character feed limit.
 
-The replay aborts rather than selecting a fallback model, exceeding two calls in an update, making call 41, running beyond 25 minutes, accepting a packet/feed ref mismatch, or continuing after a rejected boundary transaction. Background retrieval is disabled by production `Mom`.
+The replay aborts rather than selecting a fallback model, exceeding two calls in an update, making call 41, running beyond 20 minutes, or accepting a packet/feed ref mismatch. Background retrieval is disabled by production `Mom`. It atomically rewrites `raw-predictions.json.partial` after every model response, update success/failure, case, and transcript. A first deterministic failure receives the ordinary production retry; an opened gap receives one explicit production `refresh` attempt, with every failed and repaired update retained in `updates`.
+
+The lost-memory Pi attempt 1 is reconstructed conservatively in `attempt-1-failure.json`: only the observed process error and facts mechanically implied by committed control flow are populated; unavailable maps, usage, and totals remain `null`. With no saved temp session/sidecar, Pi is explicitly attempt 2. Buzz and SSMP remain attempt 1.
 
 ## Precommitted classifier
 
