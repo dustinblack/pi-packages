@@ -74,25 +74,54 @@ test("advisor failure is recorded but cannot block an otherwise valid Mom update
 	} finally { mom.close(); await h.close(); }
 });
 
-test("one update can reject three graph transactions and still succeed within five total calls", { timeout: 15000 }, async () => {
+test("a rejected background proposal gets one aggregated repair and background exposes commit_graph only", { timeout: 15000 }, async () => {
 	const h = await setup(), mom = h.createMom(); let attempts = 0;
 	try {
 		await h.runtime.session.prompt("Preserve the original purpose.");
 		h.api.onUnscripted((request) => {
 			if (!isMomRequest(request)) return { text: "Lead continued." };
-			if (attempts++ < 3) {
+			assert.deepEqual(request.tools.map((tool: any) => tool.function.name), ["commit_graph"]);
+			if (attempts++ === 0) {
 				const ref = input(request).original.ref;
 				return replacement(request, { unfinished: [{ node: "main", label: "Main purpose", disposition: "carried", target: "main", sources: [ref] }] });
 			}
+			assert.match(JSON.stringify(request.messages), /transaction closes no endeavor.*Correct all reported defects.*1 model call remains/s);
 			return replacement(request);
 		});
 		await mom.open(); await mom.update();
-		assert.equal(h.requests().length, 4);
-		assert.match(JSON.stringify(h.requests()[1].messages), /transaction closes no endeavor.*4 model calls remain/);
-		assert.match(JSON.stringify(h.requests()[2].messages), /transaction closes no endeavor.*3 model calls remain/);
-		assert.match(JSON.stringify(h.requests()[3].messages), /transaction closes no endeavor.*2 model calls remain/);
+		assert.equal(h.requests().length, 2); assert.equal(mom.usage.calls, 2);
 		assert.equal((await checkpoints(h)).length, 1); assert.equal(mom.error, undefined);
 		assert.deepEqual(h.errors, []); assert.deepEqual(h.api.errors, []);
+	} finally { mom.close(); await h.close(); }
+});
+
+test("background failure waits for new material, gaps the second deterministic failure, and refresh catches it up", { timeout: 15000 }, async () => {
+	const h = await setup(), mom = h.createMom(); let reject = false;
+	try {
+		await h.runtime.session.prompt("Preserve the original purpose."); await mom.open(); await mom.update();
+		h.api.onUnscripted((request) => {
+			if (!isMomRequest(request)) return { text: "Lead continued." };
+			if (!reject) return replacement(request);
+			const ref = input(request).original.ref;
+			return replacement(request, { unfinished: [{ node: "main", label: "Main purpose", disposition: "carried", target: "main", sources: [ref] }] });
+		});
+		await h.runtime.session.prompt("This range will fail deterministically."); reject = true;
+		const before = h.requests().length;
+		await assert.rejects(() => mom.update(), /closes no endeavor/);
+		assert.equal(h.requests().length, before + 2); assert.equal(mom.failure?.failures, 1); assert.equal(mom.gaps.length, 0);
+		await mom.update();
+		assert.equal(h.requests().length, before + 2, "no newer boundary means no immediate retry");
+		await h.runtime.session.prompt("Newer evidence must remain available after the skipped range.");
+		await assert.rejects(() => mom.update(), /closes no endeavor/);
+		assert.equal(h.requests().length, before + 4); assert.equal(mom.failure, undefined); assert.equal(mom.gaps.length, 1);
+		assert.equal((await readSidecar(h)).filter(record => record.type === "gap" && record.data.action === "open").length, 1);
+		assert.equal(mom.detail().skippedEvidence.length, 1); assert.equal(mom.detail().sessionUsage.calls, before + 4);
+		reject = false; await mom.update();
+		assert.match(input(h.requests().at(-1)).newEvents, /Newer evidence must remain available/);
+		const calls = h.requests().length;
+		await mom.update(undefined, undefined, 0, true);
+		assert.equal(h.requests().length, calls + 1); assert.equal(mom.gaps.length, 0);
+		assert.match(input(h.requests().at(-1)).newEvents, /This range will fail deterministically/);
 	} finally { mom.close(); await h.close(); }
 });
 
@@ -154,11 +183,43 @@ test("checkpoint append failure retains the old snapshot/cursor and retries the 
 		await h.runtime.session.prompt("Keep the worker result attached to that goal."); fail = true;
 		await assert.rejects(() => mom.update(), /Injected append failure/);
 		assert.equal(mom.checkpoint, before); assert.equal((await checkpoints(h)).length, 1);
+		assert.equal(mom.gaps.length, 0, "sidecar failure never advances or gaps evidence");
 		assert.equal(h.requests().length, 2, "storage failure does not cause a model repair call");
 		fail = false; await mom.update();
 		assert.equal((await checkpoints(h)).length, 2);
 		assert.equal(input(h.requests()[1]).newEvents, input(h.requests()[2]).newEvents);
 		assert.equal(mom.usage.calls, 3, "failed attempt usage is retained");
+	} finally { mom.close(); await h.close(); }
+});
+
+test("a sidecar failure while opening a deterministic gap skips nothing and retains newer evidence", { timeout: 15000 }, async () => {
+	const h = await setup(); let failGap = false, reject = false;
+	const durable = () => new SidecarStore(() => h.parent, h.runtime.session.sessionManager.getSessionId());
+	const mom = h.createMom({ store: {
+		load: async () => durable().load(),
+		append: async (type, data) => {
+			if (failGap && type === "gap" && data.action === "open") throw new Error("Injected gap append failure");
+			return durable().append(type, data);
+		},
+	} });
+	try {
+		await h.runtime.session.prompt("Preserve this goal."); await mom.open(); await mom.update();
+		h.api.onUnscripted((request) => {
+			if (!isMomRequest(request)) return { text: "Lead continued." };
+			if (!reject) return replacement(request);
+			const ref = input(request).original.ref;
+			return replacement(request, { unfinished: [{ node: "main", label: "Main purpose", disposition: "carried", target: "main", sources: [ref] }] });
+		});
+		await h.runtime.session.prompt("Fail this exact range."); reject = true;
+		await assert.rejects(() => mom.update(), /closes no endeavor/);
+		const before = mom.checkpoint?.cut;
+		await h.runtime.session.prompt("Newer evidence survives the failed gap write."); failGap = true;
+		await assert.rejects(() => mom.update(), /Injected gap append failure/);
+		assert.deepEqual(mom.checkpoint?.cut, before); assert.equal(mom.gaps.length, 0); assert.equal(mom.failure?.failures, 1);
+		assert.equal((await readSidecar(h)).some(record => record.type === "gap" && record.data.action === "open"), false);
+		failGap = false; reject = false;
+		await h.runtime.session.prompt("A later boundary releases the retained range."); await mom.update(); await mom.update();
+		assert.match(input(h.requests().at(-1)).newEvents, /Newer evidence survives the failed gap write/);
 	} finally { mom.close(); await h.close(); }
 });
 
@@ -171,6 +232,7 @@ test("provider failure survives reload without losing the last checkpoint or new
 		h.api.onUnscripted((request) => isMomRequest(request) ? { error: 400 } : { text: "Lead continued." });
 		await assert.rejects(() => mom.update(), /Fixture provider failure/);
 		assert.equal(mom.checkpoint, before); assert.equal((await checkpoints(h)).length, 1);
+		assert.equal(mom.failure, undefined); assert.equal(mom.gaps.length, 0, "provider outage is not a deterministic evidence failure");
 		mom.close(); await h.runtime.session.reload(); mom = h.createMom(); await mom.open();
 		assert.deepEqual(mom.checkpoint, before); assert.equal(mom.usage.calls, 2);
 		h.api.onUnscripted((request) => replacement(request));
@@ -317,5 +379,6 @@ test("a result completing after session invalidation cannot publish a checkpoint
 		const work = mom.update(); await arrived.promise; current = false; gate.resolve();
 		await assert.rejects(() => work, /superseded/);
 		assert.equal((await checkpoints(h)).length, 0); assert.equal(mom.checkpoint, undefined);
+		assert.equal(mom.failure, undefined); assert.equal(mom.gaps.length, 0, "session invalidation never skips evidence");
 	} finally { gate.resolve(); mom.close(); await h.close(); }
 });

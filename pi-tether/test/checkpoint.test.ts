@@ -32,7 +32,7 @@ test("sidecar records restore checkpoint, control, delivery, and usage; abandone
 	await store.append("control", { enabled: false });
 	await store.append("notice", { key: "obligation|trigger" });
 	await store.append("attempt", { usage: { ...emptyUsage(), calls: 9 } });
-	assert.deepEqual(await loadState(store, manager), { checkpoint: current, checkpointId: "keep", enabled: false,
+	assert.deepEqual(await loadState(store, manager), { checkpoint: current, checkpointId: "keep", coverageCut: current.cut, enabled: false, gaps: [],
 		delivered: "obligation|trigger", usage: { ...emptyUsage(), calls: 9 } });
 	// A checkpoint whose cursor is not on the selected branch never applies, even as the only record.
 	const gone = memoryStore(sessionId, [asRecord("gone", sessionId, { ...current, cut: { parent: "missing", workers: [] } })]);
@@ -56,13 +56,29 @@ test("progress cursors apply only to their checkpoint and selected branch", asyn
 	await assert.rejects(() => loadState(invalid, manager), /Invalid Mom progress/);
 });
 
+test("deterministic failure and skipped-gap cursors restore without using the transcript as state", async () => {
+	const manager = SessionManager.inMemory("/tmp"), sessionId = manager.getSessionId();
+	const root = manager.appendMessage({ role: "user", content: "root", timestamp: Date.now() });
+	const leaf = manager.appendMessage({ role: "user", content: "leaf", timestamp: Date.now() });
+	const current = { ...checkpoint(sessionId), cut: { parent: root, workers: [] } };
+	const store = memoryStore(sessionId, [asRecord("keep", sessionId, current, 1)]);
+	const from = current.cut, through = { parent: leaf, workers: [] };
+	await store.append("failure", { key: "range", from, through, refs: [], error: "rejected", failures: 1 });
+	assert.equal((await loadState(store, manager)).failure?.failures, 1);
+	await store.append("gap", { action: "open", id: "gap-one", key: "range", checkpoint: "keep", from, cut: through, refs: [], error: "rejected", failures: 2 });
+	const skipped = await loadState(store, manager);
+	assert.equal(skipped.failure, undefined); assert.equal(skipped.coverageCut?.parent, leaf); assert.equal(skipped.gaps[0]?.id, "gap-one");
+	await store.append("gap", { action: "resolved", id: "gap-one" });
+	assert.deepEqual((await loadState(store, manager)).gaps, []);
+});
+
 test("the session transcript is never a Mom state source; only sidecar records load", async () => {
 	const manager = SessionManager.inMemory("/tmp");
 	const store = memoryStore(manager.getSessionId());
 	const current = checkpoint(manager.getSessionId());
 	manager.appendCustomEntry("pi-tether.mom.v4", current);
 	manager.appendCustomEntry("pi-tether.mom-control", { sessionId: manager.getSessionId(), enabled: false });
-	assert.deepEqual(await loadState(store, manager), { enabled: true });
+	assert.deepEqual(await loadState(store, manager), { enabled: true, gaps: [] });
 	await store.append("checkpoint", current);
 	assert.equal((await loadState(store, manager)).checkpoint, current);
 	assert(isCheckpoint(current));

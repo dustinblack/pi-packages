@@ -63,7 +63,9 @@ export function isCheckpoint(x: unknown): x is Checkpoint {
 	return usageLike(x.usage);
 }
 
-export interface MomState { checkpoint?: Checkpoint; checkpointId?: string; enabled: boolean; delivered?: string; usage?: Usage }
+export interface CursorFailure { key: string; from: Cut; through: Cut; refs: string[]; error: string; failures: number }
+export interface SkippedGap extends CursorFailure { id: string }
+export interface MomState { checkpoint?: Checkpoint; checkpointId?: string; coverageCut?: Cut; enabled: boolean; delivered?: string; usage?: Usage; failure?: CursorFailure; gaps: SkippedGap[] }
 
 /** Sidecar checkpoint records valid for the selected branch. */
 export function branchCheckpoints(records: readonly SidecarRecord[], branch: ReadonlySet<string>): { id: string; data: Checkpoint }[] {
@@ -85,20 +87,47 @@ function foldAttemptUsage(records: readonly SidecarRecord[], at: number): Usage 
 
 /** Mom state comes only from her sidecar. The session transcript is evidence, never state storage. */
 export async function loadState(store: MomStore, manager: SessionReader): Promise<MomState> {
-	const state: MomState = { enabled: true };
+	const state: MomState = { enabled: true, gaps: [] };
 	const records = await store.load();
 	const branch = new Set(manager.getBranch().map(e => e.id));
-	for (const { id, data } of branchCheckpoints(records, branch)) { state.checkpoint = data; state.checkpointId = id; }
+	for (const { id, data } of branchCheckpoints(records, branch)) { state.checkpoint = data; state.checkpointId = id; state.coverageCut = data.cut; }
+	const gaps = new Map<string, SkippedGap>();
+	let coverageAt = state.checkpoint?.at ?? 0;
 	for (const item of records) {
 		if (item.type === "progress") {
 			if (typeof item.data.checkpoint !== "string" || !cutLike(item.data.cut)) throw new Error("Invalid Mom progress in her sidecar; refusing to outrun an accepted update.");
-			if (item.data.checkpoint === state.checkpointId && state.checkpoint &&
+			if (item.data.checkpoint === state.checkpointId && state.checkpoint && item.at >= coverageAt &&
 				(item.data.cut.parent === null || branch.has(item.data.cut.parent))) {
 				state.checkpoint = { ...state.checkpoint, cut: item.data.cut, at: item.at };
+				state.coverageCut = item.data.cut; coverageAt = item.at; state.failure = undefined;
+			}
+		} else if (item.type === "failure") {
+			if (!record(item.data) || typeof item.data.key !== "string" || !cutLike(item.data.from) || !cutLike(item.data.through) ||
+				!Array.isArray(item.data.refs) || !item.data.refs.every((ref: unknown) => typeof ref === "string") ||
+				typeof item.data.error !== "string" || !integer(item.data.failures)) throw new Error("Invalid Mom failure state in her sidecar.");
+			if (item.at >= coverageAt && (item.data.through.parent === null || branch.has(item.data.through.parent))) state.failure = item.data as CursorFailure;
+		} else if (item.type === "gap") {
+			if (item.data.action === "resolved" && typeof item.data.id === "string") gaps.delete(item.data.id);
+			else {
+				if (item.data.action !== "open" || typeof item.data.id !== "string" || typeof item.data.key !== "string" ||
+					!cutLike(item.data.from) || !cutLike(item.data.cut) || !Array.isArray(item.data.refs) ||
+					!item.data.refs.every((ref: unknown) => typeof ref === "string") || typeof item.data.error !== "string" || !integer(item.data.failures)) {
+					throw new Error("Invalid Mom skipped-gap state in her sidecar.");
+				}
+				if (item.data.cut.parent === null || branch.has(item.data.cut.parent)) {
+					const gap: SkippedGap = { id: item.data.id, key: item.data.key, from: item.data.from, through: item.data.cut,
+						refs: item.data.refs, error: item.data.error, failures: item.data.failures };
+					gaps.set(gap.id, gap);
+					if (item.at >= coverageAt && ((state.checkpointId && item.data.checkpoint === state.checkpointId) || (!state.checkpointId && item.data.checkpoint === null))) {
+						state.coverageCut = gap.through; coverageAt = item.at; state.failure = undefined;
+						if (state.checkpoint) state.checkpoint = { ...state.checkpoint, cut: gap.through, at: item.at };
+					}
+				}
 			}
 		} else if (item.type === "control" && typeof item.data.enabled === "boolean") state.enabled = item.data.enabled;
 		else if (item.type === "notice" && typeof item.data.key === "string") state.delivered = item.data.key;
 	}
+	state.gaps = [...gaps.values()];
 	const usage = foldAttemptUsage(records, state.checkpoint?.at ?? 0);
 	if (usage) state.usage = usage;
 	return state;

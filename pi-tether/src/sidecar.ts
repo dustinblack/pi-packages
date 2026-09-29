@@ -1,7 +1,7 @@
 import { appendFile, readFile, truncate } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 
-export type SidecarType = "checkpoint" | "progress" | "control" | "notice" | "attempt";
+export type SidecarType = "checkpoint" | "progress" | "control" | "notice" | "attempt" | "failure" | "gap";
 export interface SidecarRecord { v: 1; id: string; sessionId: string; type: SidecarType; at: number; data: Record<string, any> }
 
 /** Mom's durable state lives in an append-only sidecar beside the session transcript, never inside it. */
@@ -14,7 +14,7 @@ export interface MomStore {
 // Pi's session lister scans every *.jsonl file in the session directory; the sidecar must not match.
 export const sidecarFile = (sessionFile: string) => sessionFile.replace(/\.jsonl$/, "") + ".mom";
 
-const types: readonly SidecarType[] = ["checkpoint", "progress", "control", "notice", "attempt"];
+const types: readonly SidecarType[] = ["checkpoint", "progress", "control", "notice", "attempt", "failure", "gap"];
 
 export interface SidecarIO {
 	read(file: string): Promise<Buffer>;

@@ -3,13 +3,15 @@ import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { Message, Model } from "@earendil-works/pi-ai";
 import type { MomStore } from "./sidecar.ts";
 import type { AdvisorRecord, SessionAdvisor } from "./advisor.ts";
-import { branchCheckpoints, emptyUsage, graphChange, loadState, sumUsage, type Checkpoint, type Usage } from "./checkpoint.ts";
+import { branchCheckpoints, emptyUsage, graphChange, loadState, sumUsage, type Checkpoint, type CursorFailure, type SkippedGap, type Usage } from "./checkpoint.ts";
 import { LiveFeed, renderEvent, renderEvents, suffix, type Cut } from "./feed.ts";
 import { acceptGraph, MOM_PROMPT, momTools, validateSearchQuery } from "./contract.ts";
 import { emptyGraph, graphSlice } from "./graph.ts";
 
 export const DEFAULT_MODEL = "openai-codex/gpt-5.6-luna";
 export const CONTEXT_LIMIT = 90000;
+type StagedBatch = Awaited<ReturnType<LiveFeed["capture"]>> & { revision: number; from: Cut; startIndex: number; endIndex: number; retryGapId?: string };
+
 export interface MomHost {
 	ctx: ExtensionContext;
 	model: string;
@@ -41,7 +43,10 @@ export class Mom {
 	private controller?: AbortController;
 	private committed = 0;
 	private checkpoints: { id: string; data: Checkpoint }[] = [];
-	private staged?: Awaited<ReturnType<LiveFeed["capture"]>> & { revision: number };
+	failure?: CursorFailure;
+	gaps: SkippedGap[] = [];
+	private staged?: StagedBatch;
+	private queued?: StagedBatch;
 
 	constructor(private host: MomHost) { this.feed = new LiveFeed(host.ctx.sessionManager); }
 
@@ -52,13 +57,22 @@ export class Mom {
 		this.enabled = state.enabled;
 		this.delivered = state.delivered;
 		this.usage = state.usage ?? state.checkpoint?.usage ?? emptyUsage();
-		await this.feed.restore(this.checkpoint?.cut);
+		this.failure = state.failure; this.gaps = state.gaps;
+		await this.feed.restore(state.failure?.through ?? state.coverageCut ?? this.checkpoint?.cut);
 		if (this.checkpoint) for (const item of [...this.checkpoint.graph.nodes, ...this.checkpoint.graph.edges]) for (const ref of item.sources) {
 			if (!this.feed.byRef.has(ref)) throw new Error(`Checkpoint cites an unknown or unobserved source: ${ref}`);
 		}
-		this.committed = this.feed.events.length;
+		if (state.failure) {
+			const events = state.failure.refs.map(ref => this.feed.byRef.get(ref)).filter((event): event is NonNullable<typeof event> => Boolean(event));
+			if (events.length !== state.failure.refs.length) throw new Error("Mom cannot restore the evidence range recorded for retry.");
+			this.committed = this.feed.events.length - events.length;
+			this.staged = { events, cut: state.failure.through, from: state.failure.from, gaps: [], more: false, revision: 0,
+				startIndex: this.committed, endIndex: this.feed.events.length };
+		} else this.committed = this.feed.events.length;
 		this.checkpoints = branchCheckpoints(await this.host.store.load(), new Set(this.host.ctx.sessionManager.getBranch().map(e => e.id)));
 	}
+
+	detail() { return { failureState: this.failure, skippedEvidence: this.gaps, sessionUsage: this.usage }; }
 
 	readGraph(options: { nodes?: string[]; depth?: number; checkpoint?: string } = {}) {
 		let checkpoint = this.checkpoint, checkpointId = this.checkpointId;
@@ -85,22 +99,44 @@ export class Mom {
 		suffix(this.host.ctx.sessionManager, this.host.ctx.sessionManager.getLeafId(), cut.parent);
 	}
 
-	async update(question?: string, signal?: AbortSignal, revision = 0): Promise<string | undefined> {
+	async update(question?: string, signal?: AbortSignal, revision = 0, refresh = false): Promise<string | undefined> {
 		if (this.busy) throw new Error("Mom already has an update in flight.");
 		if (this.disposed) throw new Error("Mom session is closed.");
-		this.busy = true; this.error = undefined;
+		this.busy = true;
 		this.controller = new AbortController();
 		const started = performance.now();
 		let attempt = emptyUsage();
 		let advisor: AdvisorRecord | undefined;
 		this.host.changed();
 		try {
-			if (!this.staged) this.staged = { ...await this.feed.capture(24000, true), revision };
-			else if (this.waitingForWorkers) {
+			let newer: StagedBatch | undefined;
+			if (!this.staged) {
+				const from = this.checkpoint?.cut ?? this.feed.cut(), startIndex = this.feed.events.length;
+				const captured = await this.feed.capture(24000, true);
+				this.staged = { ...captured, revision, from, startIndex, endIndex: this.feed.events.length };
+			} else if (this.waitingForWorkers) {
 				const used = renderEvents(this.staged.events).length;
 				const next = await this.feed.capture(24000 - used, true);
-				this.staged = { events: [...this.staged.events, ...next.events], cut: next.cut,
-					gaps: [...new Set([...this.staged.gaps, ...next.gaps])], more: this.staged.more || next.more, revision };
+				this.staged = { ...this.staged, events: [...this.staged.events, ...next.events], cut: next.cut,
+					gaps: [...new Set([...this.staged.gaps, ...next.gaps])], more: this.staged.more || next.more, revision,
+					endIndex: this.feed.events.length };
+			} else if (!question && this.failure) {
+				const startIndex = this.feed.events.length, next = await this.feed.capture(24000, true);
+				if (next.events.length) {
+					this.queued = this.queued ? { ...this.queued, events: [...this.queued.events, ...next.events], cut: next.cut,
+						gaps: [...new Set([...this.queued.gaps, ...next.gaps])], more: this.queued.more || next.more, revision,
+						endIndex: this.feed.events.length }
+						: { ...next, revision, from: this.staged.cut, startIndex, endIndex: this.feed.events.length };
+				}
+				newer = this.queued;
+				if (!newer && !refresh) return undefined;
+			}
+			if (refresh && this.gaps.length) {
+				const gap = this.gaps[0], pending = this.staged!;
+				const old = gap.refs.map(ref => this.feed.byRef.get(ref)).filter((event): event is NonNullable<typeof event> => Boolean(event));
+				if (old.length !== gap.refs.length) throw new Error("Mom cannot retry a skipped range because its recorded sources are unreadable.");
+				const seen = new Set(old.map(event => event.ref));
+				this.staged = { ...pending, events: [...old, ...pending.events.filter(event => !seen.has(event.ref))], retryGapId: gap.id };
 			}
 			const batch = this.staged;
 			this.valid(batch.cut);
@@ -113,12 +149,13 @@ export class Mom {
 			}
 			this.waitingForWorkers = false;
 			if (!batch.events.length && !question) { this.coveredRevision = batch.revision; this.staged = undefined; return undefined; }
+			this.error = undefined;
 			const [provider, ...id] = this.host.model.split("/");
 			const model = this.host.ctx.modelRegistry.find(provider, id.join("/"));
 			if (!model) throw new Error(`Mom model unavailable: ${this.host.model}. No fallback selected.`);
 			const newRefs = new Set(batch.events.map((e) => e.ref));
 			const inspected = new Set<string>();
-			let readPages = 2, searches = 2;
+			let readPages = question ? 2 : 0, searches = question ? 2 : 0;
 			let emptySearch: string | undefined;
 			let searchRetryOnly = false;
 			const original = this.feed.events.find((e) => e.actor === "lead" && e.kind === "user");
@@ -136,11 +173,15 @@ export class Mom {
 				try { const result = await this.feed.lookup(ref, offset, limit); inspected.add(ref); return result; }
 				catch (error) { return { ref, error: String(error) }; }
 			};
-			for (let round = 0; round < 5; round++) {
+			const maxCalls = question ? 5 : 2;
+			let deterministicFailure: Error | undefined;
+			for (let round = 0; round < maxCalls; round++) {
 				this.valid(batch.cut);
 				if (MOM_PROMPT.length + JSON.stringify(messages).length > CONTEXT_LIMIT) throw new Error("Mom context exceeds 90,000 characters. Last checkpoint retained; no silent truncation.");
 				const availableSearches = question && readPages === 0 ? 0 : searches;
-				const context = { systemPrompt: MOM_PROMPT, messages, tools: momTools(readPages, availableSearches, mustInspect, searchRetryOnly) };
+				const context = { systemPrompt: MOM_PROMPT, messages, tools: question
+					? momTools(readPages, availableSearches, mustInspect, searchRetryOnly)
+					: momTools(0, 0, false, false) };
 				const options = { maxTokens: 6000, sessionId: this.cacheSessionId,
 					signal: AbortSignal.any([this.controller.signal, AbortSignal.timeout(120000), ...(signal ? [signal] : [])]), maxRetryDelayMs: 1000 };
 				const reply = model.api === "openai-codex-responses"
@@ -153,19 +194,29 @@ export class Mom {
 					cacheRead: reply.usage.cacheRead, cacheWrite: reply.usage.cacheWrite, nominalCost: reply.usage.cost.total, elapsedMs: 0 });
 				this.valid(batch.cut);
 				const operations = reply.content.filter((b) => b.type === "toolCall");
-				if (reply.stopReason !== "toolUse" || operations.length !== 1) throw new Error(reply.errorMessage ?? `Mom returned ${reply.stopReason}; expected one operation.`);
+				const callsRemaining = maxCalls - round - 1;
+				// Provider/API failures are transient transport outcomes, not deterministic model-output defects.
+				if (reply.stopReason === "error") throw new Error(reply.errorMessage ?? "Mom provider failed.");
+				if (reply.stopReason !== "toolUse" || operations.length !== 1) {
+					const invalid = new Error(reply.errorMessage ?? `Mom returned ${reply.stopReason}; expected one operation.`);
+					if (question || callsRemaining === 0) { deterministicFailure = invalid; break; }
+					messages.push(reply, { role: "user", content: `The proposal was not a single commit_graph operation. ${invalid.message} One repair call remains; return commit_graph only.`, timestamp: Date.now() });
+					continue;
+				}
 				const operation = operations[0];
 				const args = operation.arguments;
-				const callsRemaining = 4 - round;
 				if (operation.name === "commit_graph") {
 					if (searchRetryOnly) throw new Error("Retry the zero-result search with a shorter literal phrase before any other operation.");
 					if (mustInspect) throw new Error("Inspect an original source from the search before answering.");
 					let next;
 					try { next = acceptGraph(args, this.graph, this.checkpointId, this.feed.byRef, newRefs, inspected, question); }
 					catch (error) {
-						if (callsRemaining === 0) throw error;
+						if (callsRemaining === 0) {
+							if (question) throw error;
+							deterministicFailure = error instanceof Error ? error : new Error(String(error)); break;
+						}
 						messages.push(reply, { role: "toolResult", toolCallId: operation.id, toolName: operation.name, isError: true,
-							content: [{ type: "text", text: `Graph transaction rejected; last checkpoint unchanged. ${String(error)} Correct only the rejected fields and resubmit. ${callsRemaining} model call${callsRemaining === 1 ? "" : "s"} remain in this update.` }], timestamp: Date.now() });
+							content: [{ type: "text", text: `Graph transaction rejected; last checkpoint unchanged. ${String(error)} Correct all reported defects and resubmit once. ${callsRemaining} model call remains in this background update.` }], timestamp: Date.now() });
 						continue;
 					}
 					this.valid(batch.cut);
@@ -217,9 +268,22 @@ export class Mom {
 					this.usage = acceptedUsage;
 					// Usage is recorded every update, material or not; a failed write never publishes a checkpoint.
 					try { await this.host.store.append("attempt", { usage: this.usage }); } catch { /* usage bookkeeping is best-effort */ }
+					if (batch.retryGapId) {
+						try { await this.host.store.append("gap", { action: "resolved", id: batch.retryGapId });
+							this.gaps = this.gaps.filter(gap => gap.id !== batch.retryGapId); }
+						catch { /* Accepted coverage remains durable; the visible gap can be retried/resolved later. */ }
+					}
+					this.failure = undefined;
 					this.coveredRevision = batch.revision;
-					this.committed = this.feed.events.length; this.staged = undefined;
+					this.committed = batch.endIndex; this.staged = newer; this.queued = undefined;
 					return next.answer;
+				}
+				if (!question) {
+					const invalid = new Error(`Background Mom may call commit_graph only, not ${operation.name}.`);
+					if (callsRemaining === 0) { deterministicFailure = invalid; break; }
+					messages.push(reply, { role: "toolResult", toolCallId: operation.id, toolName: operation.name, isError: true,
+						content: [{ type: "text", text: `${invalid.message} No retrieval is available in background updates. One repair call remains.` }], timestamp: Date.now() });
+					continue;
 				}
 				let result: unknown;
 				if (operation.name === "inspect_evidence" && readPages > 0 && !searchRetryOnly) {
@@ -253,7 +317,26 @@ export class Mom {
 				messages.push(reply, { role: "toolResult", toolCallId: operation.id, toolName: operation.name, isError: false,
 					content: [{ type: "text", text: JSON.stringify(result) }], timestamp: Date.now() });
 			}
-			throw new Error("Mom did not produce an accepted graph transaction within five calls. Last checkpoint retained.");
+			if (question) throw deterministicFailure ?? new Error("Mom did not produce an accepted graph transaction within five calls. Last checkpoint retained.");
+			const failureError = deterministicFailure ?? new Error("Mom did not produce an accepted background graph transaction within two calls.");
+			if (batch.gaps.length) throw new Error(`Mom evidence remained unreadable; cursor retained and no skipped gap recorded. ${batch.gaps.join("; ")}`);
+			const refs = batch.events.map(event => event.ref);
+			const key = JSON.stringify({ from: batch.from, through: batch.cut, refs });
+			const failures = this.failure?.key === key ? this.failure.failures + 1 : 1;
+			const failure: CursorFailure = { key, from: batch.from, through: batch.cut, refs, error: String(failureError), failures };
+			if (failures < 2) {
+				await this.host.store.append("failure", failure);
+				this.failure = failure;
+			} else {
+				const gap: SkippedGap = { ...failure, id: randomUUID() };
+				// One durable record both exposes the gap and advances coverage. A failed append skips nothing.
+				await this.host.store.append("gap", { action: "open", id: gap.id, key, checkpoint: this.checkpointId ?? null,
+					from: gap.from, cut: gap.through, refs: gap.refs, error: gap.error, failures: gap.failures });
+				this.gaps.push(gap); this.failure = undefined;
+				if (this.checkpoint) this.checkpoint = { ...this.checkpoint, cut: batch.cut, at: Date.now() };
+				this.committed = batch.endIndex; this.staged = newer; this.queued = undefined;
+			}
+			throw failureError;
 		} catch (error) {
 			if (!this.disposed && this.host.current()) {
 				this.error = String(error);

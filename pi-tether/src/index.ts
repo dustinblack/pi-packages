@@ -52,7 +52,7 @@ export default function piTether(pi: ExtensionAPI) {
 	}
 	function view(): PanelView {
 		const m = mom;
-		const blocked = Boolean(openingError || m?.error || m?.feed.gaps.size);
+		const blocked = Boolean(openingError || m?.error || m?.feed.gaps.size || m?.failure || m?.gaps.length);
 		const error = blocked ? "Mom couldn't update her notes. Showing the last saved view; /mom detail has the reason." : undefined;
 		const complete = Boolean(m) && !m!.busy && !blocked && !dirty && !m!.more && coveredRevision === revision;
 		const freshness = m?.busy ? "updating" : blocked ? "update stopped" : !complete ? "catching up" : "up to date";
@@ -68,11 +68,11 @@ export default function piTether(pi: ExtensionAPI) {
 	function cached(): string {
 		const v = view();
 		const u = mom?.usage;
-		return `${v.summary || "Mom has not saved a view of this work yet."}\n\n${v.status}${v.error ? `\n${v.error}` : ""}${v.note ? `\n\nNotice: ${v.note}` : ""}${u ? `\n\nMom (selected branch): ${u.calls} model calls · ${u.input + u.cacheRead + u.cacheWrite} input tokens · ${u.output} output tokens · $${u.nominalCost.toFixed(5)} nominal · ${(u.elapsedMs / 1000).toFixed(1)}s cumulative model/update time` : ""}`;
+		return `${v.summary || "Mom has not saved a view of this work yet."}\n\n${v.status}${v.error ? `\n${v.error}` : ""}${v.note ? `\n\nNotice: ${v.note}` : ""}${u ? `\n\nMom (session): ${u.calls} model calls · ${u.input + u.cacheRead + u.cacheWrite} input tokens · ${u.output} output tokens · $${u.nominalCost.toFixed(5)} nominal · ${(u.elapsedMs / 1000).toFixed(1)}s cumulative model/update time` : ""}`;
 	}
 	function deliver() {
 		const m = mom, note = m?.checkpoint?.note;
-		if (!m || !note || !ctx || !m.enabled || m.busy || m.error || openingError || dirty || m.more || m.feed.gaps.size ||
+		if (!m || !note || !ctx || !m.enabled || m.busy || m.error || m.failure || m.gaps.length || openingError || dirty || m.more || m.feed.gaps.size ||
 			!ctx.isIdle() || ctx.hasPendingMessages() || coveredRevision !== revision) return;
 		const key = noticeKey(note);
 		if (key === m.delivered) return;
@@ -83,7 +83,7 @@ export default function piTether(pi: ExtensionAPI) {
 		// Delivery state is sidecar state; the message itself is normal conversation output.
 		void store?.append("notice", { key }).catch(() => undefined);
 	}
-	async function run(question?: string, signal?: AbortSignal): Promise<string | undefined> {
+	async function run(question?: string, signal?: AbortSignal, refresh = false): Promise<string | undefined> {
 		const requestedEpoch = epoch;
 		await ready;
 		if (requestedEpoch !== epoch) throw new Error("Mom request superseded by a session/branch change.");
@@ -97,7 +97,7 @@ export default function piTether(pi: ExtensionAPI) {
 		if (!mine) throw new Error("Mom session is unavailable.");
 		if (!mine.enabled) throw new Error("Mom is paused. Use /mom resume.");
 		dirty = false; lastStarted = Date.now();
-		const work = mine.update(question, signal, observed);
+		const work = mine.update(question, signal, observed, refresh);
 		flight = work;
 		try {
 			const answer = await work;
@@ -249,7 +249,7 @@ export default function piTether(pi: ExtensionAPI) {
 				if (command === "detail") {
 					await ready;
 					context.ui.notify(JSON.stringify({ error: openingError ?? mom?.error, lastReadError: readError,
-						missingSources: mom ? [...mom.feed.gaps.values()] : [], usage: mom?.usage, saved: mom?.readGraph() }, null, 2), "info"); return;
+						missingSources: mom ? [...mom.feed.gaps.values()] : [], ...mom?.detail(), saved: mom?.readGraph() }, null, 2), "info"); return;
 				}
 				if (command === "pause" || command === "resume") {
 					if (!store) throw new Error("Mom session is unavailable.");
@@ -275,7 +275,7 @@ export default function piTether(pi: ExtensionAPI) {
 					const source = await mom.feed.lookup(parts[0], Number(parts[1] ?? 0));
 					context.ui.notify(`Original recorded evidence, not new work:\n${JSON.stringify(source, null, 2)}`, "info"); return;
 				}
-				if (command === "refresh") { await run(); context.ui.notify(cached(), "info"); return; }
+				if (command === "refresh") { await run(undefined, undefined, true); context.ui.notify(cached(), "info"); return; }
 				if (command === "ask" && text) { const answer = await run(text); context.ui.notify(answer ?? "Mom returned no answer.", "info"); return; }
 				throw new Error("Use /mom, status, graph, detail, ask, correct, source, refresh, pause, or resume.");
 			} catch (error) {
