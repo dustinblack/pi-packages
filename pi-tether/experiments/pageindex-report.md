@@ -40,33 +40,27 @@ Notable grading outcomes:
 - Pi search and map inspected plausible but wrong sources. Neither recovered TS1005.
 - SSMP search found a different broken link; map did not have the expected source handle in its 887/903-event saved prefix. Both failed.
 
-## Reproduce
+## Durable audit and validation
 
-The private bundles and saved map summaries named by the input manifest must still exist. Output must be a new directory.
+The review evidence is committed under [`evidence/pageindex-20260929/`](./evidence/pageindex-20260929/). It contains only the experiment protocol, expected sources, selected-source metadata, and the captured requests, responses, search rankings, inspected pages, and results for these six runs. Full session histories and Mom state are intentionally excluded.
 
-```sh
-cd pi-tether
-./node_modules/.bin/tsx experiments/pageindex-compare.ts \
-  experiments/pageindex-questions.json \
-  /private/tmp/todo-013-pageindex-inputs.json \
-  /private/tmp/new-todo-013-pageindex-run
-```
+The captured configuration and predeclaration preserve the plan hash. The harness saves them before creating the model runtime, and [`capture-order.json`](./evidence/pageindex-20260929/capture-order.json) records their source modification times before the first request. [`protocol.json`](./evidence/pageindex-20260929/protocol.json) records the common prompt and the only declared condition differences. [`pageindex-artifacts.json`](./pageindex-artifacts.json) gives repo-relative size and SHA-256 records; [`pageindex-results.json`](./pageindex-results.json) points each grade to its durable request, response, search, and evidence files.
 
-Audit artifacts for this run are under `/private/tmp/todo-013-pageindex-run-20260929/`. [`pageindex-artifacts.json`](./pageindex-artifacts.json) records every file's size and SHA-256. [`pageindex-results.json`](./pageindex-results.json) is the compact machine-readable result.
-
-Verification:
+Run the independent validator from `pi-tether`:
 
 ```sh
+./node_modules/.bin/tsx experiments/pageindex-validate.ts
+
 ./node_modules/.bin/tsc --noEmit --target ESNext --module ESNext \
   --moduleResolution bundler --types node --strict --skipLibCheck \
   --allowImportingTsExtensions --verbatimModuleSyntax \
-  experiments/pageindex-compare.ts
-python3 -m json.tool experiments/pageindex-questions.json >/dev/null
-python3 -m json.tool experiments/pageindex-results.json >/dev/null
-python3 -m json.tool experiments/pageindex-artifacts.json >/dev/null
+  experiments/pageindex-compare.ts experiments/pageindex-protocol.ts \
+  experiments/pageindex-validate.ts
 ```
 
-The harness opens original transcript sources read-only and writes only to the newly created output directory. It does not open or write any `.mom` file and does not mutate a session JSONL.
+The validator checks checksums, predeclaration ordering, model and budgets, declared prompt differences, every call and usage total, selected map/search handles, inspected source pages, final answers, pattern/source-policy grading, aggregate metrics, and credential-like patterns. It needs no original transcript path. A fresh model rerun still requires separately supplied preserved source bundles; those unrelated full histories are not committed.
+
+The harness opens original transcript sources read-only and writes only to a newly created output directory. It does not open or write any `.mom` file and does not mutate a session JSONL.
 
 ## Limitations
 

@@ -1,0 +1,64 @@
+{
+  "id": "pi-typescript-error",
+  "corpus": "pi",
+  "condition": "map",
+  "question": "What exact TypeScript parse error did the recorded typecheck report, including the error code, expected token, and affected source location?",
+  "sourcePolicy": "exact",
+  "expectedRef": "s0:164c6f5b",
+  "answer": "The inspected record does not include the exact TypeScript error code, expected token, or source location; it only says the typecheck failed because tests still expected the old mandatory tidy API. [src:s0:3043380c]",
+  "citations": [
+    "s0:3043380c"
+  ],
+  "inspected": [
+    "s0:50b39c79",
+    "s0:3043380c"
+  ],
+  "calls": 3,
+  "readsUsed": 2,
+  "searchesUsed": 0,
+  "usage": {
+    "input": 13808,
+    "output": 437,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "nominalCost": 0.003286,
+    "elapsedMs": 15908
+  },
+  "patternResults": [
+    {
+      "pattern": "TS1005",
+      "answer": false
+    },
+    {
+      "pattern": "',' expected",
+      "answer": false
+    },
+    {
+      "pattern": "src/index\\.ts\\(46",
+      "answer": false
+    }
+  ],
+  "sourceChecks": [
+    {
+      "ref": "s0:3043380c",
+      "inspected": true,
+      "cited": true,
+      "metadata": false,
+      "patterns": [
+        {
+          "pattern": "TS1005",
+          "matched": false
+        },
+        {
+          "pattern": "',' expected",
+          "matched": false
+        },
+        {
+          "pattern": "src/index\\.ts\\(46",
+          "matched": false
+        }
+      ]
+    }
+  ],
+  "pass": false
+}

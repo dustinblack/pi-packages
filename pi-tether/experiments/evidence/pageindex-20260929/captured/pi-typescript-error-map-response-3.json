@@ -1,0 +1,32 @@
+{
+  "global": 7,
+  "provider": "openai-codex",
+  "model": "gpt-5.6-luna",
+  "stopReason": "toolUse",
+  "usage": {
+    "input": 4822,
+    "output": 328,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 263,
+    "totalTokens": 5150,
+    "cost": {
+      "input": 0.0009644000000000001,
+      "output": 0.00039359999999999997,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "total": 0.001358
+    }
+  },
+  "elapsedMs": 8903,
+  "operations": [
+    {
+      "type": "toolCall",
+      "id": "call_s90b6fLUVEN9cNRtALBOPRJB|fc_0d45a904aa91c556016abbd35cb74487d0841c1c106d28529f",
+      "name": "answer",
+      "arguments": {
+        "text": "The inspected record does not include the exact TypeScript error code, expected token, or source location; it only says the typecheck failed because tests still expected the old mandatory tidy API. [src:s0:3043380c]"
+      }
+    }
+  ]
+}

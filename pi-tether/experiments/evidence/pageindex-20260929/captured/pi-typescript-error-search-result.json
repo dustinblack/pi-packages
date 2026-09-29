@@ -1,0 +1,66 @@
+{
+  "id": "pi-typescript-error",
+  "corpus": "pi",
+  "condition": "search",
+  "question": "What exact TypeScript parse error did the recorded typecheck report, including the error code, expected token, and affected source location?",
+  "sourcePolicy": "exact",
+  "expectedRef": "s0:164c6f5b",
+  "answer": "The inspected evidence does not contain the recorded TypeScript parse error or its source location; it only describes general project conventions and testing. [src:s0:8a361fd9]",
+  "citations": [
+    "s0:8a361fd9"
+  ],
+  "inspected": [
+    "s0:54daf44d",
+    "s0:ea75652e:b2",
+    "s0:8a361fd9",
+    "s0:c8cd8ccf:b1"
+  ],
+  "calls": 4,
+  "readsUsed": 2,
+  "searchesUsed": 1,
+  "usage": {
+    "input": 7033,
+    "output": 348,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "nominalCost": 0.0018242,
+    "elapsedMs": 11243
+  },
+  "patternResults": [
+    {
+      "pattern": "TS1005",
+      "answer": false
+    },
+    {
+      "pattern": "',' expected",
+      "answer": false
+    },
+    {
+      "pattern": "src/index\\.ts\\(46",
+      "answer": false
+    }
+  ],
+  "sourceChecks": [
+    {
+      "ref": "s0:8a361fd9",
+      "inspected": true,
+      "cited": true,
+      "metadata": false,
+      "patterns": [
+        {
+          "pattern": "TS1005",
+          "matched": false
+        },
+        {
+          "pattern": "',' expected",
+          "matched": false
+        },
+        {
+          "pattern": "src/index\\.ts\\(46",
+          "matched": false
+        }
+      ]
+    }
+  ],
+  "pass": false
+}

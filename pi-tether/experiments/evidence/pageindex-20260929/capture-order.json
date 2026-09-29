@@ -1,0 +1,257 @@
+{
+  "clock": "source filesystem modification time captured during todo-013 review",
+  "files": [
+    {
+      "file": "buzz-python-typeerror-map-evidence-1.json",
+      "mtimeNs": 1790694246388408354
+    },
+    {
+      "file": "buzz-python-typeerror-map-evidence-2.json",
+      "mtimeNs": 1790694249217924871
+    },
+    {
+      "file": "buzz-python-typeerror-map-request-1.json",
+      "mtimeNs": 1790694242874851715
+    },
+    {
+      "file": "buzz-python-typeerror-map-request-2.json",
+      "mtimeNs": 1790694246388679313
+    },
+    {
+      "file": "buzz-python-typeerror-map-request-3.json",
+      "mtimeNs": 1790694249218129622
+    },
+    {
+      "file": "buzz-python-typeerror-map-response-1.json",
+      "mtimeNs": 1790694246387675601
+    },
+    {
+      "file": "buzz-python-typeerror-map-response-2.json",
+      "mtimeNs": 1790694249217641120
+    },
+    {
+      "file": "buzz-python-typeerror-map-response-3.json",
+      "mtimeNs": 1790694253281819905
+    },
+    {
+      "file": "buzz-python-typeerror-map-result.json",
+      "mtimeNs": 1790694253282097989
+    },
+    {
+      "file": "buzz-python-typeerror-search-evidence-2.json",
+      "mtimeNs": 1790694240360335137
+    },
+    {
+      "file": "buzz-python-typeerror-search-request-1.json",
+      "mtimeNs": 1790694236951853612
+    },
+    {
+      "file": "buzz-python-typeerror-search-request-2.json",
+      "mtimeNs": 1790694238865015195
+    },
+    {
+      "file": "buzz-python-typeerror-search-request-3.json",
+      "mtimeNs": 1790694240360633888
+    },
+    {
+      "file": "buzz-python-typeerror-search-response-1.json",
+      "mtimeNs": 1790694238833288625
+    },
+    {
+      "file": "buzz-python-typeerror-search-response-2.json",
+      "mtimeNs": 1790694240359458093
+    },
+    {
+      "file": "buzz-python-typeerror-search-response-3.json",
+      "mtimeNs": 1790694242874149671
+    },
+    {
+      "file": "buzz-python-typeerror-search-result.json",
+      "mtimeNs": 1790694242874649631
+    },
+    {
+      "file": "buzz-python-typeerror-search-search-1.json",
+      "mtimeNs": 1790694238864559902
+    },
+    {
+      "file": "configuration.json",
+      "mtimeNs": 1790694209782205211
+    },
+    {
+      "file": "pi-typescript-error-map-evidence-1.json",
+      "mtimeNs": 1790694224550621605
+    },
+    {
+      "file": "pi-typescript-error-map-evidence-2.json",
+      "mtimeNs": 1790694228048028676
+    },
+    {
+      "file": "pi-typescript-error-map-request-1.json",
+      "mtimeNs": 1790694221043135741
+    },
+    {
+      "file": "pi-typescript-error-map-request-2.json",
+      "mtimeNs": 1790694224550841606
+    },
+    {
+      "file": "pi-typescript-error-map-request-3.json",
+      "mtimeNs": 1790694228048301302
+    },
+    {
+      "file": "pi-typescript-error-map-response-1.json",
+      "mtimeNs": 1790694224550223937
+    },
+    {
+      "file": "pi-typescript-error-map-response-2.json",
+      "mtimeNs": 1790694228047635841
+    },
+    {
+      "file": "pi-typescript-error-map-response-3.json",
+      "mtimeNs": 1790694236951264276
+    },
+    {
+      "file": "pi-typescript-error-map-result.json",
+      "mtimeNs": 1790694236951672569
+    },
+    {
+      "file": "pi-typescript-error-search-evidence-2.json",
+      "mtimeNs": 1790694213470092234
+    },
+    {
+      "file": "pi-typescript-error-search-evidence-3.json",
+      "mtimeNs": 1790694217375467293
+    },
+    {
+      "file": "pi-typescript-error-search-request-1.json",
+      "mtimeNs": 1790694209799589731
+    },
+    {
+      "file": "pi-typescript-error-search-request-2.json",
+      "mtimeNs": 1790694211868562379
+    },
+    {
+      "file": "pi-typescript-error-search-request-3.json",
+      "mtimeNs": 1790694213470331402
+    },
+    {
+      "file": "pi-typescript-error-search-request-4.json",
+      "mtimeNs": 1790694217375774711
+    },
+    {
+      "file": "pi-typescript-error-search-response-1.json",
+      "mtimeNs": 1790694211784276372
+    },
+    {
+      "file": "pi-typescript-error-search-response-2.json",
+      "mtimeNs": 1790694213468850605
+    },
+    {
+      "file": "pi-typescript-error-search-response-3.json",
+      "mtimeNs": 1790694217374824291
+    },
+    {
+      "file": "pi-typescript-error-search-response-4.json",
+      "mtimeNs": 1790694221042059529
+    },
+    {
+      "file": "pi-typescript-error-search-result.json",
+      "mtimeNs": 1790694221042855406
+    },
+    {
+      "file": "pi-typescript-error-search-search-1.json",
+      "mtimeNs": 1790694211868180753
+    },
+    {
+      "file": "predeclared-questions.json",
+      "mtimeNs": 1790694209782332420
+    },
+    {
+      "file": "ssmp-broken-link-map-evidence-1.json",
+      "mtimeNs": 1790694270364205974
+    },
+    {
+      "file": "ssmp-broken-link-map-evidence-2.json",
+      "mtimeNs": 1790694275843151403
+    },
+    {
+      "file": "ssmp-broken-link-map-request-1.json",
+      "mtimeNs": 1790694267529663404
+    },
+    {
+      "file": "ssmp-broken-link-map-request-2.json",
+      "mtimeNs": 1790694270364446225
+    },
+    {
+      "file": "ssmp-broken-link-map-request-3.json",
+      "mtimeNs": 1790694275843399529
+    },
+    {
+      "file": "ssmp-broken-link-map-response-1.json",
+      "mtimeNs": 1790694270363723306
+    },
+    {
+      "file": "ssmp-broken-link-map-response-2.json",
+      "mtimeNs": 1790694275842728527
+    },
+    {
+      "file": "ssmp-broken-link-map-response-3.json",
+      "mtimeNs": 1790694283232550604
+    },
+    {
+      "file": "ssmp-broken-link-map-result.json",
+      "mtimeNs": 1790694283233257189
+    },
+    {
+      "file": "ssmp-broken-link-search-evidence-2.json",
+      "mtimeNs": 1790694257521976640
+    },
+    {
+      "file": "ssmp-broken-link-search-evidence-3.json",
+      "mtimeNs": 1790694260855079720
+    },
+    {
+      "file": "ssmp-broken-link-search-request-1.json",
+      "mtimeNs": 1790694253282256740
+    },
+    {
+      "file": "ssmp-broken-link-search-request-2.json",
+      "mtimeNs": 1790694255347430226
+    },
+    {
+      "file": "ssmp-broken-link-search-request-3.json",
+      "mtimeNs": 1790694257522215599
+    },
+    {
+      "file": "ssmp-broken-link-search-request-4.json",
+      "mtimeNs": 1790694260855295638
+    },
+    {
+      "file": "ssmp-broken-link-search-response-1.json",
+      "mtimeNs": 1790694255298482970
+    },
+    {
+      "file": "ssmp-broken-link-search-response-2.json",
+      "mtimeNs": 1790694257521222304
+    },
+    {
+      "file": "ssmp-broken-link-search-response-3.json",
+      "mtimeNs": 1790694260854388051
+    },
+    {
+      "file": "ssmp-broken-link-search-response-4.json",
+      "mtimeNs": 1790694267528501567
+    },
+    {
+      "file": "ssmp-broken-link-search-result.json",
+      "mtimeNs": 1790694267529197903
+    },
+    {
+      "file": "ssmp-broken-link-search-search-1.json",
+      "mtimeNs": 1790694255347180600
+    },
+    {
+      "file": "summary.json",
+      "mtimeNs": 1790694283233984192
+    }
+  ]
+}

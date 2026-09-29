@@ -1,0 +1,15 @@
+{
+  "id": "pi-typescript-error",
+  "ref": "s0:164c6f5b",
+  "event": {
+    "ref": "s0:164c6f5b",
+    "at": "2026-09-27T00:53:59.553Z",
+    "actor": "lead",
+    "kind": "tool_result",
+    "name": "bash",
+    "callId": "call_LDmfT1PPcdU3ZSlnaZm6pFFV|fc_096c958811ed9e6e016ab86926a80887d09dcfaca853388a4b",
+    "isError": true
+  },
+  "sourceRecordSha256": "c5013404c665ca4b0292007ff9e08cb65b56256d77db1eb2dd8bfdc0e4418004",
+  "text": "\n> @ssweens/pi-tether@0.1.0 typecheck\n> tsc --noEmit\n\nsrc/index.ts(46,97): error TS1005: ',' expected.\nsrc/index.ts(46,104): error TS1005: ',' expected.\nsrc/index.ts(46,108): error TS1005: ',' expected.\n\n\nCommand exited with code 2"
+}

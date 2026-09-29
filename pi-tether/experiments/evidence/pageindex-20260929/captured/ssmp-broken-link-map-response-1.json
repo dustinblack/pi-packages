@@ -1,0 +1,34 @@
+{
+  "global": 18,
+  "provider": "openai-codex",
+  "model": "gpt-5.6-luna",
+  "stopReason": "toolUse",
+  "usage": {
+    "input": 3624,
+    "output": 67,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 30,
+    "totalTokens": 3691,
+    "cost": {
+      "input": 0.0007248,
+      "output": 0.0000804,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "total": 0.0008052000000000001
+    }
+  },
+  "elapsedMs": 2834,
+  "operations": [
+    {
+      "type": "toolCall",
+      "id": "call_gAXmfE0kbGYSPZXFOW4YH1gF|fc_02587e18a8b10dfd016abbd37e19a887d097f09f8b32645750",
+      "name": "inspect_evidence",
+      "arguments": {
+        "ref": "s0:02b85c86",
+        "offset": 0,
+        "limit": 4000
+      }
+    }
+  ]
+}

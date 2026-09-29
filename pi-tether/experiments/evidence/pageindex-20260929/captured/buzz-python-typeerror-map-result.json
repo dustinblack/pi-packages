@@ -1,0 +1,57 @@
+{
+  "id": "buzz-python-typeerror",
+  "corpus": "buzz",
+  "condition": "map",
+  "question": "What exact Python TypeError did the recorded failing command report for sub(), including the positional-argument counts?",
+  "sourcePolicy": "equivalent",
+  "expectedRef": "s0:55485000",
+  "answer": "The command reported: `TypeError: sub() takes 2 positional arguments but 3 were given.` [src:s0:c0b8c8ed]",
+  "citations": [
+    "s0:c0b8c8ed"
+  ],
+  "inspected": [
+    "s0:c0b8c8ed",
+    "s0:f49cebf4:b1",
+    "s0:00f6772a"
+  ],
+  "calls": 3,
+  "readsUsed": 2,
+  "searchesUsed": 0,
+  "usage": {
+    "input": 8504,
+    "output": 391,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "nominalCost": 0.00217,
+    "elapsedMs": 10407
+  },
+  "patternResults": [
+    {
+      "pattern": "TypeError",
+      "answer": true
+    },
+    {
+      "pattern": "sub\\(\\) takes 2 positional arguments but 3 were given",
+      "answer": true
+    }
+  ],
+  "sourceChecks": [
+    {
+      "ref": "s0:c0b8c8ed",
+      "inspected": true,
+      "cited": true,
+      "metadata": false,
+      "patterns": [
+        {
+          "pattern": "TypeError",
+          "matched": false
+        },
+        {
+          "pattern": "sub\\(\\) takes 2 positional arguments but 3 were given",
+          "matched": false
+        }
+      ]
+    }
+  ],
+  "pass": false
+}

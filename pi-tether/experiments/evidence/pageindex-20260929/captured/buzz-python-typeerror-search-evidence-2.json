@@ -1,0 +1,16 @@
+[
+  {
+    "ref": "s0:eb71b515",
+    "offset": 0,
+    "totalChars": 349,
+    "nextOffset": null,
+    "text": "{\"role\":\"toolResult\",\"toolCallId\":\"chatcmpl-tool-b2f30903ec89d2a9\",\"toolName\":\"bash\",\"content\":[{\"type\":\"text\",\"text\":\"Traceback (most recent call last):\\n  File \\\"<stdin>\\\", line 25, in <module>\\nTypeError: sub() takes 2 positional arguments but 3 were given\\n\\n\\nCommand exited with code 1\"}],\"details\":{},\"isError\":true,\"timestamp\":1785986442180}"
+  },
+  {
+    "ref": "s0:42430809:b0",
+    "offset": 0,
+    "totalChars": 1130,
+    "nextOffset": null,
+    "text": "{\"type\":\"toolCall\",\"id\":\"chatcmpl-tool-b2f30903ec89d2a9\",\"name\":\"bash\",\"arguments\":{\"command\":\"cd /Users/ssweens/src/tipsy/desktop/src && python3 - <<'PY'\\nf=\\\"features/channels/ui/ChannelPane.tsx\\\"; s=open(f).read()\\ndef sub(old,new):\\n  global s\\n  assert old in s,\\\"MISS \\\"+old[:50]; s=s.replace(old,new,1)\\nsub('''  const handleWelcomeAddAgent = React.useCallback(() => {\\n    onAddAgent?.({\\n      beforeSend: () =>\\n        messageTimelineRef.current?.scrollToBottomOnNextUpdate(),\\n    });\\n  }, [onAddAgent]);\\n  const channelIntro = useChannelIntro({\\n    activeChannel,\\n    onAddAgent,\\n    onBrowseChannels,\\n    onCreateChannel,\\n    onOpenMembers,\\n    onWelcomeAddAgent: onAddAgent ? handleWelcomeAddAgent : undefined,\\n  });''','''  const channelIntro = useChannelIntro({\\n    activeChannel,\\n    onBrowseChannels,\\n    onCreateChannel,\\n    onOpenMembers,\\n  });''')\\n# remove onAddAgent from ChannelPane props destructure and type\\nsub('  onAddAgent,\\\\n','',1)\\nopen(f,\\\"w\\\").write(s)\\nimport re; print(\\\"ChannelPane leftover:\\\", re.findall(r'.*(onAddAgent|handleWelcomeAddAgent|onWelcomeAddAgent).*', s))\\nPY\"}}"
+  }
+]

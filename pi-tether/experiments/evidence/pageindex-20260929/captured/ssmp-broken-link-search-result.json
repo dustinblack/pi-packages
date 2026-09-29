@@ -1,0 +1,64 @@
+{
+  "id": "ssmp-broken-link",
+  "corpus": "ssmp",
+  "condition": "search",
+  "question": "What exact broken-link failure did the recorded roadmap validation report, including the source roadmap file and missing target filename?",
+  "sourcePolicy": "exact",
+  "expectedRef": "s0:b3315acd",
+  "answer": "The validation reported that `roadmap/2026-09-05-suite-audit-fixes-and-handoff.md` linked to the missing target `2026-07-06-suite-review-gaps-workplan.md`.[src:s0:78e9221d:b1]",
+  "citations": [
+    "s0:78e9221d:b1"
+  ],
+  "inspected": [
+    "s0:819ea4dd",
+    "s0:78e9221d:b1"
+  ],
+  "calls": 4,
+  "readsUsed": 2,
+  "searchesUsed": 1,
+  "usage": {
+    "input": 5631,
+    "output": 446,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "nominalCost": 0.0016614000000000002,
+    "elapsedMs": 14246
+  },
+  "patternResults": [
+    {
+      "pattern": "broken link",
+      "answer": false
+    },
+    {
+      "pattern": "2026-07-12-phase7-and-beyond\\.md",
+      "answer": false
+    },
+    {
+      "pattern": "2026-07-12-boost-review-desk-ssmp\\.md",
+      "answer": false
+    }
+  ],
+  "sourceChecks": [
+    {
+      "ref": "s0:78e9221d:b1",
+      "inspected": true,
+      "cited": true,
+      "metadata": false,
+      "patterns": [
+        {
+          "pattern": "broken link",
+          "matched": false
+        },
+        {
+          "pattern": "2026-07-12-phase7-and-beyond\\.md",
+          "matched": true
+        },
+        {
+          "pattern": "2026-07-12-boost-review-desk-ssmp\\.md",
+          "matched": false
+        }
+      ]
+    }
+  ],
+  "pass": false
+}

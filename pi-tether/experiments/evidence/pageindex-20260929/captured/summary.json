@@ -14,33 +14,39 @@
   "inputEvidence": [
     {
       "id": "pi",
+      "bundle": "/private/tmp/mom-current-pi-replay-20260929",
+      "bundleSourcesSha256": "81d8370cb5b5c4f895515dabc8ef874f6b9d6cf330ba5a7f92a4fbc9b6ee5d22",
+      "bundleFeedSha256": "8bc65ab75b88e696fede4af5be1c7820b2c1f8ebdf8eeaeac0a3343b76abad4f",
+      "summary": "/private/tmp/mom-contract-production-parity-20260929-1/pi-preserved/summary.json",
+      "summarySha256": "7603afd6a4592d521e07fe79c4794e4abd436b7708561fb86be68f2435dd6616",
       "committed": 1094,
       "totalEvents": 1094,
       "graphRevision": 15,
-      "graphNodes": 19,
-      "expectedSource": "pi-tether/experiments/evidence/pageindex-20260929/expected/pi-typescript-error.json",
-      "capturedRequests": "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-{search,map}-request-*.json",
-      "capturedResponses": "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-{search,map}-response-*.json"
+      "graphNodes": 19
     },
     {
       "id": "buzz",
+      "bundle": "/private/tmp/mom-current-buzz-replay-20260929",
+      "bundleSourcesSha256": "d6c4dd69f19bd3c0fb6de1742dafe667fb9ce1378e570cad169105c858be8841",
+      "bundleFeedSha256": "ad4e96bea1761613af8fbe81c53e4db35536c1809c3279ab29ce3f886090ae55",
+      "summary": "/private/tmp/mom-contract-production-parity-20260929-1/buzz/summary.json",
+      "summarySha256": "b1cdbf301b86ebc5825ed2ca99304f34a8384bda25704af8bc6627697d14119e",
       "committed": 1626,
       "totalEvents": 1626,
       "graphRevision": 15,
-      "graphNodes": 10,
-      "expectedSource": "pi-tether/experiments/evidence/pageindex-20260929/expected/buzz-python-typeerror.json",
-      "capturedRequests": "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-{search,map}-request-*.json",
-      "capturedResponses": "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-{search,map}-response-*.json"
+      "graphNodes": 10
     },
     {
       "id": "ssmp",
+      "bundle": "/private/tmp/mom-current-ssmp-replay-20260929",
+      "bundleSourcesSha256": "a2104123c8ae1f3eae436271f4cc57f051f5ffc609cce6c9fee206fa4b93f070",
+      "bundleFeedSha256": "839847cd01f52b2f5c3c8aa6ebff18ca9dcbec42d48592cdb48b3f78947323bc",
+      "summary": "/private/tmp/mom-contract-production-parity-20260929-1/ssmp/summary.json",
+      "summarySha256": "bf19707522402b3f58ce3277bf8c390dce7df4532bc19dd493643d85dad128a8",
       "committed": 887,
       "totalEvents": 903,
       "graphRevision": 15,
-      "graphNodes": 20,
-      "expectedSource": "pi-tether/experiments/evidence/pageindex-20260929/expected/ssmp-broken-link.json",
-      "capturedRequests": "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-{search,map}-request-*.json",
-      "capturedResponses": "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-{search,map}-response-*.json"
+      "graphNodes": 20
     }
   ],
   "conditions": {
@@ -135,29 +141,7 @@
           ]
         }
       ],
-      "pass": false,
-      "audit": {
-        "requests": [
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-search-request-1.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-search-request-2.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-search-request-3.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-search-request-4.json"
-        ],
-        "responses": [
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-search-response-1.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-search-response-2.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-search-response-3.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-search-response-4.json"
-        ],
-        "searches": [
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-search-search-1.json"
-        ],
-        "evidence": [
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-search-evidence-2.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-search-evidence-3.json"
-        ],
-        "result": "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-search-result.json"
-      }
+      "pass": false
     },
     {
       "id": "pi-typescript-error",
@@ -221,25 +205,7 @@
           ]
         }
       ],
-      "pass": false,
-      "audit": {
-        "requests": [
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-map-request-1.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-map-request-2.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-map-request-3.json"
-        ],
-        "responses": [
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-map-response-1.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-map-response-2.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-map-response-3.json"
-        ],
-        "searches": [],
-        "evidence": [
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-map-evidence-1.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-map-evidence-2.json"
-        ],
-        "result": "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-map-result.json"
-      }
+      "pass": false
     },
     {
       "id": "buzz-python-typeerror",
@@ -295,26 +261,7 @@
           ]
         }
       ],
-      "pass": true,
-      "audit": {
-        "requests": [
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-search-request-1.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-search-request-2.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-search-request-3.json"
-        ],
-        "responses": [
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-search-response-1.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-search-response-2.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-search-response-3.json"
-        ],
-        "searches": [
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-search-search-1.json"
-        ],
-        "evidence": [
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-search-evidence-2.json"
-        ],
-        "result": "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-search-result.json"
-      }
+      "pass": true
     },
     {
       "id": "buzz-python-typeerror",
@@ -371,25 +318,7 @@
           ]
         }
       ],
-      "pass": false,
-      "audit": {
-        "requests": [
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-map-request-1.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-map-request-2.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-map-request-3.json"
-        ],
-        "responses": [
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-map-response-1.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-map-response-2.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-map-response-3.json"
-        ],
-        "searches": [],
-        "evidence": [
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-map-evidence-1.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-map-evidence-2.json"
-        ],
-        "result": "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-map-result.json"
-      }
+      "pass": false
     },
     {
       "id": "ssmp-broken-link",
@@ -453,29 +382,7 @@
           ]
         }
       ],
-      "pass": false,
-      "audit": {
-        "requests": [
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-search-request-1.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-search-request-2.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-search-request-3.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-search-request-4.json"
-        ],
-        "responses": [
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-search-response-1.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-search-response-2.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-search-response-3.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-search-response-4.json"
-        ],
-        "searches": [
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-search-search-1.json"
-        ],
-        "evidence": [
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-search-evidence-2.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-search-evidence-3.json"
-        ],
-        "result": "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-search-result.json"
-      }
+      "pass": false
     },
     {
       "id": "ssmp-broken-link",
@@ -540,27 +447,7 @@
           ]
         }
       ],
-      "pass": false,
-      "audit": {
-        "requests": [
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-map-request-1.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-map-request-2.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-map-request-3.json"
-        ],
-        "responses": [
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-map-response-1.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-map-response-2.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-map-response-3.json"
-        ],
-        "searches": [],
-        "evidence": [
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-map-evidence-1.json",
-          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-map-evidence-2.json"
-        ],
-        "result": "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-map-result.json"
-      }
+      "pass": false
     }
-  ],
-  "evidenceRoot": "pi-tether/experiments/evidence/pageindex-20260929",
-  "manifest": "pi-tether/experiments/pageindex-artifacts.json"
+  ]
 }

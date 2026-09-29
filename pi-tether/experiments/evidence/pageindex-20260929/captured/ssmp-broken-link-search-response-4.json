@@ -1,0 +1,32 @@
+{
+  "global": 17,
+  "provider": "openai-codex",
+  "model": "gpt-5.6-luna",
+  "stopReason": "toolUse",
+  "usage": {
+    "input": 2673,
+    "output": 297,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 222,
+    "totalTokens": 2970,
+    "cost": {
+      "input": 0.0005346000000000001,
+      "output": 0.0003564,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "total": 0.0008910000000000001
+    }
+  },
+  "elapsedMs": 6673,
+  "operations": [
+    {
+      "type": "toolCall",
+      "id": "call_BaBzCTSdTSSWtibgfZfbXw3e|fc_06bb64a9c40a982c016abbd37ab1dc87d085dfd1f32f9c0be8",
+      "name": "answer",
+      "arguments": {
+        "text": "The validation reported that `roadmap/2026-09-05-suite-audit-fixes-and-handoff.md` linked to the missing target `2026-07-06-suite-review-gaps-workplan.md`.[src:s0:78e9221d:b1]"
+      }
+    }
+  ]
+}
