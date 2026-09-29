@@ -12,6 +12,11 @@ import { formatElapsed, isStatusPing } from "./status.ts";
 import { presentGraph, readText, summaryText, type WorkView } from "./presentation.ts";
 
 export const DELEGATE_MILESTONE_EVENT = "pi-delegate:milestone.v1";
+export const LEAD_BEHAVIOR_SECTION = `Mom observes and maps the work; the lead does not maintain her notes.
+
+- The user changes direction quickly and may not announce a pivot. Treat every direction change as an implicit park of interrupted work. Follow the new direction without asking for confirmation, announcing the parking, or slowing the user down. Mom records the abandoned thread silently. Surface parked work only at session start or when current work collides with it.
+- Always notice and respect clear, scoped assent such as “yes, note that” or “yes, let's go down that path” for exactly the point or path it addresses; do not generalize it to nearby proposals. Respect that assent while it is current. If later direction appears to conflict, check the recorded session evidence and follow the latest clear direction without asking the user to reconfirm the pivot.`;
+const LEAD_BEHAVIOR_SECTION_KEY = "mom_lead_behavior";
 const WIDGET = "pi-tether";
 
 export default function piTether(pi: ExtensionAPI) {
@@ -173,6 +178,12 @@ export default function piTether(pi: ExtensionAPI) {
 	pi.on("session_start", (_event, context) => { reset(context); });
 	pi.on("session_tree", (_event, context) => { reset(context); });
 	pi.on("session_shutdown", () => { close(); });
+	pi.on("before_agent_start", async (event) => {
+		const token = epoch;
+		await ready.catch(() => undefined);
+		if (token === epoch && mom?.enabled) event.systemPromptOptions.sections[LEAD_BEHAVIOR_SECTION_KEY] = LEAD_BEHAVIOR_SECTION;
+		else delete event.systemPromptOptions.sections[LEAD_BEHAVIOR_SECTION_KEY];
+	});
 	pi.on("agent_start", () => { sync(); });
 	pi.on("agent_settled", (_event, context) => { ctx = context; leadTool = undefined; wake(); deliver(); });
 	pi.on("tool_execution_start", (event) => { leadTool = event.toolName; sync(); });
