@@ -103,9 +103,12 @@ export async function loadState(store: MomStore, manager: SessionReader): Promis
 			continue;
 		}
 		if (Object.keys(item.data).some(key => !mapKeys.has(key)) || !Object.keys(item.data).length) throw new Error("Invalid Mom map state in her sidecar.");
+		let branchAnchor = false, applies = false;
 		if (item.data.snapshot !== undefined) {
+			branchAnchor = true;
 			if (!isCheckpoint(item.data.snapshot)) throw new Error("Invalid Mom map snapshot in her sidecar; refusing to silently replace it.");
 			if (item.data.snapshot.cut.parent === null || branch.has(item.data.snapshot.cut.parent)) {
+				applies = true;
 				state.checkpoint = item.data.snapshot; state.checkpointId = item.id; state.coverageCut = item.data.snapshot.cut;
 				coverageAt = item.at; delete state.failure;
 			}
@@ -115,16 +118,20 @@ export async function loadState(store: MomStore, manager: SessionReader): Promis
 			state.enabled = item.data.enabled;
 		}
 		if (item.data.cut !== undefined) {
+			branchAnchor = true;
 			if ((item.data.base !== null && typeof item.data.base !== "string") || !cutLike(item.data.cut)) throw new Error("Invalid Mom map cursor in her sidecar.");
 			const sameMap = item.data.base === state.checkpointId || (!state.checkpointId && item.data.base === null);
 			if (sameMap && item.at >= coverageAt && (item.data.cut.parent === null || branch.has(item.data.cut.parent))) {
+				applies = true;
 				state.coverageCut = item.data.cut; coverageAt = item.at; delete state.failure;
 				if (state.checkpoint) state.checkpoint = { ...state.checkpoint, cut: item.data.cut, at: item.at };
 			}
 		}
 		if (item.data.failure !== undefined) {
-			if (item.data.failure === null) delete state.failure;
-			else {
+			if (item.data.failure === null) {
+				if (!branchAnchor) throw new Error("Invalid Mom failure clearing state in her sidecar.");
+				if (applies) delete state.failure;
+			} else {
 				if (!failureLike(item.data.failure)) throw new Error("Invalid Mom failure state in her sidecar.");
 				if (item.at >= coverageAt && (item.data.failure.through.parent === null || branch.has(item.data.failure.through.parent))) state.failure = item.data.failure;
 			}
@@ -132,8 +139,10 @@ export async function loadState(store: MomStore, manager: SessionReader): Promis
 		if (item.data.gap !== undefined) {
 			const gapData = item.data.gap;
 			if (!record(gapData) || typeof gapData.id !== "string" || !["open", "resolved"].includes(gapData.action)) throw new Error("Invalid Mom skipped-gap state in her sidecar.");
-			if (gapData.action === "resolved") gaps.delete(gapData.id);
-			else {
+			if (gapData.action === "resolved") {
+				if (!branchAnchor) throw new Error("Invalid Mom skipped-gap resolution in her sidecar.");
+				if (applies) gaps.delete(gapData.id);
+			} else {
 				const id = gapData.id;
 				if (!failureLike(gapData)) throw new Error("Invalid Mom skipped-gap state in her sidecar.");
 				if (gapData.through.parent === null || branch.has(gapData.through.parent)) gaps.set(id, { ...gapData, id });

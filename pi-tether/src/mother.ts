@@ -250,30 +250,27 @@ export class Mom {
 						|| JSON.stringify(next.graph) !== JSON.stringify(this.graph)
 						|| JSON.stringify(next.note) !== JSON.stringify(this.checkpoint.note ?? null)
 						|| JSON.stringify(next.unfinished) !== JSON.stringify(this.checkpoint.unfinished ?? []);
+					const resolvedGap = batch.retryGapId ? { gap: { action: "resolved", id: batch.retryGapId } } : {};
 					if (material) {
 						const checkpoint: Checkpoint = { sessionId: this.host.ctx.sessionManager.getSessionId(),
 							graph: next.graph, change: graphChange(this.checkpoint?.graph ?? this.initialGraph, next.graph),
 							note: next.note, unfinished: next.unfinished, cut: batch.cut, at: acceptedAt, model: this.host.model,
 							...(advisor ? { advisor } : {}) };
 						let record;
-						try { record = await this.host.store.append("map", { snapshot: checkpoint, failure: null }); }
+						try { record = await this.host.store.append("map", { snapshot: checkpoint, failure: null, ...resolvedGap }); }
 						catch (error) { throw new Error(`Mom could not write her state beside the session: ${String(error)}`); }
 						this.checkpoint = checkpoint; this.checkpointId = record.id;
 						this.checkpoints.push({ id: record.id, data: checkpoint });
 					} else {
 						if (!this.checkpointId) throw new Error("Mom cannot advance evidence coverage without a saved sidecar checkpoint.");
-						try { await this.host.store.append("map", { base: this.checkpointId, cut: batch.cut, failure: null }); }
+						try { await this.host.store.append("map", { base: this.checkpointId, cut: batch.cut, failure: null, ...resolvedGap }); }
 						catch (error) { throw new Error(`Mom could not advance her state beside the session: ${String(error)}`); }
 						this.checkpoint = { ...this.checkpoint!, cut: batch.cut, at: acceptedAt };
 					}
 					this.usage = acceptedUsage;
+					if (batch.retryGapId) this.gaps = this.gaps.filter(gap => gap.id !== batch.retryGapId);
 					// Usage is its own compact stream; a failed write never invalidates an accepted map.
 					try { await this.host.store.append("usage", { usage: this.usage, error: null }); } catch { /* usage bookkeeping is best-effort */ }
-					if (batch.retryGapId) {
-						try { await this.host.store.append("map", { gap: { action: "resolved", id: batch.retryGapId } });
-							this.gaps = this.gaps.filter(gap => gap.id !== batch.retryGapId); }
-						catch { /* Accepted coverage remains durable; the visible gap can be retried/resolved later. */ }
-					}
 					this.failure = undefined;
 					this.coveredRevision = batch.revision;
 					this.committed = batch.endIndex; this.staged = newer; this.queued = undefined;

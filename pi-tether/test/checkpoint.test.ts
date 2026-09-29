@@ -68,8 +68,42 @@ test("failure and skipped-gap state share the map stream and restore without tra
 		gap: { action: "open", id: "gap-one", key: "range", from, through, refs: [], error: "rejected", failures: 2 } });
 	const skipped = await loadState(store, manager);
 	assert.equal(skipped.failure, undefined); assert.equal(skipped.coverageCut?.parent, leaf); assert.equal(skipped.gaps[0]?.id, "gap-one");
-	await store.append("map", { gap: { action: "resolved", id: "gap-one" } });
+	await store.append("map", { base: "keep", cut: through, gap: { action: "resolved", id: "gap-one" } });
 	assert.deepEqual((await loadState(store, manager)).gaps, []);
+});
+
+test("a sibling-branch cursor cannot clear the selected branch's retry failure", async () => {
+	const manager = SessionManager.inMemory("/tmp"), sessionId = manager.getSessionId();
+	const root = manager.appendMessage({ role: "user", content: "root", timestamp: Date.now() });
+	const sibling = manager.appendMessage({ role: "user", content: "sibling", timestamp: Date.now() });
+	manager.branch(root);
+	const selected = manager.appendMessage({ role: "user", content: "selected", timestamp: Date.now() });
+	const rootCut = { parent: root, workers: [] }, selectedCut = { parent: selected, workers: [] };
+	const store = memoryStore(sessionId, [mapSnapshot("keep", sessionId, { ...checkpoint(sessionId), cut: rootCut }, 1)]);
+	await store.append("map", { base: "keep", cut: selectedCut });
+	await store.append("map", { failure: { key: "selected-range", from: rootCut, through: selectedCut, refs: [], error: "retry", failures: 1 } });
+	await store.append("map", { base: "keep", cut: { parent: sibling, workers: [] }, failure: null });
+	await store.append("map", { base: "other-map", cut: selectedCut, failure: null });
+	const restored = await loadState(store, manager);
+	assert.equal(restored.coverageCut?.parent, selected, "the selected branch cursor remains consumed");
+	assert.equal(restored.failure?.key, "selected-range", "the sibling clear does not erase selected-branch retry state");
+});
+
+test("a sibling-branch cursor cannot resolve the selected branch's skipped gap", async () => {
+	const manager = SessionManager.inMemory("/tmp"), sessionId = manager.getSessionId();
+	const root = manager.appendMessage({ role: "user", content: "root", timestamp: Date.now() });
+	const sibling = manager.appendMessage({ role: "user", content: "sibling", timestamp: Date.now() });
+	manager.branch(root);
+	const selected = manager.appendMessage({ role: "user", content: "selected", timestamp: Date.now() });
+	const rootCut = { parent: root, workers: [] }, selectedCut = { parent: selected, workers: [] };
+	const store = memoryStore(sessionId, [mapSnapshot("keep", sessionId, { ...checkpoint(sessionId), cut: rootCut }, 1)]);
+	await store.append("map", { base: "keep", cut: selectedCut,
+		gap: { action: "open", id: "selected-gap", key: "selected-range", from: rootCut, through: selectedCut, refs: [], error: "rejected", failures: 2 } });
+	await store.append("map", { base: "keep", cut: { parent: sibling, workers: [] }, gap: { action: "resolved", id: "selected-gap" } });
+	await store.append("map", { base: "other-map", cut: selectedCut, gap: { action: "resolved", id: "selected-gap" } });
+	const restored = await loadState(store, manager);
+	assert.equal(restored.coverageCut?.parent, selected, "the selected branch cursor remains consumed");
+	assert.equal(restored.gaps[0]?.id, "selected-gap", "the sibling resolution does not erase the selected-branch gap");
 });
 
 test("the session transcript is never a Mom state source; only sidecar map records load", async () => {
