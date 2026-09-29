@@ -75,7 +75,8 @@ function hierarchy(work: WorkView, theme: Theme, width: number, expanded: boolea
 		const safePrefix = clip(prefix, Math.max(0, width - (here ? "you are here".length : 1)));
 		const budget = Math.max(0, width - visibleWidth(safePrefix));
 		let meta = here && node.state === "active" ? "" : ` · ${stateName(node.state)}`;
-		if (node.id === work.purpose && budget >= visibleWidth(marker + meta) + 28) meta += " · main line";
+		if (node.id === work.motherThread && budget >= visibleWidth(marker + meta) + 32) meta += " · mother thread";
+		else if (node.id === work.purpose && budget >= visibleWidth(marker + meta) + 28) meta += " · main line";
 		if (root && budget >= visibleWidth(marker + meta) + visibleWidth(progress(node)) + 18) meta += progress(node);
 		if (visibleWidth(marker + meta) >= budget) { marker = here ? "you are here" : ""; meta = here ? "" : meta.trim(); }
 		const label = clip(clean(node.label), Math.max(0, budget - visibleWidth(marker + meta)));

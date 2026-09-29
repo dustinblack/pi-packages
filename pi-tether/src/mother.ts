@@ -53,6 +53,14 @@ export class Mom {
 
 	async open(): Promise<void> {
 		const state = await loadState(this.host.store, this.host.ctx.sessionManager);
+		const cutoverCheckpointId = state.cutover ? state.checkpointId : undefined;
+		if (state.cutover && state.checkpoint) {
+			// One atomic current-format snapshot completes the version-free graph cutover.
+			// A failed append leaves the old sidecar untouched and opening fails loudly.
+			const checkpoint = { ...state.checkpoint, at: Date.now() };
+			const saved = await this.host.store.append("map", { snapshot: checkpoint, ...(state.failure ? { failure: state.failure } : {}) });
+			state.checkpoint = checkpoint; state.checkpointId = saved.id; state.coverageCut = checkpoint.cut; delete state.cutover;
+		}
 		this.checkpoint = state.checkpoint;
 		this.checkpointId = state.checkpointId;
 		this.enabled = state.enabled;
@@ -71,7 +79,8 @@ export class Mom {
 			this.staged = { events, cut: state.failure.through, from: state.failure.from, gaps: [], more: false, revision: 0,
 				startIndex: this.committed, endIndex: this.feed.events.length };
 		} else this.committed = this.feed.events.length;
-		this.checkpoints = branchCheckpoints(await this.host.store.load(), new Set(this.host.ctx.sessionManager.getBranch().map(e => e.id)));
+		this.checkpoints = branchCheckpoints(await this.host.store.load(), new Set(this.host.ctx.sessionManager.getBranch().map(e => e.id)))
+			.filter(item => item.id !== cutoverCheckpointId);
 	}
 
 	detail() { return { failureState: this.failure, skippedEvidence: this.gaps, sessionUsage: this.usage }; }

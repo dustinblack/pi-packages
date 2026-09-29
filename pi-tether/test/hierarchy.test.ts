@@ -12,19 +12,20 @@ function initial() {
 	return editGraph(emptyGraph(), 0, [put(node("main", null, "active")), put(node("research", "main")),
 		put(node("probe", "research")), put(node("finding", "probe", "settled", "observation")),
 		put(node("pending", "probe", "parked")), put(node("partial", "pending", "settled", "observation")),
-		put(node("hold", "research", "active", "rule")), put(node("other", null, "active")),
+		put(node("hold", "research", "active", "rule")), put(node("other", "main", "active")),
 		link("research", "returns_to", "main"), link("finding", "informs", "other"),
 		link("hold", "governs", "research")], "main", "pending", refs);
 }
 const fold: any = { op: "fold", thread: "research", reason: "Research returned; carry unfinished work.", sources: ["s:return"] };
 
-test("thread parents form a forest independently of cross-links", () => {
+test("thread parents form one mother-thread tree independently of cross-links", () => {
 	const graph = initial(); checkGraph(graph);
+	assert.equal(graph.motherThread, "main");
 	assert.equal(graph.nodes.find(n => n.id === "probe")!.parent, "research");
-	assert.throws(() => editGraph(graph, 1, [put(node("main", "probe", "active"))], "other", "pending", refs), /cycle/i);
+	assert.throws(() => editGraph(graph, 1, [put(node("research", "pending", "active"))], "main", "pending", refs), /cycle/i);
 	assert.throws(() => editGraph(graph, 1, [put(node("pending", "finding", "parked"))], "main", "pending", refs), /parent.*endeavor/i);
 	assert.throws(() => editGraph(graph, 1, [put(node("orphan", null, "active", "rule"))], "main", "pending", refs), /endeavor.*root/i);
-	assert.throws(() => editGraph(graph, 1, [], "research", "pending", refs), /purpose.*root/i);
+	assert.throws(() => editGraph(graph, 1, [], "research", "pending", refs), /Mother-thread root identity/i);
 	assert.doesNotThrow(() => editGraph(graph, 1, [link("main", "depends_on", "other"), link("other", "depends_on", "main")], "main", "pending", refs));
 });
 
@@ -54,7 +55,7 @@ test("centers merge only with an explicit sourced target update carrying the unf
 	const graph = initial();
 	const merge: any = { op: "merge", thread: "pending", into: "other", reason: "Combine the two investigations.", sources: ["s:return"] };
 	assert.throws(() => editGraph(graph, 1, [merge], "main", "other", refs, "prior"), /merge needs the destination target upserted in this batch: other/i);
-	const target = { ...node("other", null, "active"), intent: "Other investigation plus Purpose of pending; no edits until approved.", sources: ["s:return"] };
+	const target = { ...node("other", "main", "active"), intent: "Other investigation plus Purpose of pending; no edits until approved.", sources: ["s:return"] };
 	const after = editGraph(graph, 1, [put(target), merge], "main", "other", refs, "prior");
 	assert(!after.nodes.some(n => n.id === "pending"));
 	assert.equal(after.nodes.find(n => n.id === "partial")!.parent, "other");
@@ -67,7 +68,7 @@ test("centers merge only with an explicit sourced target update carrying the unf
 test("depth-zero reads retain main line, roots, ancestry and focus path instead of flattening the selected thread", () => {
 	const graph = editGraph(initial(), 1, [put(node("other_branch", "other", "active")), put(node("other_finding", "other_branch", "settled", "observation")), link("pending", "informs", "other_finding")], "main", "pending", refs);
 	const slice = graphSlice(graph, ["pending"], 0);
-	assert.deepEqual(slice.roots, ["main", "other"]);
+	assert.deepEqual(slice.roots, ["main"]);
 	assert.deepEqual(slice.focusPath, ["main", "research", "probe", "pending"]);
 	assert.deepEqual(slice.nodes.map(n => n.id), ["pending"]);
 	for (const id of ["main", "research", "probe", "other"]) assert(slice.boundaryNodes.some(n => n.id === id));

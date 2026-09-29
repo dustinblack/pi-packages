@@ -16,9 +16,9 @@ export function input(request: any) {
 export function replacement(request: any, extra: Record<string, unknown> = {}) {
 	const body = input(request);
 	const ref = /\[src:([^\]]+)\]/.exec(body.newEvents)?.[1] ?? body.original.ref;
-	const prior = body.graph.nodes?.find((node: any) => node.id === "main")?.sources ?? [];
+	const previous = body.graph.nodes?.find((node: any) => node.id === "main"), prior = previous?.sources ?? [];
 	return { tool: { name: "commit_graph", arguments: { revision: body.graph.revision, purpose: "main", focus: "main",
-		upsertNodes: [{ id: "main", kind: "try", parent: null, state: "active", label: "Main purpose", intent: "Keep the original purpose.", observed: "Lead continued.", actor: "lead", sources: [...new Set([...prior, ref])] }],
+		upsertNodes: [{ id: "main", kind: "try", parent: null, state: "active", label: "Main purpose", intent: previous?.intent ?? body.original.text.slice(0, 1200), observed: "Lead continued.", actor: "lead", sources: [...new Set([...prior, ref])] }],
 		unfinished: [], upsertEdges: [], removeEdges: [], merges: [], folds: [], removeNodes: [], supersessions: [],
 		note: null, ...extra } } };
 }

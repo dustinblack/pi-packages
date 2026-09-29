@@ -126,7 +126,7 @@ test("source validator rejects invented citations and user-as-violation notices"
 		{ ref: "s:r", at: "", actor: "lead", kind: "tool_result", name: "bash" },
 	];
 	const known = new Map(events.map((e) => [e.ref, e])), fresh = new Set(events.map((e) => e.ref)), inspected = new Set<string>();
-	const node = { id: "main", kind: "try", parent: null, state: "active", label: "Purpose", intent: "Keep user files.", observed: "", actor: "lead", sources: ["s:u"] };
+	const node = { id: "main", kind: "try", parent: null, state: "active", label: "Purpose", intent: "Do not delete user files.", observed: "", actor: "lead", sources: ["s:u"] };
 	const base = { revision: 0, purpose: "main", focus: "main", upsertNodes: [node], unfinished: [], upsertEdges: [], removeEdges: [], merges: [], folds: [], removeNodes: [], supersessions: [], note: null };
 	const accept = (value: unknown, refs = fresh, question?: string) => acceptGraph(value, emptyGraph(), undefined, known, refs, inspected, question);
 	assert.equal(accept(base).note, null);

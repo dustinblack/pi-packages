@@ -3,7 +3,7 @@ import type { Notice } from "./contract.ts";
 import { isAdvisorRecord, type AdvisorRecord } from "./advisor.ts";
 import type { MomStore, SidecarRecord } from "./sidecar.ts";
 import { Check } from "typebox/value";
-import { checkGraph, Unfinished, type WorkGraph, type UnfinishedItems } from "./graph.ts";
+import { checkGraph, normalizeMotherRoot, Unfinished, type WorkGraph, type UnfinishedItems } from "./graph.ts";
 
 export const NOTICE = "pi-tether.mom-notice";
 export interface Usage {
@@ -47,25 +47,32 @@ const cutLike = (x: unknown): x is Cut => {
 	return true;
 };
 
-export function isCheckpoint(x: unknown): x is Checkpoint {
-	if (!record(x) || "version" in x || "usage" in x || typeof x.sessionId !== "string" || !Number.isFinite(x.at) || typeof x.model !== "string" || !record(x.cut)) return false;
-	try { checkGraph(x.graph); } catch { return false; }
-	if (x.unfinished !== undefined && !Check(Unfinished, x.unfinished)) return false;
-	if (x.advisor !== undefined && !isAdvisorRecord(x.advisor)) return false;
-	if (x.change !== undefined) {
-		const c = x.change;
-		if (!record(c) || (c.before !== null && !integer(c.before)) || c.after !== x.graph.nodes.length ||
-			![c.created, c.retired].every(items => Array.isArray(items) && items.every(n => record(n) && typeof n.id === "string" && typeof n.label === "string" && Array.isArray(n.sources) && n.sources.length && n.sources.every((s: unknown) => typeof s === "string")))) return false;
-		if (c.before !== null && c.after !== c.before + c.created.length - c.retired.length) return false;
+function checkpointValue(x: unknown, allowCutover: boolean): { checkpoint: Checkpoint; cutover: boolean } | undefined {
+	if (!record(x) || "version" in x || "usage" in x || typeof x.sessionId !== "string" || !Number.isFinite(x.at) || typeof x.model !== "string" || !record(x.cut)) return undefined;
+	let normalized;
+	try { normalized = normalizeMotherRoot(x.graph); } catch { return undefined; }
+	if (normalized.changed && !allowCutover) return undefined;
+	const value = normalized.changed ? { ...x, graph: normalized.graph } : x;
+	try { checkGraph(value.graph); } catch { return undefined; }
+	if (value.unfinished !== undefined && !Check(Unfinished, value.unfinished)) return undefined;
+	if (value.advisor !== undefined && !isAdvisorRecord(value.advisor)) return undefined;
+	if (value.change !== undefined) {
+		const c = value.change;
+		if (!record(c) || (c.before !== null && !integer(c.before)) || c.after !== value.graph.nodes.length ||
+			![c.created, c.retired].every(items => Array.isArray(items) && items.every(n => record(n) && typeof n.id === "string" && typeof n.label === "string" && Array.isArray(n.sources) && n.sources.length && n.sources.every((s: unknown) => typeof s === "string")))) return undefined;
+		if (c.before !== null && c.after !== c.before + c.created.length - c.retired.length) return undefined;
 	}
-	if (!cutLike(x.cut)) return false;
-	return x.note === null || (record(x.note) && ["text", "obligationRef", "triggerRef"].every((k) => typeof x.note[k] === "string") &&
-		(x.note.nextRequest === undefined || typeof x.note.nextRequest === "boolean"));
+	if (!cutLike(value.cut)) return undefined;
+	if (!(value.note === null || (record(value.note) && ["text", "obligationRef", "triggerRef"].every((k) => typeof value.note[k] === "string") &&
+		(value.note.nextRequest === undefined || typeof value.note.nextRequest === "boolean")))) return undefined;
+	return { checkpoint: value as Checkpoint, cutover: normalized.changed };
 }
+
+export function isCheckpoint(x: unknown): x is Checkpoint { return Boolean(checkpointValue(x, false)); }
 
 export interface CursorFailure { key: string; from: Cut; through: Cut; refs: string[]; error: string; failures: number }
 export interface SkippedGap extends CursorFailure { id: string }
-export interface MomState { checkpoint?: Checkpoint; checkpointId?: string; coverageCut?: Cut; enabled: boolean; delivered?: string; usage?: Usage; error?: string; failure?: CursorFailure; gaps: SkippedGap[] }
+export interface MomState { checkpoint?: Checkpoint; checkpointId?: string; coverageCut?: Cut; enabled: boolean; delivered?: string; usage?: Usage; error?: string; failure?: CursorFailure; gaps: SkippedGap[]; cutover?: boolean }
 
 const failureLike = (x: unknown): x is CursorFailure => record(x) && typeof x.key === "string" && cutLike(x.from) && cutLike(x.through) &&
 	Array.isArray(x.refs) && x.refs.every((ref: unknown) => typeof ref === "string") && typeof x.error === "string" && integer(x.failures);
@@ -76,9 +83,10 @@ export function branchCheckpoints(records: readonly SidecarRecord[], branch: Rea
 	const checkpoints: { id: string; data: Checkpoint }[] = [];
 	for (const item of records) {
 		if (item.type !== "map" || item.data.snapshot === undefined) continue;
-		if (!isCheckpoint(item.data.snapshot)) throw new Error("Invalid Mom map snapshot in her sidecar; refusing to silently replace it.");
-		if (item.data.snapshot.cut.parent !== null && !branch.has(item.data.snapshot.cut.parent)) continue;
-		checkpoints.push({ id: item.id, data: item.data.snapshot });
+		const parsed = checkpointValue(item.data.snapshot, true);
+		if (!parsed) throw new Error("Invalid Mom map snapshot in her sidecar; refusing to silently replace it.");
+		if (parsed.checkpoint.cut.parent !== null && !branch.has(parsed.checkpoint.cut.parent)) continue;
+		checkpoints.push({ id: item.id, data: parsed.checkpoint });
 	}
 	return checkpoints;
 }
@@ -107,10 +115,12 @@ export async function loadState(store: MomStore, manager: SessionReader): Promis
 		let branchAnchor = false, applies = false;
 		if (item.data.snapshot !== undefined) {
 			branchAnchor = true;
-			if (!isCheckpoint(item.data.snapshot)) throw new Error("Invalid Mom map snapshot in her sidecar; refusing to silently replace it.");
-			if (item.data.snapshot.cut.parent === null || branch.has(item.data.snapshot.cut.parent)) {
+			const parsed = checkpointValue(item.data.snapshot, true);
+			if (!parsed) throw new Error("Invalid Mom map snapshot in her sidecar; refusing to silently replace it.");
+			if (parsed.checkpoint.cut.parent === null || branch.has(parsed.checkpoint.cut.parent)) {
 				applies = true;
-				state.checkpoint = item.data.snapshot; state.checkpointId = item.id; state.coverageCut = item.data.snapshot.cut;
+				state.checkpoint = parsed.checkpoint; state.checkpointId = item.id; state.coverageCut = parsed.checkpoint.cut;
+				if (parsed.cutover) state.cutover = true; else delete state.cutover;
 				coverageAt = item.at; delete state.failure;
 			}
 		}

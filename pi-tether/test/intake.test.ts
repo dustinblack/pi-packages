@@ -10,7 +10,7 @@ const progress: FeedEvent = { ref: "s:progress", actor: "lead", kind: "assistant
 const second: FeedEvent = { ref: "s:second", actor: "lead", kind: "user", at: "", text: "Keep this read-only and summarize the feature-level result." };
 const known = new Map([[earlier.ref, earlier], [first.ref, first], [progress.ref, progress], [second.ref, second]]), fresh = new Set(known.keys());
 const main = { id: "main", parent: null, kind: "theory", state: "active", label: "Understand formatter behavior",
-	intent: "Explain the formatter's behavior without changing it.", observed: "The session is investigating the formatter.", actor: "lead", sources: [first.ref] };
+	intent: "Investigate formatter behavior without changing it.", observed: "The session is investigating the formatter.", actor: "lead", sources: [first.ref] };
 const transaction = { revision: 0, purpose: "main", focus: "main", unfinished: [], upsertNodes: [main], upsertEdges: [],
 	removeEdges: [], merges: [], folds: [], removeNodes: [], supersessions: [], note: null };
 const accept = (value: unknown) => acceptGraph(value, emptyGraph(), undefined, known, fresh, new Set());

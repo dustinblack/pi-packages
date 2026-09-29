@@ -2,11 +2,11 @@
 
 Mom keeps track of your goal, what's unfinished, and where to return after a detour. **You lead; agents work. Neither maintains a ledger.**
 
-The map follows what you're building or exploring: **features, theories, postulates, and things you're trying**. Rules, open choices, and observations are attached to that work. They are not separate projects.
+The map follows what you're building or exploring: **features, theories, postulates, and things you're trying**. Rules, open choices, and observations are attached to that work. They are not separate projects. Exactly one persisted endeavor is the **mother thread**: it carries the source-backed original session purpose and coordinates every current, interrupted, and alternative branch beneath it.
 
 The widget shows the main line and the current branch as a tree, using the same colors and branch marks as pi-omp's todo panel. When transcript coverage is complete, the current location is marked **you are here**. While Mom is busy, blocked, catching up, or has pending coverage, the panel and story reads label the map as a partial last-saved snapshot and suppress current-orientation markers. Each work node shows its state and current progress. Rules, choices and observations are left out of the widget; `alt+t` opens the full saved view.
 
-Default `mom` reads show a compact story map: the current endeavor, live rules, choices waiting on you, recorded outcomes, and handles for folded history. Rules appear as short sentences under their endeavor, not as `governs` arrows or record dumps. Select an endeavor or attached record when you need complete fields and sources. There is no separate graph viewer.
+Default `mom` reads show a compact story map: the mother thread, current endeavor, live rules, choices waiting on you, recorded outcomes, and handles for folded history. Active purposes and rules show `Why` as reopenable source handles only; Mom does not add separate causal rationale prose. Rules appear as short sentences under their endeavor, not as `governs` arrows or record dumps. Select an endeavor or attached record when you need complete fields and sources. There is no separate graph viewer.
 
 ## Run it
 
@@ -72,13 +72,13 @@ mom({ question: "Why did we change direction?" }) // Explicit reasoning and sour
 
 Use IDs returned by Mom, not the example IDs. Choose at most one of `graph`, `source`, or `question`.
 
-The public map contains endeavors with attached annotations. Default output previews two items per group, then shows the remaining count. It shows at most one quoted hold and provides IDs or checkpoint handles for details. Depth is 0–3; even depth zero explains the main purpose, ancestry, and surrounding work. Earlier views are labeled as history, not restored as current assignments. Original user direction stays accessible separately from Mom's interpretation.
+The public map contains one mother-thread root, its child endeavors, and attached annotations. Default output previews two items per group, prioritizing the current, interrupted, and explicitly alternative branches, then shows the remaining count. It shows blocker, alternative, and return links without widening annotation endpoints. It shows at most one quoted hold and provides IDs or checkpoint handles for details. Depth is 0–3; even depth zero explains the main purpose, ancestry, and surrounding work. Earlier views are labeled as history, not restored as current assignments. Original user direction stays accessible separately from Mom's interpretation.
 
 Agents can turn returned data into prose or Mermaid. They do not open threads, report milestones to Mom, or maintain her map.
 
 ## How work stays connected
 
-Each endeavor has a parent or is a root. Child work can appear during a detour. Related endeavors can merge without flattening their children. When an endeavor finishes, its completed details can fold into its parent's outcome.
+The mother thread is the one root; every other endeavor has an endeavor parent. Its stable ID cannot be replaced by a later side request. Child work can appear during a detour. Related endeavors can merge without flattening their children. When an endeavor finishes, its completed details can fold into its parent's outcome.
 
 Unfinished work and standing rules must survive that fold. Permission to prepare does not grant permission to act. A rule's scope must not silently broaden when work moves. Earlier detail remains available through saved history and source references.
 
@@ -94,7 +94,7 @@ Worker history must match a delegate invocation on the current parent branch and
 
 **Mom cannot edit files, delete files, run project commands, or launch workers.** Advice is not execution permission. User direction remains authoritative.
 
-The model can still misunderstand a rule. Mom therefore keeps source references on material graph records so the original evidence remains inspectable. An existing node cannot silently drop a prior user/user-answer source: it must retain that authority or declare a transaction-local replacement by a later fresh user source kept on the node. This supersession proof is validated and discarded, not persisted as a second ledger. The host validates graph shape, source identity, hierarchy, carry, and fold effects; it cannot prove semantic completeness.
+The model can still misunderstand a rule. Mom therefore keeps source references on material graph records so the original evidence remains inspectable. The first mother-thread proposal must include an identifying phrase from a cited user purpose source; arbitrary `why` or `rationale` fields are rejected. Public `Why` lines are generated only from those accepted source handles. An existing node cannot silently drop a prior user/user-answer source: it must retain that authority or declare a transaction-local replacement by a later fresh user source kept on the node. This supersession proof is validated and discarded, not persisted as a second ledger. The host validates graph shape, source identity, hierarchy, carry, and fold effects; it cannot prove semantic completeness.
 
 ## Saved data and diagnostics
 
@@ -102,7 +102,7 @@ Work kinds are `feature`, `theory`, `postulate`, and `try`; attached records use
 
 Mom never writes her state into the session transcript. Map snapshots and patches (including pause/resume, cursors, failures, and gaps), notice delivery, and cumulative usage go to an append-only sidecar beside the session file: `<session>.mom` (deliberately not `.jsonl`, so Pi's session list ignores it). The session transcript is evidence only: embedded Mom state is ignored. A Mom bug or failed write can only affect the sidecar, never the conversation. Map records apply only when their cursor and base map belong to the selected branch, so abandoned branches stay invisible.
 
-This storage layout is a clean, incompatible cutover with no migration or backward compatibility. Before first use of this version, delete or archive any existing `<session>.mom`; the session JSONL remains untouched and continues to supply the conversation evidence.
+The map/notice/usage storage layout remains a clean, incompatible cutover with no migration for older record formats. Before first use of that layout, delete or archive an older `<session>.mom`; the session JSONL remains untouched and continues to supply the conversation evidence. A current-format map created before the explicit `motherThread` pointer receives one narrow, version-free cutover: its existing purpose node becomes the stable root, any peer roots move beneath it without changing sources, and one atomic normalized snapshot prevents repeated conversion.
 
 A material update saves a map snapshot and consumed source positions together. When an accepted update leaves the graph, notice, and unfinished list byte-identical, Mom appends only a small map cursor patch tied to the latest snapshot; cold reload therefore does not replay accepted evidence or duplicate the graph. A cursor patch applies only to its session, base map, and selected branch. When configured, a material map snapshot also saves the session-level advisor decision. A failed state write leaves the prior durable cursor intact.
 
@@ -131,4 +131,4 @@ cd pi-tether && npm run check
 cd ../pi-delegate && npm run check
 ```
 
-The suite covers settled-boundary scheduling, hierarchy, carry, source lookup, sidecar-only state, storage failure, worker history, reload, and quiet advice. Scripted model replies check mechanics, not arbitrary model judgment. See [the experiment record](experiments/README.md) for earlier work.
+The suite covers settled-boundary scheduling, unique mother-root hierarchy, chapter-level cold catch-up, source-only `Why`, current/interrupted/alternative branches, atomic graph cutover, carry, source lookup, sidecar-only state, storage failure, worker history, reload, and quiet advice. A real isolated Luna-low capture is stored at `experiments/evidence/todo-007-real-luna-purpose-map.json`; it used two calls (one schema repair) and opened no user session or sidecar. Scripted model replies check mechanics, not arbitrary model judgment. See [the experiment record](experiments/README.md) for earlier work.

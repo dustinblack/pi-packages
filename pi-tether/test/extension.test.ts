@@ -21,7 +21,7 @@ test("normal parent narrative updates Mom without bookkeeping; cached status and
 		const calls = h.api.requests.length, momCalls = h.requests().length;
 		for (let i = 0; i < 3; i++) {
 			const status = await h.tools.get("mom").execute("status", {}, undefined);
-			assert.match(status.content[0].text, /Keep the original purpose/);
+			assert.match(status.content[0].text, /Keep the original goal/);
 			await h.command("status");
 		}
 		await pause(400);
@@ -67,7 +67,7 @@ test("startup and reload render saved state without inferring over pending trans
 		await h.runtime.session.reload(); await pause(300);
 		assert.equal(h.requests().length, calls, "session reset must not schedule inference");
 		const saved = await h.tools.get("mom").execute("saved", {}, undefined);
-		assert.match(saved.content[0].text, /Keep the original purpose/, "the loaded checkpoint renders immediately");
+		assert.match(saved.content[0].text, /Preserve the saved map before reload/, "the loaded checkpoint renders immediately");
 		await h.command("refresh");
 		await until(() => h.requests().length === calls + 1, "explicit refresh");
 		assert.match(input(h.requests().at(-1)).newEvents, /Pending evidence must wait for an allowed boundary/);
@@ -116,7 +116,7 @@ test("automatic inference waits for a lead tool stream to settle and then checkp
 		assert.match(body.newEvents, /lead tool_result delegate_ctl/);
 		assert.match(body.newEvents, /The check is complete and the request remains active/);
 		const saved = await h.tools.get("mom").execute("saved", {}, undefined);
-		assert.match(saved.content[0].text, /Keep the original purpose/, "the first sidecar checkpoint is immediately usable by the terminal view");
+		assert.match(saved.content[0].text, /Inspect the active runs, then preserve this request/, "the first sidecar checkpoint is immediately usable by the terminal view");
 		assert(!h.runtime.session.sessionManager.getEntries().some((e: any) => typeof e.customType === "string" && e.customType.startsWith("pi-tether.mom.")));
 		assert.deepEqual(h.errors, []); assert.deepEqual(h.api.errors, []);
 	} finally { gate.resolve(); await h.close(); }

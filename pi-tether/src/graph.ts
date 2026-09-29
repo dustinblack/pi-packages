@@ -6,7 +6,7 @@ const id = Type.String({ pattern: "^[A-Za-z][A-Za-z0-9_-]{0,63}$" });
 // Codex strict tools reject uniqueItems; check uniqueness locally.
 const refs = Type.Array(Type.String({ minLength: 1 }), { minItems: 1 });
 const pointer = Type.Union([id, Type.Null()]);
-const relation = Type.Union([Type.Literal("returns_to"), Type.Literal("informs"), Type.Literal("governs"), Type.Literal("depends_on")]);
+const relation = Type.Union([Type.Literal("returns_to"), Type.Literal("informs"), Type.Literal("governs"), Type.Literal("depends_on"), Type.Literal("alternative_to")]);
 const endeavorKind = Type.Union([Type.Literal("feature"), Type.Literal("theory"), Type.Literal("postulate"), Type.Literal("try")]);
 const annotationKind = Type.Union([Type.Literal("rule"), Type.Literal("choice"), Type.Literal("observation")]);
 const nodeFields = {
@@ -41,8 +41,11 @@ export const Unfinished = Type.Array(Type.Object({ node: id,
 	target: pointer, sources: refs,
 }, object), { maxItems: 64, description: "Before settling or folding, account for unfinished work and continuing permission holds, including those still only in endeavor prose. Attach active rule annotations for continuing holds. List every active/parked descendant: carried to the parent/root, reparented to another surviving endeavor, or resolved with evidence. Empty means you claim nothing remains within the closing scope. This is a model declaration, not host verification of prose." });
 export type UnfinishedItems = Static<typeof Unfinished>;
-export const GraphSchema = Type.Object({ revision: Type.Integer({ minimum: 0 }), purpose: pointer,
-	focus: pointer, nodes: Type.Array(Node), edges: Type.Array(Edge) }, object);
+const graphFields = { revision: Type.Integer({ minimum: 0 }), purpose: pointer,
+	focus: pointer, nodes: Type.Array(Node), edges: Type.Array(Edge) };
+/** `motherThread` is a persisted role pointer to the one coordinating root endeavor. */
+export const GraphSchema = Type.Object({ ...graphFields, motherThread: pointer }, object);
+const LegacyGraphSchema = Type.Object(graphFields, object);
 export type WorkGraph = Static<typeof GraphSchema>;
 export type GraphNode = Static<typeof Node>;
 export type GraphEdge = Static<typeof Edge>;
@@ -63,7 +66,7 @@ export function sourceSuggestion(ref: string, known: Iterable<string>): string |
 	});
 	return matches.length === 1 ? matches[0] : undefined;
 }
-export const emptyGraph = (): WorkGraph => ({ revision: 0, purpose: null, focus: null, nodes: [], edges: [] });
+export const emptyGraph = (): WorkGraph => ({ revision: 0, motherThread: null, purpose: null, focus: null, nodes: [], edges: [] });
 const edgeKey = (e: Pick<GraphEdge, "from" | "relation" | "to">) => `${e.from}/${e.relation}/${e.to}`;
 
 /** Annotations are attached records, never independent work centers. */
@@ -103,13 +106,13 @@ export function shapeError(prefix: string, schema: TSchema, value: unknown, list
 	return new Error(`${prefix}${details.length ? ` ${details.join("; ")}.` : ""}`);
 }
 
-/** Parent links are a forest. Cross-links may cycle. Neither structural check certifies semantic truth. */
+/** Parent links form one mother-thread tree. Cross-links may cycle. Neither structural check certifies semantic truth. */
 export function checkGraph(value: unknown): asserts value is WorkGraph {
 	if (!Check(GraphSchema, value)) throw shapeError("Invalid endeavor map shape:", GraphSchema, value);
-	checkGraphStructure(value);
+	checkGraphStructure(value, true);
 	if (JSON.stringify(value).length > GRAPH_CHAR_LIMIT) throw new Error(`Graph exceeds ${GRAPH_CHAR_LIMIT} characters; compact it without dropping unresolved work.`);
 }
-function checkGraphStructure(value: WorkGraph): void {
+function checkGraphStructure(value: Static<typeof LegacyGraphSchema> & { motherThread?: string | null }, requireMother: boolean): void {
 	for (const group of [value.nodes, value.edges]) for (const item of group) {
 		if (new Set(item.sources).size !== item.sources.length) throw new Error("Duplicate graph source reference.");
 	}
@@ -119,12 +122,33 @@ function checkGraphStructure(value: WorkGraph): void {
 	if (value.nodes.length && (!value.purpose || !value.focus)) throw new Error("A nonempty graph needs purpose and focus nodes.");
 	for (const p of [value.purpose, value.focus]) if (p !== null && !nodes.has(p)) throw new Error(`Unknown purpose/focus node: ${p}`);
 	if (value.purpose && nodes.get(value.purpose)!.parent !== null) throw new Error("Purpose must identify a root endeavor (the main line).");
+	if (requireMother) {
+		if (!value.nodes.length && value.motherThread !== null) throw new Error("An empty map cannot identify a mother-thread root.");
+		if (value.nodes.length && (!value.motherThread || value.motherThread !== value.purpose)) throw new Error("A nonempty graph needs purpose to identify its stable mother-thread root.");
+		const roots = value.nodes.filter(node => node.parent === null);
+		if (value.nodes.length && (roots.length !== 1 || roots[0]!.id !== value.motherThread)) throw new Error("The endeavor map needs exactly one coordinating mother-thread root; every other endeavor belongs beneath it.");
+	}
 	const edges = new Set<string>();
 	for (const edge of value.edges) {
 		if (!nodes.has(edge.from) || !nodes.has(edge.to)) throw new Error(`Dangling graph connection: ${edgeKey(edge)}`);
 		if (edge.from === edge.to || edges.has(edgeKey(edge))) throw new Error(`Self/duplicate graph connection: ${edgeKey(edge)}`);
 		edges.add(edgeKey(edge));
 	}
+}
+
+/** Deterministic, version-free cutover for current-format maps created before the
+ * mother-thread role was explicit. It preserves every node/source and makes the
+ * existing purpose root the sole parent of former peer roots. */
+export function normalizeMotherRoot(value: unknown): { graph: WorkGraph; changed: boolean } {
+	if (Check(GraphSchema, value)) { checkGraph(value); return { graph: value, changed: false }; }
+	if (!Check(LegacyGraphSchema, value)) throw shapeError("Invalid endeavor map shape:", LegacyGraphSchema, value);
+	checkGraphStructure(value, false);
+	if (!value.nodes.length) return { graph: { ...value, motherThread: null }, changed: true };
+	if (!value.purpose) throw new Error("A nonempty legacy graph has no purpose root for the mother-thread cutover.");
+	const graph: WorkGraph = { ...value, revision: value.revision + 1, motherThread: value.purpose,
+		nodes: value.nodes.map(node => node.parent === null && node.id !== value.purpose ? { ...node, parent: value.purpose } : node) };
+	checkGraph(graph);
+	return { graph, changed: true };
 }
 
 /** Errors provable from the declared closing scopes alone, before applying any edit. */
@@ -237,6 +261,7 @@ export function checkUnfinished(previous: WorkGraph, upserts: readonly GraphNode
 export function editGraph(previous: WorkGraph, revision: number, edits: readonly GraphEdit[], purpose: string | null, focus: string | null,
 	known: ReadonlySet<string>, checkpoint?: string): WorkGraph {
 	if (revision !== previous.revision) throw new Error(`Stale graph revision ${revision}; current revision is ${previous.revision}.`);
+	if (previous.motherThread && purpose !== previous.motherThread) throw new Error(`Mother-thread root identity is stable: keep purpose=${previous.motherThread}.`);
 	const nodes = new Map(previous.nodes.map(n => [n.id, n]));
 	let edges = new Map(previous.edges.map(e => [edgeKey(e), e]));
 	const oldIds = new Set(nodes.keys()), removed = new Set<string>(), updated = new Set<string>();
@@ -318,7 +343,7 @@ export function editGraph(previous: WorkGraph, revision: number, edits: readonly
 		}
 	}
 	const next: WorkGraph = { revision: previous.revision + (edits.length || purpose !== previous.purpose || focus !== previous.focus ? 1 : 0),
-		purpose, focus, nodes: [...nodes.values()], edges: [...edges.values()] };
+		motherThread: previous.motherThread ?? purpose, purpose, focus, nodes: [...nodes.values()], edges: [...edges.values()] };
 	checkGraph(next);
 	return next;
 }
@@ -360,7 +385,7 @@ export function graphSlice(graph: WorkGraph, selected?: readonly string[], depth
 	// Include direct children as boundaries so an endeavor doesn't look like a leaf.
 	for (const node of graph.nodes) if (node.parent && included.has(node.parent)) boundary.add(node.id);
 	for (const key of included) boundary.delete(key);
-	return { revision: graph.revision, purpose: graph.purpose, focus: graph.focus, roots, focusPath,
+	return { revision: graph.revision, motherThread: graph.motherThread, purpose: graph.purpose, focus: graph.focus, roots, focusPath,
 		nodes: graph.nodes.filter(n => included.has(n.id)), edges,
 		boundaryNodes: graph.nodes.filter(n => boundary.has(n.id)),
 		totalNodes: graph.nodes.length, omittedNodes: graph.nodes.length - included.size };

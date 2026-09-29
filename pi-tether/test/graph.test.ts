@@ -27,7 +27,7 @@ test("invalid/stale transactions leave the prior hierarchy untouched; omitted no
 	assert.throws(() => editGraph(before, 1, [{ op: "remove_node", id: "research", reason: "obsolete", sources: ["s:user"] }], "main", "pending", refs), /Parent/);
 	assert.throws(() => editGraph(before, 1, [put({ ...node("new", "main"), sources: ["unknown"] })], "main", "pending", refs), /Unknown/);
 	assert.throws(() => editGraph(before, 1, [{ op: "fold", thread: "pending", reason: "hide unfinished work", sources: ["s:user"] }], "main", "main", refs, "one"), /resolved/);
-	assert.throws(() => editGraph(before, 1, [{ op: "fold", thread: "main", reason: "hide main line", sources: ["s:user"] }], "second", "second", refs, "one"), /parent/);
+	assert.throws(() => editGraph(before, 1, [{ op: "fold", thread: "main", reason: "hide main line", sources: ["s:user"] }], "second", "second", refs, "one"), /Mother-thread root identity/);
 	assert.deepEqual(before, original);
 	assert.deepEqual(editGraph(before, 1, [], "main", "pending", refs), before);
 });

@@ -1,0 +1,430 @@
+{
+  "schema": "todo-007-real-luna-capture",
+  "capturedAt": "2026-09-29T18:17:56.216Z",
+  "model": {
+    "provider": "openai-codex",
+    "id": "gpt-5.6-luna",
+    "reasoning": "low"
+  },
+  "isolation": "Synthetic source-labeled session fixture; no user session JSONL or .mom file was opened or written.",
+  "promptSha256": "7abed6e8a09063a2c2f27bb624edcbab2e9867052885280aaa42cd4b5a67895e",
+  "fixture": [
+    {
+      "ref": "capture:user:origin",
+      "at": "2026-09-29T00:00:00Z",
+      "actor": "lead",
+      "kind": "user",
+      "text": "Build Tether into Mom: keep one durable purpose map of the whole session, from the original purpose through current work and detours."
+    },
+    {
+      "ref": "capture:assistant:implementation",
+      "at": "2026-09-29T00:01:00Z",
+      "actor": "lead",
+      "kind": "assistant",
+      "text": "I started implementing the production Mom map."
+    },
+    {
+      "ref": "capture:user:pivot",
+      "at": "2026-09-29T00:02:00Z",
+      "actor": "lead",
+      "kind": "user",
+      "text": "Pause the transcript replay branch. Production map acceptance is the current work, and we must return to replay afterward."
+    },
+    {
+      "ref": "capture:assistant:blocker",
+      "at": "2026-09-29T00:03:00Z",
+      "actor": "lead",
+      "kind": "assistant",
+      "text": "Production map acceptance is blocked on a cold-reload proof."
+    },
+    {
+      "ref": "capture:user:alternative",
+      "at": "2026-09-29T00:04:00Z",
+      "actor": "lead",
+      "kind": "user",
+      "text": "Keep PageIndex navigation as a considered alternative, not the current plan."
+    }
+  ],
+  "calls": [
+    {
+      "round": 1,
+      "stopReason": "toolUse",
+      "operations": [
+        {
+          "name": "commit_graph",
+          "arguments": {
+            "revision": 0,
+            "purpose": "Build Tether into Mom: keep one durable purpose map of the whole session, from the original purpose through current work and detours.",
+            "focus": "production_acceptance",
+            "unfinished": [],
+            "upsertNodes": [
+              {
+                "id": "root",
+                "kind": "feature",
+                "parent": null,
+                "state": "active",
+                "label": "Maintain Mom's durable session purpose map",
+                "intent": "Build Tether into Mom so the whole session is represented in one durable purpose map, from the original purpose through current work and detours.",
+                "observed": "The session's original purpose is to maintain a durable purpose map.",
+                "actor": "lead user",
+                "sources": [
+                  "capture:user:origin"
+                ]
+              },
+              {
+                "id": "production_acceptance",
+                "kind": "feature",
+                "parent": "root",
+                "state": "active",
+                "label": "Accept the production Mom map",
+                "intent": "Make production map acceptance the current work; acceptance remains blocked on a cold-reload proof.",
+                "observed": "Production map acceptance is the current work and is reported blocked on a cold-reload proof.",
+                "actor": "lead assistant",
+                "sources": [
+                  "capture:user:pivot",
+                  "capture:assistant:blocker"
+                ]
+              },
+              {
+                "id": "transcript_replay",
+                "kind": "try",
+                "parent": "root",
+                "state": "parked",
+                "label": "Replay the transcript",
+                "intent": "Pause transcript replay while production map acceptance is current; return to replay afterward.",
+                "observed": "The user explicitly paused this branch and required a later return.",
+                "actor": "lead user",
+                "sources": [
+                  "capture:user:pivot"
+                ]
+              },
+              {
+                "id": "pageindex_navigation",
+                "kind": "try",
+                "parent": "root",
+                "state": "proposed",
+                "label": "Consider PageIndex navigation",
+                "intent": "Keep PageIndex navigation as a considered alternative, not the current plan.",
+                "observed": "PageIndex navigation is retained as an alternative to the current production acceptance plan.",
+                "actor": "lead user",
+                "sources": [
+                  "capture:user:alternative"
+                ]
+              },
+              {
+                "id": "cold_reload_proof",
+                "kind": "rule",
+                "parent": "production_acceptance",
+                "state": "active",
+                "label": "Obtain a cold-reload proof before acceptance",
+                "intent": "Production map acceptance is blocked until a cold-reload proof is obtained; this is a continuing prerequisite for the current acceptance work.",
+                "observed": "The production map acceptance was reported blocked on a cold-reload proof.",
+                "actor": "lead assistant",
+                "sources": [
+                  "capture:assistant:blocker"
+                ]
+              }
+            ],
+            "upsertEdges": [
+              {
+                "from": "production_acceptance",
+                "relation": "depends_on",
+                "to": "cold_reload_proof",
+                "sources": [
+                  "capture:assistant:blocker"
+                ]
+              },
+              {
+                "from": "pageindex_navigation",
+                "relation": "alternative_to",
+                "to": "production_acceptance",
+                "sources": [
+                  "capture:user:alternative"
+                ]
+              },
+              {
+                "from": "transcript_replay",
+                "relation": "returns_to",
+                "to": "root",
+                "sources": [
+                  "capture:user:pivot"
+                ]
+              }
+            ],
+            "removeEdges": [],
+            "merges": [],
+            "folds": [],
+            "removeNodes": [],
+            "supersessions": [],
+            "note": null,
+            "answer": null
+          }
+        }
+      ],
+      "usage": {
+        "input": 4302,
+        "output": 644,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 63,
+        "totalTokens": 4946,
+        "cost": {
+          "input": 0.0008604000000000001,
+          "output": 0.0007727999999999999,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0.0016332
+        }
+      },
+      "elapsedMs": 14219,
+      "error": null,
+      "rejection": "Error: Invalid endeavor map shape: /purpose: must match pattern \"^[A-Za-z][A-Za-z0-9_-]{0,63}$\"; /purpose: must be null; /purpose: must match a schema in anyOf; /motherThread: must match pattern \"^[A-Za-z][A-Za-z0-9_-]{0,63}$\"."
+    },
+    {
+      "round": 2,
+      "stopReason": "toolUse",
+      "operations": [
+        {
+          "name": "commit_graph",
+          "arguments": {
+            "revision": 0,
+            "purpose": "root",
+            "focus": "production_acceptance",
+            "unfinished": [],
+            "upsertNodes": [
+              {
+                "id": "root",
+                "kind": "feature",
+                "parent": null,
+                "state": "active",
+                "label": "Maintain Mom's durable session purpose map",
+                "intent": "Build Tether into Mom so the whole session is represented in one durable purpose map, from the original purpose through current work and detours.",
+                "observed": "The session's original purpose is to maintain a durable purpose map.",
+                "actor": "lead user",
+                "sources": [
+                  "capture:user:origin"
+                ]
+              },
+              {
+                "id": "production_acceptance",
+                "kind": "feature",
+                "parent": "root",
+                "state": "active",
+                "label": "Accept the production Mom map",
+                "intent": "Make production map acceptance the current work; acceptance remains blocked on a cold-reload proof.",
+                "observed": "Production map acceptance is the current work and is reported blocked on a cold-reload proof.",
+                "actor": "lead assistant",
+                "sources": [
+                  "capture:user:pivot",
+                  "capture:assistant:blocker"
+                ]
+              },
+              {
+                "id": "transcript_replay",
+                "kind": "try",
+                "parent": "root",
+                "state": "parked",
+                "label": "Replay the transcript",
+                "intent": "Pause transcript replay while production map acceptance is current; return to replay afterward.",
+                "observed": "The user explicitly paused this branch and required a later return.",
+                "actor": "lead user",
+                "sources": [
+                  "capture:user:pivot"
+                ]
+              },
+              {
+                "id": "pageindex_navigation",
+                "kind": "try",
+                "parent": "root",
+                "state": "proposed",
+                "label": "Consider PageIndex navigation",
+                "intent": "Keep PageIndex navigation as a considered alternative, not the current plan.",
+                "observed": "PageIndex navigation is retained as an alternative to the current production acceptance plan.",
+                "actor": "lead user",
+                "sources": [
+                  "capture:user:alternative"
+                ]
+              },
+              {
+                "id": "cold_reload_proof",
+                "kind": "rule",
+                "parent": "production_acceptance",
+                "state": "active",
+                "label": "Obtain a cold-reload proof before acceptance",
+                "intent": "Production map acceptance is blocked until a cold-reload proof is obtained; this is a continuing prerequisite for the current acceptance work.",
+                "observed": "The production map acceptance was reported blocked on a cold-reload proof.",
+                "actor": "lead assistant",
+                "sources": [
+                  "capture:assistant:blocker"
+                ]
+              }
+            ],
+            "upsertEdges": [
+              {
+                "from": "production_acceptance",
+                "relation": "depends_on",
+                "to": "cold_reload_proof",
+                "sources": [
+                  "capture:assistant:blocker"
+                ]
+              },
+              {
+                "from": "pageindex_navigation",
+                "relation": "alternative_to",
+                "to": "production_acceptance",
+                "sources": [
+                  "capture:user:alternative"
+                ]
+              },
+              {
+                "from": "transcript_replay",
+                "relation": "returns_to",
+                "to": "root",
+                "sources": [
+                  "capture:user:pivot"
+                ]
+              }
+            ],
+            "removeEdges": [],
+            "merges": [],
+            "folds": [],
+            "removeNodes": [],
+            "supersessions": [],
+            "note": null,
+            "answer": null
+          }
+        }
+      ],
+      "usage": {
+        "input": 1593,
+        "output": 582,
+        "cacheRead": 3456,
+        "cacheWrite": 0,
+        "reasoning": 26,
+        "totalTokens": 5631,
+        "cost": {
+          "input": 0.00031860000000000005,
+          "output": 0.0006984,
+          "cacheRead": 0.00006912,
+          "cacheWrite": 0,
+          "total": 0.00108612
+        }
+      },
+      "elapsedMs": 13449,
+      "error": null
+    }
+  ],
+  "checks": {
+    "exactlyOneRoot": true,
+    "persistedMotherRoot": true,
+    "originalPurpose": true,
+    "currentWork": true,
+    "interruptedBranch": true,
+    "consideredAlternative": true,
+    "blocker": true,
+    "allClaimsSourced": true
+  },
+  "graph": {
+    "revision": 1,
+    "motherThread": "root",
+    "purpose": "root",
+    "focus": "production_acceptance",
+    "nodes": [
+      {
+        "id": "root",
+        "kind": "feature",
+        "parent": null,
+        "state": "active",
+        "label": "Maintain Mom's durable session purpose map",
+        "intent": "Build Tether into Mom so the whole session is represented in one durable purpose map, from the original purpose through current work and detours.",
+        "observed": "The session's original purpose is to maintain a durable purpose map.",
+        "actor": "lead user",
+        "sources": [
+          "capture:user:origin"
+        ]
+      },
+      {
+        "id": "production_acceptance",
+        "kind": "feature",
+        "parent": "root",
+        "state": "active",
+        "label": "Accept the production Mom map",
+        "intent": "Make production map acceptance the current work; acceptance remains blocked on a cold-reload proof.",
+        "observed": "Production map acceptance is the current work and is reported blocked on a cold-reload proof.",
+        "actor": "lead assistant",
+        "sources": [
+          "capture:user:pivot",
+          "capture:assistant:blocker"
+        ]
+      },
+      {
+        "id": "transcript_replay",
+        "kind": "try",
+        "parent": "root",
+        "state": "parked",
+        "label": "Replay the transcript",
+        "intent": "Pause transcript replay while production map acceptance is current; return to replay afterward.",
+        "observed": "The user explicitly paused this branch and required a later return.",
+        "actor": "lead user",
+        "sources": [
+          "capture:user:pivot"
+        ]
+      },
+      {
+        "id": "pageindex_navigation",
+        "kind": "try",
+        "parent": "root",
+        "state": "proposed",
+        "label": "Consider PageIndex navigation",
+        "intent": "Keep PageIndex navigation as a considered alternative, not the current plan.",
+        "observed": "PageIndex navigation is retained as an alternative to the current production acceptance plan.",
+        "actor": "lead user",
+        "sources": [
+          "capture:user:alternative"
+        ]
+      },
+      {
+        "id": "cold_reload_proof",
+        "kind": "rule",
+        "parent": "production_acceptance",
+        "state": "active",
+        "label": "Obtain a cold-reload proof before acceptance",
+        "intent": "Production map acceptance is blocked until a cold-reload proof is obtained; this is a continuing prerequisite for the current acceptance work.",
+        "observed": "The production map acceptance was reported blocked on a cold-reload proof.",
+        "actor": "lead assistant",
+        "sources": [
+          "capture:assistant:blocker"
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "from": "production_acceptance",
+        "relation": "depends_on",
+        "to": "cold_reload_proof",
+        "sources": [
+          "capture:assistant:blocker"
+        ]
+      },
+      {
+        "from": "pageindex_navigation",
+        "relation": "alternative_to",
+        "to": "production_acceptance",
+        "sources": [
+          "capture:user:alternative"
+        ]
+      },
+      {
+        "from": "transcript_replay",
+        "relation": "returns_to",
+        "to": "root",
+        "sources": [
+          "capture:user:pivot"
+        ]
+      }
+    ]
+  },
+  "story": "Mother thread: Maintain Mom's durable session purpose map [root] — in progress\n  Purpose: Build Tether into Mom so the whole session is represented in one durable purpose map,…\n  Why: [src:capture:user:origin]\nEndeavor: Accept the production Mom map [production_acceptance] — in progress · current\n  Within: Maintain Mom's durable session purpose map\n  Rules in force (1):\n    Production map acceptance is blocked until a cold-reload proof is obtained; this is a…\n      Why: [src:capture:assistant:blocker]\n  Purpose: Make production map acceptance the current work; acceptance remains blocked on a…\n  Why: [src:capture:user:pivot]; [src:capture:assistant:blocker]\n  Depends on: Obtain a cold-reload proof before acceptance\nEndeavor: Consider PageIndex navigation [pageindex_navigation] — proposed\n  Within: Maintain Mom's durable session purpose map\n  Purpose: Keep PageIndex navigation as a considered alternative, not the current plan.\n  Why: [src:capture:user:alternative]\n  Alternative to: Accept the production Mom map\nEndeavor: Replay the transcript [transcript_replay] — waiting\n  Within: Maintain Mom's durable session purpose map\n  Purpose: Pause transcript replay while production map acceptance is current; return to replay…\n  Why: [src:capture:user:pivot]\n  Returns to: Maintain Mom's durable session purpose map\nDetails: select an endeavor for full annotations and sources.",
+  "graphSha256": "fb466cbbb52dac4bae779694135fab7d3f6d98901f41ed0d6791e8d384e57155",
+  "presentationValidatedAt": "2026-09-29T18:22:54.556Z"
+}

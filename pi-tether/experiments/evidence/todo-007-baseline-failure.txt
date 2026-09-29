@@ -1,0 +1,38 @@
+(node:37521) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✖ baseline has one persisted mother root and names it in the map (4.282459ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 352.108167
+
+✖ failing tests:
+
+test at test/todo007-baseline.test.ts:1:505
+✖ baseline has one persisted mother root and names it in the map (4.282459ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + undefined
+  - 'main'
+
+      at TestContext.<anonymous> (/private/tmp/pi-packages-todo-007-baseline/pi-tether/test/todo007-baseline.test.ts:14:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'main',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+Baseline commit: a205c7a
+Expected status: failing before todo 007
+Observed exit: 1
