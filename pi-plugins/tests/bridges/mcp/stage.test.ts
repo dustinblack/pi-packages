@@ -559,3 +559,42 @@ test("Phase 8 / PRL-10 replacePreparedMcp rollback records leak when restore fai
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// Plugin variables: Pi's native MCP support expands `${NAME}` only in
+// env/headers and only from the environment, so plugin vars are substituted
+// into every string before the entry is written.
+// ---------------------------------------------------------------------------
+
+test("prepareStageMcpServers substitutes ${CLAUDE_PLUGIN_ROOT}/${CLAUDE_PLUGIN_DATA} in every string field", async () => {
+  await withTmpScope(async ({ cwd, locations }) => {
+    const prepared = await prepareStageMcpServers({
+      locations,
+      cwd,
+      marketplaceName: MP,
+      pluginName: PLUGIN,
+      servers: {
+        daw: {
+          command: "python3",
+          args: ["-m", "server", "--root", "${CLAUDE_PLUGIN_ROOT}/x"],
+          cwd: "${CLAUDE_PLUGIN_ROOT}/daw",
+          env: { PYTHONPATH: "${CLAUDE_PLUGIN_ROOT}/daw", DATA: "${CLAUDE_PLUGIN_DATA}", TOKEN: "${API_TOKEN}" },
+          timeout: 30,
+        },
+      },
+      vars: { pluginRoot: "/plugins/acme", pluginData: "/data/acme" },
+    });
+    assert.equal(prepared.kind, "staged");
+    if (prepared.kind !== "staged") {
+      return;
+    }
+
+    const daw = (prepared._nextDoc.mcpServers as Record<string, Record<string, unknown>>).daw!;
+    assert.equal(daw.cwd, "/plugins/acme/daw");
+    assert.deepEqual(daw.args, ["-m", "server", "--root", "/plugins/acme/x"]);
+    // Other ${NAME} references stay for Pi to expand from the environment.
+    assert.deepEqual(daw.env, { PYTHONPATH: "/plugins/acme/daw", DATA: "/data/acme", TOKEN: "${API_TOKEN}" });
+    assert.equal(daw.timeout, 30);
+    assert.deepEqual(daw[PI_PLUGINS_MARKER_KEY], { plugin: PLUGIN, marketplace: MP });
+  });
+});

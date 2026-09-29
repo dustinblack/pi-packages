@@ -601,6 +601,7 @@ async function prepareAllHandles(input: {
       pluginName: input.plugin,
       servers: input.installable.mcpServers,
       sourcePath: `${input.installable.pluginRoot}#mcpServers`,
+      vars: { pluginRoot: input.installable.pluginRoot, pluginData: input.pluginDataDir },
     });
   } catch (err) {
     throw errorWithManualRecovery(err, await abortPartialHandles(handles));

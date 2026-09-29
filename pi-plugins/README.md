@@ -21,7 +21,7 @@ Installs plugins from the Claude plugin marketplace that contain these component
 - Commands.
 - Skills.
 - Agents. Requires [pi-subagents](https://pi.dev/packages/pi-subagents).
-- MCP servers. Requires [pi-mcp-adapter](https://pi.dev/packages/pi-mcp-adapter).
+- MCP servers. Uses Pi's built-in MCP support (Pi 0.99+), or [pi-mcp-adapter](https://pi.dev/packages/pi-mcp-adapter) on older Pi. `${CLAUDE_PLUGIN_ROOT}` and `${CLAUDE_PLUGIN_DATA}` are replaced with real paths when a server is written to `mcp.json`.
 
 Plugins that contain unsupported components are marked as "unavailable".
 
@@ -29,7 +29,7 @@ Plugins that contain unsupported components are marked as "unavailable".
 
 - [Pi Coding Agent](https://pi.dev)
 - [pi-subagents](https://pi.dev/packages/pi-subagents) (optional but recommended, `pi install npm:pi-subagents`)
-- [pi-mcp-adapter](https://pi.dev/packages/pi-mcp-adapter) (optional but recommended, `pi install npm:pi-mcp-adapter`)
+- For MCP servers: Pi 0.99+ (built-in MCP), or [pi-mcp-adapter](https://pi.dev/packages/pi-mcp-adapter) on older Pi (`pi install npm:pi-mcp-adapter`). Installing the adapter turns the built-in support off.
 
 ## Usage
 

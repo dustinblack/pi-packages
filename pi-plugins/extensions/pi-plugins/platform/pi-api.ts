@@ -53,11 +53,22 @@ export function hasLoadedPiSubagents(pi: ExtensionAPI): boolean {
 }
 
 /**
- * RH-4: pi-mcp-adapter loaded iff a tool named "mcp" exists OR any tool's
+ * RH-4: MCP support is loaded when a `/mcp` command is registered -- Pi's
+ * built-in MCP extension (Pi 0.99+) and pi-mcp-adapter both register one --
+ * or, for older setups, a tool named "mcp" exists or any tool's
  * `sourceInfo.source` substring-matches "pi-mcp-adapter". Probe failures
  * degrade to unloaded.
  */
 export function hasLoadedPiMcpAdapter(pi: ExtensionAPI): boolean {
+  try {
+    const commands = (pi as { getCommands?: () => Array<{ name?: unknown }> }).getCommands?.() ?? [];
+    if (commands.some((command) => command.name === "mcp")) {
+      return true;
+    }
+  } catch {
+    // Fall through to the tool probe.
+  }
+
   try {
     return pi.getAllTools().some((tool) => {
       const candidate = tool as { name?: unknown; sourceInfo?: { source?: unknown } };

@@ -469,6 +469,7 @@ export async function installPlugin(opts: InstallPluginOptions): Promise<Install
             pluginName: c.plugin,
             servers: c.resolved.mcpServers,
             sourcePath: `${c.resolved.pluginRoot}#mcpServers`,
+            vars: { pluginRoot: c.resolved.pluginRoot, pluginData: c.pluginDataDir },
           });
           c.mcpPrep = prep;
           const result = await commitPreparedMcp(prep);

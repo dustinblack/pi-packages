@@ -29,6 +29,7 @@ import writeFileAtomic from "write-file-atomic";
 import { atomicWriteJson } from "../../shared/atomic-json.ts";
 import { McpServerCollisionError } from "../../shared/errors-bridges.ts";
 import { errorMessage } from "../../shared/errors.ts";
+import { substituteClaudeVars, type ClaudePluginVars } from "../../shared/vars.ts";
 
 import { loadEffectiveServerNames } from "./collision-slots.ts";
 import { PI_PLUGINS_MARKER_KEY, buildMarker, isOwnedBy } from "./marker.ts";
@@ -160,6 +161,23 @@ function stampServers(
   return stamped;
 }
 
+/** Replace `${CLAUDE_PLUGIN_ROOT}` / `${CLAUDE_PLUGIN_DATA}` in every string value, recursively. */
+export function substituteServerVars(servers: Record<string, unknown>, vars: ClaudePluginVars): Record<string, unknown> {
+  const walk = (value: unknown): unknown => {
+    if (typeof value === "string") {return substituteClaudeVars(value, vars);}
+
+    if (Array.isArray(value)) {return value.map(walk);}
+
+    if (value !== null && typeof value === "object") {
+      return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, walk(v)]));
+    }
+
+    return value;
+  };
+
+  return walk(servers) as Record<string, unknown>;
+}
+
 /**
  * MC-6 prepare: in-memory only. Reads the scope's `mcp.json`, partitions
  * existing entries by marker, runs the MC-4 cross-slot collision check
@@ -204,8 +222,10 @@ export async function prepareStageMcpServers(input: StageMcpInput): Promise<Prep
     return { kind: "noop", result: noopResult };
   }
 
-  // MC-5 marker stamp -- every new entry carries `_piPlugins`.
-  const stamped = stampServers(servers, pluginName, marketplaceName);
+  // MC-5 marker stamp -- every new entry carries `_piPlugins`. Plugin vars
+  // are substituted first so entries work without an env-expanding adapter.
+  const resolvedServers = input.vars ? substituteServerVars(servers, input.vars) : servers;
+  const stamped = stampServers(resolvedServers, pluginName, marketplaceName);
 
   // Merge: keep theirs verbatim; replace ours with stamped (or drop if
   // no new servers but ours.size > 0).

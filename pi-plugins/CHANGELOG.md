@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- MCP servers work with Pi's built-in MCP support (Pi 0.99+): `${CLAUDE_PLUGIN_ROOT}` and `${CLAUDE_PLUGIN_DATA}` are substituted into every string of a staged server entry, since built-in MCP only expands environment variables in `env` and `headers`.
+- The MCP soft-dependency check counts a registered `/mcp` command (built-in MCP or pi-mcp-adapter) as loaded, so the "not loaded" warning no longer fires when built-in MCP is active.
 - Removed Git LFS usage for `pi-plugins` demo/logo assets.
 - Switched package/docs image references to the committed SVG asset and kept demo source in `.tape` files.
 - Deleted broken LFS pointer assets that could not be fetched from the server.

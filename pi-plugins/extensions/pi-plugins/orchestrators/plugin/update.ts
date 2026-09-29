@@ -456,6 +456,7 @@ async function prepareUpdateHandles(
       pluginName: plugin,
       servers: installable.mcpServers,
       sourcePath: `${installable.pluginRoot}#mcpServers`,
+      vars: { pluginRoot: installable.pluginRoot, pluginData: pluginDataDir },
     });
   } catch (err) {
     throw appendLeaks(err, await abortPartialHandles(handles));

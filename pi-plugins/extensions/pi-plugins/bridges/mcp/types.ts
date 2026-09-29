@@ -6,6 +6,8 @@
 // `UnstageMcpInput` records cannot drift apart across modules.
 
 import type { ScopedLocations } from "../../persistence/locations.ts";
+import type { ClaudePluginVars } from "../../shared/vars.ts";
+
 
 /**
  * Free-shape MCP server entry as it appears in `mcp.json` (post-resolution).
@@ -59,6 +61,13 @@ export interface StageMcpInput {
   readonly servers: Record<string, unknown>;
   /** Canonical provenance for state.json (e.g. "<pluginRoot>/.mcp.json"); optional. */
   readonly sourcePath?: string;
+  /**
+   * `${CLAUDE_PLUGIN_ROOT}` / `${CLAUDE_PLUGIN_DATA}` values. Substituted into
+   * every string in each server entry, because Pi's native MCP support only
+   * expands `${NAME}` from the environment in `env`/`headers` and never in
+   * `cwd`, `command`, or `args`.
+   */
+  readonly vars?: ClaudePluginVars;
 }
 
 /**

@@ -111,3 +111,21 @@ test("RH-5: mcpAdapterWarningIfNeeded returns '' when no MCP servers staged", ()
 test("RH-5: mcpAdapterWarningIfNeeded returns '' when dep IS loaded (by name)", () => {
   assert.equal(mcpAdapterWarningIfNeeded(makePi([{ name: "mcp" }]), ["s"]), "");
 });
+
+test("RH-4: hasLoadedPiMcpAdapter is true when a /mcp command is registered (Pi's built-in MCP or the adapter)", () => {
+  const pi = { getAllTools: () => [], getCommands: () => [{ name: "mcp" }] } as unknown as ExtensionAPI;
+  assert.equal(hasLoadedPiMcpAdapter(pi), true);
+  assert.equal(mcpAdapterWarningIfNeeded(pi, ["daw"]), "");
+});
+
+test("RH-4: hasLoadedPiMcpAdapter falls back to the tool probe when getCommands is missing or throws", () => {
+  const throwing = {
+    getAllTools: () => [{ name: "mcp" }],
+    getCommands: () => {
+      throw new Error("not ready");
+    },
+  } as unknown as ExtensionAPI;
+  assert.equal(hasLoadedPiMcpAdapter(throwing), true);
+  const noMcp = { getAllTools: () => [], getCommands: () => [{ name: "reload" }] } as unknown as ExtensionAPI;
+  assert.equal(hasLoadedPiMcpAdapter(noMcp), false);
+});
