@@ -1,0 +1,16 @@
+[
+  {
+    "ref": "s0:02b85c86",
+    "offset": 0,
+    "totalChars": 2196,
+    "nextOffset": null,
+    "text": "{\"role\":\"toolResult\",\"toolCallId\":\"call_iv8JAvQpP67GtD7MVUjaX3i9|fc_0b9240a631dacce0016a9b943a300487d0b9f6baaf1faf66af\",\"toolName\":\"subagent\",\"content\":[{\"type\":\"text\",\"text\":\"Status target: run 0b91f939-a2e8-43e5-a95c-96eee4f5a678\\nSpawn budget: unlimited\\nActive async capacity: 0/unlimited used\\nRun: 0b91f939-a2e8-43e5-a95c-96eee4f5a678\\nTool call: call_LmiYveBZ6ry9NIdVUvZ7QL3H|fc_0b9240a631dacce0016a9b9373e0bc87d09c5c0a573fc74af1\\nState: running\\nMode: workflow\\nRun fan-out: 2/64 used, 62 remaining\\nProgress: steps 2\\nWorkflow checklist: 0/2 done · 2 active\\n  ⠼ Workflow 2 active\\n  bottleneck · craft-coverage · reviewer · 0s\\nStarted: 2026-09-05T03:59:02.979Z\\nUpdated: 2026-09-05T03:59:03.095Z\\nDir: /tmp/pi-subagents-uid-501/async-subagent-runs/0b91f939-a2e8-43e5-a95c-96eee4f5a678\\nWorkflow child craft-coverage: reviewer: Read-only review of /Users/ssweens/src/playbook/skills/ss... running\\nWorkflow child operational-reliability: reviewer: Read-only review of /Users/ssweens/src/playbook/skills/ss... running\\nSteer: unavailable; no live foreground route is registered in the active session.\\nEvents: /tmp/pi-subagents-uid-501/async-subagent-runs/0b91f939-a2e8-43e5-a95c-96eee4f5a678/events.jsonl\"}],\"details\":{\"mode\":\"single\",\"results\":[],\"workflowChildren\":{\"version\":1,\"parentToolCallId\":\"call_LmiYveBZ6ry9NIdVUvZ7QL3H|fc_0b9240a631dacce0016a9b9373e0bc87d09c5c0a573fc74af1\",\"workflowRunId\":\"0b91f939-a2e8-43e5-a95c-96eee4f5a678\",\"inventoryComplete\":false,\"workflowState\":\"running\",\"children\":[{\"childId\":\"craft-coverage\",\"state\":\"running\",\"runId\":\"0afc20d4-91c6-40cc-aa30-c64a5bfb01a6\",\"agent\":\"reviewer\",\"sessionName\":\"reviewer: Read-only review of /Users/ssweens/src/playbook/skills/ss...\"},{\"childId\":\"operational-reliability\",\"state\":\"running\",\"runId\":\"e080bb82-796a-417e-85b8-3be960cd7afd\",\"agent\":\"reviewer\",\"sessionName\":\"reviewer: Read-only review of /Users/ssweens/src/playbook/skills/ss...\"}]},\"runFanoutBudget\":{\"used\":2,\"limit\":64,\"remaining\":62},\"spawnBudget\":{\"used\":0,\"configuredLimit\":null,\"granted\":0,\"limit\":null,\"remaining\":null,\"grantRemaining\":null,\"grantHistory\":[]},\"activeAsyncCapacity\":{\"used\":0,\"limit\":0}},\"isError\":false,\"timestamp\":1788580922310}"
+  },
+  {
+    "ref": "s0:b5af6ce5:b1",
+    "offset": 0,
+    "totalChars": 204,
+    "nextOffset": null,
+    "text": "{\"type\":\"toolCall\",\"id\":\"call_iv8JAvQpP67GtD7MVUjaX3i9|fc_0b9240a631dacce0016a9b943a300487d0b9f6baaf1faf66af\",\"name\":\"subagent\",\"arguments\":{\"action\":\"status\",\"id\":\"0b91f939-a2e8-43e5-a95c-96eee4f5a678\"}}"
+  }
+]

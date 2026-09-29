@@ -1,0 +1,100 @@
+{
+  "query": "sub() TypeError",
+  "matches": [
+    {
+      "ref": "s0:eb71b515",
+      "actor": "lead",
+      "at": "2026-08-06T03:20:42.180Z",
+      "kind": "tool_result",
+      "name": "bash",
+      "isError": true,
+      "pairedRef": "s0:42430809:b0",
+      "payloadMatched": true,
+      "matchMode": "tokens",
+      "matchedTerms": [
+        "sub",
+        "positional"
+      ],
+      "matchedTermCount": 2,
+      "queryCoverage": 0.5,
+      "score": 7.565
+    },
+    {
+      "ref": "s0:55485000",
+      "actor": "lead",
+      "at": "2026-08-04T06:53:09.690Z",
+      "kind": "tool_result",
+      "name": "bash",
+      "isError": true,
+      "pairedRef": "s0:ed3d74a0:b0",
+      "payloadMatched": true,
+      "matchMode": "tokens",
+      "matchedTerms": [
+        "sub",
+        "positional"
+      ],
+      "matchedTermCount": 2,
+      "queryCoverage": 0.5,
+      "score": 7.565
+    },
+    {
+      "ref": "s0:367f7795",
+      "actor": "lead",
+      "at": "2026-08-04T05:41:09.482Z",
+      "kind": "tool_result",
+      "name": "bash",
+      "isError": true,
+      "pairedRef": "s0:48060516:b1",
+      "payloadMatched": true,
+      "matchMode": "tokens",
+      "matchedTerms": [
+        "sub",
+        "positional"
+      ],
+      "matchedTermCount": 2,
+      "queryCoverage": 0.5,
+      "score": 7.565
+    },
+    {
+      "ref": "s0:63a507f7",
+      "actor": "lead",
+      "at": "2026-08-04T06:04:57.688Z",
+      "kind": "tool_result",
+      "name": "bash",
+      "isError": false,
+      "pairedRef": "s0:b05d9016:b0",
+      "payloadMatched": true,
+      "matchMode": "tokens",
+      "matchedTerms": [
+        "sub",
+        "command"
+      ],
+      "matchedTermCount": 2,
+      "queryCoverage": 0.5,
+      "score": 6.786
+    },
+    {
+      "ref": "s0:9d39c324",
+      "actor": "lead",
+      "at": "2026-08-06T06:15:56.836Z",
+      "kind": "tool_result",
+      "name": "bash",
+      "isError": false,
+      "pairedRef": "s0:be6f832c:b0",
+      "payloadMatched": true,
+      "matchMode": "tokens",
+      "matchedTerms": [
+        "command",
+        "counts"
+      ],
+      "matchedTermCount": 2,
+      "queryCoverage": 0,
+      "score": 6.229
+    }
+  ],
+  "unreadable": 0,
+  "gaps": [],
+  "limit": 5,
+  "evidencePagesRemaining": 2,
+  "metadataSearchesRemaining": 1
+}

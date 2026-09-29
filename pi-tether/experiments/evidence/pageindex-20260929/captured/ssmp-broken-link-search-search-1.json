@@ -1,0 +1,127 @@
+{
+  "query": "broken-link",
+  "matches": [
+    {
+      "ref": "s0:819ea4dd",
+      "actor": "lead",
+      "at": "2026-09-05T06:11:15.535Z",
+      "kind": "tool_result",
+      "name": "write",
+      "isError": false,
+      "pairedRef": "s0:78e9221d:b1",
+      "payloadMatched": true,
+      "matchMode": "tokens",
+      "matchedTerms": [
+        "broken",
+        "link",
+        "failure",
+        "roadmap",
+        "validation",
+        "source",
+        "file",
+        "missing",
+        "target",
+        "filename"
+      ],
+      "matchedTermCount": 10,
+      "queryCoverage": 1,
+      "score": 65.284
+    },
+    {
+      "ref": "s0:134c89af",
+      "actor": "lead",
+      "at": "2026-09-05T03:59:18.582Z",
+      "kind": "tool_result",
+      "name": "read",
+      "isError": false,
+      "pairedRef": "s0:203492db:b3",
+      "payloadMatched": true,
+      "matchMode": "tokens",
+      "matchedTerms": [
+        "failure",
+        "roadmap",
+        "validation",
+        "source",
+        "file",
+        "missing",
+        "target",
+        "filename"
+      ],
+      "matchedTermCount": 8,
+      "queryCoverage": 0,
+      "score": 41.528
+    },
+    {
+      "ref": "s0:4ee300b6",
+      "actor": "lead",
+      "at": "2026-09-05T06:02:52.818Z",
+      "kind": "tool_result",
+      "name": "bash",
+      "isError": false,
+      "pairedRef": "s0:a91a60f1:b7",
+      "payloadMatched": true,
+      "matchMode": "tokens",
+      "matchedTerms": [
+        "roadmap",
+        "source",
+        "file",
+        "missing",
+        "target"
+      ],
+      "matchedTermCount": 5,
+      "queryCoverage": 0,
+      "score": 36.668
+    },
+    {
+      "ref": "s0:11f844de",
+      "actor": "lead",
+      "at": "2026-09-05T04:19:52.466Z",
+      "kind": "tool_result",
+      "name": "subagent",
+      "isError": false,
+      "pairedRef": "s0:d89ee539:b1",
+      "payloadMatched": true,
+      "matchMode": "tokens",
+      "matchedTerms": [
+        "broken",
+        "failure",
+        "roadmap",
+        "validation",
+        "source",
+        "file",
+        "missing",
+        "target"
+      ],
+      "matchedTermCount": 8,
+      "queryCoverage": 0.5,
+      "score": 35.139
+    },
+    {
+      "ref": "s0:6c06ca68",
+      "actor": "lead",
+      "at": "2026-09-05T07:39:32.678Z",
+      "kind": "tool_result",
+      "name": "edit",
+      "isError": false,
+      "pairedRef": "s0:733e9818:b1",
+      "payloadMatched": true,
+      "matchMode": "tokens",
+      "matchedTerms": [
+        "link",
+        "failure",
+        "roadmap",
+        "source",
+        "file",
+        "missing"
+      ],
+      "matchedTermCount": 6,
+      "queryCoverage": 0.5,
+      "score": 34.669
+    }
+  ],
+  "unreadable": 0,
+  "gaps": [],
+  "limit": 5,
+  "evidencePagesRemaining": 2,
+  "metadataSearchesRemaining": 1
+}

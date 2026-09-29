@@ -1,0 +1,32 @@
+{
+  "global": 13,
+  "provider": "openai-codex",
+  "model": "gpt-5.6-luna",
+  "stopReason": "toolUse",
+  "usage": {
+    "input": 3255,
+    "output": 177,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 126,
+    "totalTokens": 3432,
+    "cost": {
+      "input": 0.0006510000000000001,
+      "output": 0.00021239999999999999,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "total": 0.0008634000000000001
+    }
+  },
+  "elapsedMs": 4064,
+  "operations": [
+    {
+      "type": "toolCall",
+      "id": "call_4GXQ5hqGm2RVPM1KhOD4u1iz|fc_0f024fb98ad9cd12016abbd36d240c87d093304748959e61be",
+      "name": "answer",
+      "arguments": {
+        "text": "The command reported: `TypeError: sub() takes 2 positional arguments but 3 were given.` [src:s0:c0b8c8ed]"
+      }
+    }
+  ]
+}

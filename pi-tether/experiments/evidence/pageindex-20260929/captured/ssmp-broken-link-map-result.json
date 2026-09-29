@@ -1,0 +1,65 @@
+{
+  "id": "ssmp-broken-link",
+  "corpus": "ssmp",
+  "condition": "map",
+  "question": "What exact broken-link failure did the recorded roadmap validation report, including the source roadmap file and missing target filename?",
+  "sourcePolicy": "exact",
+  "expectedRef": "s0:b3315acd",
+  "answer": "The recorded evidence inspected does not include the roadmap-validation broken-link result or the exact source and missing target filenames. [src:s0:67896b11]",
+  "citations": [
+    "s0:67896b11"
+  ],
+  "inspected": [
+    "s0:02b85c86",
+    "s0:b5af6ce5:b1",
+    "s0:67896b11"
+  ],
+  "calls": 3,
+  "readsUsed": 2,
+  "searchesUsed": 0,
+  "usage": {
+    "input": 14305,
+    "output": 427,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "nominalCost": 0.0033734000000000004,
+    "elapsedMs": 15703
+  },
+  "patternResults": [
+    {
+      "pattern": "broken link",
+      "answer": false
+    },
+    {
+      "pattern": "2026-07-12-phase7-and-beyond\\.md",
+      "answer": false
+    },
+    {
+      "pattern": "2026-07-12-boost-review-desk-ssmp\\.md",
+      "answer": false
+    }
+  ],
+  "sourceChecks": [
+    {
+      "ref": "s0:67896b11",
+      "inspected": true,
+      "cited": true,
+      "metadata": false,
+      "patterns": [
+        {
+          "pattern": "broken link",
+          "matched": false
+        },
+        {
+          "pattern": "2026-07-12-phase7-and-beyond\\.md",
+          "matched": false
+        },
+        {
+          "pattern": "2026-07-12-boost-review-desk-ssmp\\.md",
+          "matched": false
+        }
+      ]
+    }
+  ],
+  "pass": false
+}

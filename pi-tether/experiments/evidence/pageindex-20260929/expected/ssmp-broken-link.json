@@ -1,0 +1,15 @@
+{
+  "id": "ssmp-broken-link",
+  "ref": "s0:b3315acd",
+  "event": {
+    "ref": "s0:b3315acd",
+    "at": "2026-09-05T04:00:36.607Z",
+    "actor": "lead",
+    "kind": "tool_result",
+    "name": "bash",
+    "callId": "call_jy9cQHAMdRgTVYUZQCZNeC43|fc_0b9240a631dacce0016a9b93e455bc87d082dd2b757ff06b65",
+    "isError": true
+  },
+  "sourceRecordSha256": "16cc71e3eb4f5ddedc331209086274a349754d769b9fa7b26961ae1208551f48",
+  "text": "FAIL /Users/ssweens/src/playbook/skills/ssmp/roadmap/2026-07-12-phase7-and-beyond.md: broken link '../skills/ssmp/roadmap/2026-07-12-boost-review-desk-ssmp.md'\nPASS validate_frontmatter_and_size\n\n\nCommand exited with code 1"
+}

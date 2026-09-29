@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "model": {
+    "provider": "openai-codex",
+    "id": "gpt-5.6-luna",
+    "reasoning": "low"
+  },
+  "budgets": {
+    "modelCalls": 5,
+    "sourceReads": 2,
+    "metadataSearches": 2,
+    "sourceCharsPerRead": 4000
+  },
+  "grading": {
+    "predeclared": true,
+    "answerMustMatchEveryPattern": true,
+    "sourceMustBeInspectedAndCited": true,
+    "exactPolicy": "The named expectedRef itself must be inspected and cited.",
+    "equivalentPolicy": "An inspected and cited original source may replace expectedRef only when its own payload matches every expected pattern and its recorded metadata matches expectedMetadata."
+  },
+  "questions": [
+    {
+      "id": "pi-typescript-error",
+      "corpus": "pi",
+      "question": "What exact TypeScript parse error did the recorded typecheck report, including the error code, expected token, and affected source location?",
+      "sourcePolicy": "exact",
+      "expectedRef": "s0:164c6f5b",
+      "expectedMetadata": { "kind": "tool_result", "name": "bash", "isError": true },
+      "expectedPatterns": ["TS1005", "',' expected", "src/index\\.ts\\(46"]
+    },
+    {
+      "id": "buzz-python-typeerror",
+      "corpus": "buzz",
+      "question": "What exact Python TypeError did the recorded failing command report for sub(), including the positional-argument counts?",
+      "sourcePolicy": "equivalent",
+      "expectedRef": "s0:55485000",
+      "expectedMetadata": { "kind": "tool_result", "name": "bash", "isError": true },
+      "expectedPatterns": ["TypeError", "sub\\(\\) takes 2 positional arguments but 3 were given"]
+    },
+    {
+      "id": "ssmp-broken-link",
+      "corpus": "ssmp",
+      "question": "What exact broken-link failure did the recorded roadmap validation report, including the source roadmap file and missing target filename?",
+      "sourcePolicy": "exact",
+      "expectedRef": "s0:b3315acd",
+      "expectedMetadata": { "kind": "tool_result", "name": "bash", "isError": true },
+      "expectedPatterns": ["broken link", "2026-07-12-phase7-and-beyond\\.md", "2026-07-12-boost-review-desk-ssmp\\.md"]
+    }
+  ]
+}

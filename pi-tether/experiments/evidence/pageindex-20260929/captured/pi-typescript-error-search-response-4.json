@@ -1,0 +1,32 @@
+{
+  "global": 4,
+  "provider": "openai-codex",
+  "model": "gpt-5.6-luna",
+  "stopReason": "toolUse",
+  "usage": {
+    "input": 3504,
+    "output": 135,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 80,
+    "totalTokens": 3639,
+    "cost": {
+      "input": 0.0007008,
+      "output": 0.00016199999999999998,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "total": 0.0008627999999999999
+    }
+  },
+  "elapsedMs": 3666,
+  "operations": [
+    {
+      "type": "toolCall",
+      "id": "call_bRPXWcbBR3Sek27Y2b3K36S6|fc_0d7cfc3a5826c215016abbd34c84c087d0abd5eb2d228b4cf1",
+      "name": "answer",
+      "arguments": {
+        "text": "The inspected evidence does not contain the recorded TypeScript parse error or its source location; it only describes general project conventions and testing. [src:s0:8a361fd9]"
+      }
+    }
+  ]
+}

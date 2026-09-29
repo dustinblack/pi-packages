@@ -1,0 +1,32 @@
+{
+  "global": 20,
+  "provider": "openai-codex",
+  "model": "gpt-5.6-luna",
+  "stopReason": "toolUse",
+  "usage": {
+    "input": 5921,
+    "output": 295,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 245,
+    "totalTokens": 6216,
+    "cost": {
+      "input": 0.0011842,
+      "output": 0.000354,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "total": 0.0015382
+    }
+  },
+  "elapsedMs": 7389,
+  "operations": [
+    {
+      "type": "toolCall",
+      "id": "call_zVGoKReX3mCUlUru1ZGehKxu|fc_02587e18a8b10dfd016abbd38ab2e887d0a78c82a47013ba16",
+      "name": "answer",
+      "arguments": {
+        "text": "The recorded evidence inspected does not include the roadmap-validation broken-link result or the exact source and missing target filenames. [src:s0:67896b11]"
+      }
+    }
+  ]
+}

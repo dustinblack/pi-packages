@@ -1,0 +1,9 @@
+[
+  {
+    "ref": "s0:3043380c",
+    "offset": 0,
+    "totalChars": 894,
+    "nextOffset": null,
+    "text": "{\"role\":\"assistant\",\"text\":\"Yes—this is a better fit than making every lead-agent turn manage `open → assign → tidy → land`. A separate **mother session** could keep the long-lived purpose and history, while the lead and workers send it brief progress events. It would wake to reconcile those events and surface a short “where we are / what’s open / why” view; it need not run a model continuously.\\n\\nThere’s a real architecture boundary: `pi-delegate` currently reports completion to its **parent** and deliberately sends no progress pings. Its children have no extension tools. A separate mother would need an explicit reporting channel; the current Tether ledger cannot receive those reports by itself. I’ve paused the lighter-flow edits pending this choice—they are incomplete, and the current typecheck fails on tests that still expect the old mandatory tidy API.\",\"stopReason\":\"toolUse\"}"
+  }
+]

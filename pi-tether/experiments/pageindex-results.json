@@ -1,0 +1,566 @@
+{
+  "planSha256": "ccffe078ed944a49d4d4703df00bb98d1cee2e8037b33a155c1c6b905506cd5c",
+  "model": {
+    "provider": "openai-codex",
+    "id": "gpt-5.6-luna",
+    "reasoning": "low"
+  },
+  "budgets": {
+    "modelCalls": 5,
+    "sourceReads": 2,
+    "metadataSearches": 2,
+    "sourceCharsPerRead": 4000
+  },
+  "inputEvidence": [
+    {
+      "id": "pi",
+      "committed": 1094,
+      "totalEvents": 1094,
+      "graphRevision": 15,
+      "graphNodes": 19,
+      "expectedSource": "pi-tether/experiments/evidence/pageindex-20260929/expected/pi-typescript-error.json",
+      "capturedRequests": "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-{search,map}-request-*.json",
+      "capturedResponses": "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-{search,map}-response-*.json"
+    },
+    {
+      "id": "buzz",
+      "committed": 1626,
+      "totalEvents": 1626,
+      "graphRevision": 15,
+      "graphNodes": 10,
+      "expectedSource": "pi-tether/experiments/evidence/pageindex-20260929/expected/buzz-python-typeerror.json",
+      "capturedRequests": "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-{search,map}-request-*.json",
+      "capturedResponses": "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-{search,map}-response-*.json"
+    },
+    {
+      "id": "ssmp",
+      "committed": 887,
+      "totalEvents": 903,
+      "graphRevision": 15,
+      "graphNodes": 20,
+      "expectedSource": "pi-tether/experiments/evidence/pageindex-20260929/expected/ssmp-broken-link.json",
+      "capturedRequests": "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-{search,map}-request-*.json",
+      "capturedResponses": "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-{search,map}-response-*.json"
+    }
+  ],
+  "conditions": {
+    "search": {
+      "passed": 1,
+      "total": 3,
+      "calls": 11,
+      "reads": 5,
+      "searches": 3,
+      "input": 15427,
+      "output": 917,
+      "cacheRead": 0,
+      "nominalCost": 0.0041858,
+      "elapsedMs": 31411
+    },
+    "map": {
+      "passed": 0,
+      "total": 3,
+      "calls": 9,
+      "reads": 6,
+      "searches": 0,
+      "input": 36617,
+      "output": 1255,
+      "cacheRead": 0,
+      "nominalCost": 0.008829400000000001,
+      "elapsedMs": 42018
+    }
+  },
+  "winner": "search",
+  "results": [
+    {
+      "id": "pi-typescript-error",
+      "corpus": "pi",
+      "condition": "search",
+      "question": "What exact TypeScript parse error did the recorded typecheck report, including the error code, expected token, and affected source location?",
+      "sourcePolicy": "exact",
+      "expectedRef": "s0:164c6f5b",
+      "answer": "The inspected evidence does not contain the recorded TypeScript parse error or its source location; it only describes general project conventions and testing. [src:s0:8a361fd9]",
+      "citations": [
+        "s0:8a361fd9"
+      ],
+      "inspected": [
+        "s0:54daf44d",
+        "s0:ea75652e:b2",
+        "s0:8a361fd9",
+        "s0:c8cd8ccf:b1"
+      ],
+      "calls": 4,
+      "readsUsed": 2,
+      "searchesUsed": 1,
+      "usage": {
+        "input": 7033,
+        "output": 348,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "nominalCost": 0.0018242,
+        "elapsedMs": 11243
+      },
+      "patternResults": [
+        {
+          "pattern": "TS1005",
+          "answer": false
+        },
+        {
+          "pattern": "',' expected",
+          "answer": false
+        },
+        {
+          "pattern": "src/index\\.ts\\(46",
+          "answer": false
+        }
+      ],
+      "sourceChecks": [
+        {
+          "ref": "s0:8a361fd9",
+          "inspected": true,
+          "cited": true,
+          "metadata": false,
+          "patterns": [
+            {
+              "pattern": "TS1005",
+              "matched": false
+            },
+            {
+              "pattern": "',' expected",
+              "matched": false
+            },
+            {
+              "pattern": "src/index\\.ts\\(46",
+              "matched": false
+            }
+          ]
+        }
+      ],
+      "pass": false,
+      "audit": {
+        "requests": [
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-search-request-1.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-search-request-2.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-search-request-3.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-search-request-4.json"
+        ],
+        "responses": [
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-search-response-1.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-search-response-2.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-search-response-3.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-search-response-4.json"
+        ],
+        "searches": [
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-search-search-1.json"
+        ],
+        "evidence": [
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-search-evidence-2.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-search-evidence-3.json"
+        ],
+        "result": "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-search-result.json"
+      }
+    },
+    {
+      "id": "pi-typescript-error",
+      "corpus": "pi",
+      "condition": "map",
+      "question": "What exact TypeScript parse error did the recorded typecheck report, including the error code, expected token, and affected source location?",
+      "sourcePolicy": "exact",
+      "expectedRef": "s0:164c6f5b",
+      "answer": "The inspected record does not include the exact TypeScript error code, expected token, or source location; it only says the typecheck failed because tests still expected the old mandatory tidy API. [src:s0:3043380c]",
+      "citations": [
+        "s0:3043380c"
+      ],
+      "inspected": [
+        "s0:50b39c79",
+        "s0:3043380c"
+      ],
+      "calls": 3,
+      "readsUsed": 2,
+      "searchesUsed": 0,
+      "usage": {
+        "input": 13808,
+        "output": 437,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "nominalCost": 0.003286,
+        "elapsedMs": 15908
+      },
+      "patternResults": [
+        {
+          "pattern": "TS1005",
+          "answer": false
+        },
+        {
+          "pattern": "',' expected",
+          "answer": false
+        },
+        {
+          "pattern": "src/index\\.ts\\(46",
+          "answer": false
+        }
+      ],
+      "sourceChecks": [
+        {
+          "ref": "s0:3043380c",
+          "inspected": true,
+          "cited": true,
+          "metadata": false,
+          "patterns": [
+            {
+              "pattern": "TS1005",
+              "matched": false
+            },
+            {
+              "pattern": "',' expected",
+              "matched": false
+            },
+            {
+              "pattern": "src/index\\.ts\\(46",
+              "matched": false
+            }
+          ]
+        }
+      ],
+      "pass": false,
+      "audit": {
+        "requests": [
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-map-request-1.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-map-request-2.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-map-request-3.json"
+        ],
+        "responses": [
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-map-response-1.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-map-response-2.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-map-response-3.json"
+        ],
+        "searches": [],
+        "evidence": [
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-map-evidence-1.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-map-evidence-2.json"
+        ],
+        "result": "pi-tether/experiments/evidence/pageindex-20260929/captured/pi-typescript-error-map-result.json"
+      }
+    },
+    {
+      "id": "buzz-python-typeerror",
+      "corpus": "buzz",
+      "condition": "search",
+      "question": "What exact Python TypeError did the recorded failing command report for sub(), including the positional-argument counts?",
+      "sourcePolicy": "equivalent",
+      "expectedRef": "s0:55485000",
+      "answer": "TypeError: sub() takes 2 positional arguments but 3 were given. [src:s0:eb71b515]",
+      "citations": [
+        "s0:eb71b515"
+      ],
+      "inspected": [
+        "s0:eb71b515",
+        "s0:42430809:b0"
+      ],
+      "calls": 3,
+      "readsUsed": 1,
+      "searchesUsed": 1,
+      "usage": {
+        "input": 2763,
+        "output": 123,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "nominalCost": 0.0007002,
+        "elapsedMs": 5922
+      },
+      "patternResults": [
+        {
+          "pattern": "TypeError",
+          "answer": true
+        },
+        {
+          "pattern": "sub\\(\\) takes 2 positional arguments but 3 were given",
+          "answer": true
+        }
+      ],
+      "sourceChecks": [
+        {
+          "ref": "s0:eb71b515",
+          "inspected": true,
+          "cited": true,
+          "metadata": true,
+          "patterns": [
+            {
+              "pattern": "TypeError",
+              "matched": true
+            },
+            {
+              "pattern": "sub\\(\\) takes 2 positional arguments but 3 were given",
+              "matched": true
+            }
+          ]
+        }
+      ],
+      "pass": true,
+      "audit": {
+        "requests": [
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-search-request-1.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-search-request-2.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-search-request-3.json"
+        ],
+        "responses": [
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-search-response-1.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-search-response-2.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-search-response-3.json"
+        ],
+        "searches": [
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-search-search-1.json"
+        ],
+        "evidence": [
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-search-evidence-2.json"
+        ],
+        "result": "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-search-result.json"
+      }
+    },
+    {
+      "id": "buzz-python-typeerror",
+      "corpus": "buzz",
+      "condition": "map",
+      "question": "What exact Python TypeError did the recorded failing command report for sub(), including the positional-argument counts?",
+      "sourcePolicy": "equivalent",
+      "expectedRef": "s0:55485000",
+      "answer": "The command reported: `TypeError: sub() takes 2 positional arguments but 3 were given.` [src:s0:c0b8c8ed]",
+      "citations": [
+        "s0:c0b8c8ed"
+      ],
+      "inspected": [
+        "s0:c0b8c8ed",
+        "s0:f49cebf4:b1",
+        "s0:00f6772a"
+      ],
+      "calls": 3,
+      "readsUsed": 2,
+      "searchesUsed": 0,
+      "usage": {
+        "input": 8504,
+        "output": 391,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "nominalCost": 0.00217,
+        "elapsedMs": 10407
+      },
+      "patternResults": [
+        {
+          "pattern": "TypeError",
+          "answer": true
+        },
+        {
+          "pattern": "sub\\(\\) takes 2 positional arguments but 3 were given",
+          "answer": true
+        }
+      ],
+      "sourceChecks": [
+        {
+          "ref": "s0:c0b8c8ed",
+          "inspected": true,
+          "cited": true,
+          "metadata": false,
+          "patterns": [
+            {
+              "pattern": "TypeError",
+              "matched": false
+            },
+            {
+              "pattern": "sub\\(\\) takes 2 positional arguments but 3 were given",
+              "matched": false
+            }
+          ]
+        }
+      ],
+      "pass": false,
+      "audit": {
+        "requests": [
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-map-request-1.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-map-request-2.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-map-request-3.json"
+        ],
+        "responses": [
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-map-response-1.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-map-response-2.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-map-response-3.json"
+        ],
+        "searches": [],
+        "evidence": [
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-map-evidence-1.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-map-evidence-2.json"
+        ],
+        "result": "pi-tether/experiments/evidence/pageindex-20260929/captured/buzz-python-typeerror-map-result.json"
+      }
+    },
+    {
+      "id": "ssmp-broken-link",
+      "corpus": "ssmp",
+      "condition": "search",
+      "question": "What exact broken-link failure did the recorded roadmap validation report, including the source roadmap file and missing target filename?",
+      "sourcePolicy": "exact",
+      "expectedRef": "s0:b3315acd",
+      "answer": "The validation reported that `roadmap/2026-09-05-suite-audit-fixes-and-handoff.md` linked to the missing target `2026-07-06-suite-review-gaps-workplan.md`.[src:s0:78e9221d:b1]",
+      "citations": [
+        "s0:78e9221d:b1"
+      ],
+      "inspected": [
+        "s0:819ea4dd",
+        "s0:78e9221d:b1"
+      ],
+      "calls": 4,
+      "readsUsed": 2,
+      "searchesUsed": 1,
+      "usage": {
+        "input": 5631,
+        "output": 446,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "nominalCost": 0.0016614000000000002,
+        "elapsedMs": 14246
+      },
+      "patternResults": [
+        {
+          "pattern": "broken link",
+          "answer": false
+        },
+        {
+          "pattern": "2026-07-12-phase7-and-beyond\\.md",
+          "answer": false
+        },
+        {
+          "pattern": "2026-07-12-boost-review-desk-ssmp\\.md",
+          "answer": false
+        }
+      ],
+      "sourceChecks": [
+        {
+          "ref": "s0:78e9221d:b1",
+          "inspected": true,
+          "cited": true,
+          "metadata": false,
+          "patterns": [
+            {
+              "pattern": "broken link",
+              "matched": false
+            },
+            {
+              "pattern": "2026-07-12-phase7-and-beyond\\.md",
+              "matched": true
+            },
+            {
+              "pattern": "2026-07-12-boost-review-desk-ssmp\\.md",
+              "matched": false
+            }
+          ]
+        }
+      ],
+      "pass": false,
+      "audit": {
+        "requests": [
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-search-request-1.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-search-request-2.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-search-request-3.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-search-request-4.json"
+        ],
+        "responses": [
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-search-response-1.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-search-response-2.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-search-response-3.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-search-response-4.json"
+        ],
+        "searches": [
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-search-search-1.json"
+        ],
+        "evidence": [
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-search-evidence-2.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-search-evidence-3.json"
+        ],
+        "result": "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-search-result.json"
+      }
+    },
+    {
+      "id": "ssmp-broken-link",
+      "corpus": "ssmp",
+      "condition": "map",
+      "question": "What exact broken-link failure did the recorded roadmap validation report, including the source roadmap file and missing target filename?",
+      "sourcePolicy": "exact",
+      "expectedRef": "s0:b3315acd",
+      "answer": "The recorded evidence inspected does not include the roadmap-validation broken-link result or the exact source and missing target filenames. [src:s0:67896b11]",
+      "citations": [
+        "s0:67896b11"
+      ],
+      "inspected": [
+        "s0:02b85c86",
+        "s0:b5af6ce5:b1",
+        "s0:67896b11"
+      ],
+      "calls": 3,
+      "readsUsed": 2,
+      "searchesUsed": 0,
+      "usage": {
+        "input": 14305,
+        "output": 427,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "nominalCost": 0.0033734000000000004,
+        "elapsedMs": 15703
+      },
+      "patternResults": [
+        {
+          "pattern": "broken link",
+          "answer": false
+        },
+        {
+          "pattern": "2026-07-12-phase7-and-beyond\\.md",
+          "answer": false
+        },
+        {
+          "pattern": "2026-07-12-boost-review-desk-ssmp\\.md",
+          "answer": false
+        }
+      ],
+      "sourceChecks": [
+        {
+          "ref": "s0:67896b11",
+          "inspected": true,
+          "cited": true,
+          "metadata": false,
+          "patterns": [
+            {
+              "pattern": "broken link",
+              "matched": false
+            },
+            {
+              "pattern": "2026-07-12-phase7-and-beyond\\.md",
+              "matched": false
+            },
+            {
+              "pattern": "2026-07-12-boost-review-desk-ssmp\\.md",
+              "matched": false
+            }
+          ]
+        }
+      ],
+      "pass": false,
+      "audit": {
+        "requests": [
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-map-request-1.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-map-request-2.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-map-request-3.json"
+        ],
+        "responses": [
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-map-response-1.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-map-response-2.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-map-response-3.json"
+        ],
+        "searches": [],
+        "evidence": [
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-map-evidence-1.json",
+          "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-map-evidence-2.json"
+        ],
+        "result": "pi-tether/experiments/evidence/pageindex-20260929/captured/ssmp-broken-link-map-result.json"
+      }
+    }
+  ],
+  "evidenceRoot": "pi-tether/experiments/evidence/pageindex-20260929",
+  "manifest": "pi-tether/experiments/pageindex-artifacts.json"
+}

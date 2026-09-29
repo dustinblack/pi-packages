@@ -12,6 +12,10 @@ Do not routinely include other tool arguments/results, reasoning blocks, system 
 
 The experiment follows pi-delegate's parent-owned run pointers, including workers in other worktrees. It uses immutable `forkedMessages` to skip inherited context, not `startIdx`, which changes when a worker resumes. Run records supply identity and linkage only: their eventual output/status never leaks into an earlier replay checkpoint. Older subagent systems are not covered.
 
+## PageIndex-style retrieval comparison
+
+[`pageindex-report.md`](./pageindex-report.md) compares current vectorless search with map-source-handle navigation on three preserved transcript questions. The predeclared questions, controlled harness, compact results, and artifact checksums live beside the report. Search passed 1/3 and map navigation 0/3, so the experiment made no production change.
+
 A `returned` tool record means `isError:false`, not that tests passed or work was verified. Missing details require source lookup, not inference. Facts present only in unexamined tool output can be missed.
 
 ## Run
