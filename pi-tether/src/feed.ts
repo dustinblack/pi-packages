@@ -405,10 +405,9 @@ export function renderEvents(events: readonly FeedEvent[]): string {
 }
 
 const SEARCH_STOPWORDS = new Set(["a", "an", "and", "are", "as", "at", "be", "by", "did", "do", "does", "exact", "for", "from", "including", "in", "is", "it", "of", "on", "or", "recorded", "report", "reported", "that", "the", "this", "to", "was", "were", "what", "when", "where", "which", "with"]);
-const canonicalToken = (token: string) => token === "typescript" ? "ts" : token === "typecheck" ? "tsc" : token;
 export function searchTokens(value: string): string[] {
 	return value.toLocaleLowerCase().normalize("NFKC").split(/[^\p{L}\p{N}_]+/u)
-		.map(canonicalToken).filter(token => token.length > 1 && !SEARCH_STOPWORDS.has(token));
+		.filter(token => token.length > 1 && !SEARCH_STOPWORDS.has(token));
 }
 
 /**
@@ -428,24 +427,7 @@ export function rankSearchDocuments(events: readonly FeedEvent[], documents: Rea
 	});
 	const frequency = new Map<string, number>();
 	for (const term of questionTerms) for (const doc of docs) if (doc.counts.has(term)) frequency.set(term, (frequency.get(term) ?? 0) + 1);
-	const errorQuestion = questionTerms.some(term => ["broken", "error", "failed", "failing", "failure", "fatal"].includes(term));
-	const questionLower = question.toLocaleLowerCase();
-	const asksTypeScript = /\b(?:typescript|typecheck|tsc)\b/.test(questionLower);
-	const asksSyntax = /\b(?:parse|parser|syntax|token)\b/.test(questionLower);
-	// Private intent features disambiguate diagnostics that share generic words such as "error" and "expected".
-	// They influence ordering only; match metadata below remains derived solely from supplied query/question terms.
-	const intentScore = (text: string) => {
-		let score = 0;
-		if (asksTypeScript && /(?:\bts\d{3,5}\b|\.tsx?(?:\W|$)|\btsc\b)/i.test(text)) score += 6;
-		if (asksSyntax) {
-			if (/\b(?:parse|parser|syntax)\s+error\b/i.test(text)) score += 2;
-			if (/['"`][,;:{}()[\]]['"`]\s+(?:is\s+)?expected\b/i.test(text) ||
-				/\b(?:comma|semicolon|brace|bracket|parenthesis|token)\b.{0,20}\bexpected\b/i.test(text)) score += 8;
-			if (/\b(?:arguments?|arity|assignable|overload|parameters?|properties)\b/i.test(text)) score -= 4;
-		}
-		return score;
-	};
-	type Candidate = { event: FeedEvent; pairedRef?: string; exact: boolean; payloadMatched: boolean; matched: string[]; score: number; intent: number; coverage: number; time: number };
+	type Candidate = { event: FeedEvent; pairedRef?: string; exact: boolean; payloadMatched: boolean; matched: string[]; score: number; coverage: number; time: number };
 	const candidates: Candidate[] = [];
 	for (const doc of docs) {
 		const exact = Boolean(query && doc.lower.includes(query));
@@ -460,7 +442,7 @@ export function rankSearchDocuments(events: readonly FeedEvent[], documents: Rea
 		const metadata = renderEvent(doc.event).toLocaleLowerCase(), metadataTokens = new Set(searchTokens(metadata));
 		const metadataMatched = suppliedTerms.filter(term => metadataTokens.has(term));
 		const metadataQualifies = Boolean(query && metadata.includes(query)) || new Set(metadataMatched).size >= 2;
-		candidates.push({ event: doc.event, exact, payloadMatched: !metadataQualifies, matched, score, intent: intentScore(doc.lower),
+		candidates.push({ event: doc.event, exact, payloadMatched: !metadataQualifies, matched, score,
 			coverage: queryTerms.length ? queryMatched / queryTerms.length : 0, time: Date.parse(doc.event.at) || 0 });
 	}
 	// A tool invocation and result are one evidence unit. Prefer returning the observed result;
@@ -476,12 +458,9 @@ export function rankSearchDocuments(events: readonly FeedEvent[], documents: Rea
 	}
 	const preferred = [...groups.values()].map(group => group.sort((a, b) => {
 		const result = (item: Candidate) => ["tool_result", "shell_result"].includes(item.event.kind) ? 1 : 0;
-		return result(b) - result(a) || b.intent - a.intent || b.score - a.score || b.coverage - a.coverage || Number(b.exact) - Number(a.exact) || b.time - a.time || b.event.ref.localeCompare(a.event.ref);
+		return result(b) - result(a) || b.score - a.score || b.coverage - a.coverage || Number(b.exact) - Number(a.exact) || b.time - a.time || b.event.ref.localeCompare(a.event.ref);
 	})[0]);
-	preferred.sort((a, b) => {
-		const error = (item: Candidate) => errorQuestion && item.event.isError ? 1 : 0;
-		return error(b) - error(a) || b.intent - a.intent || b.score - a.score || b.coverage - a.coverage || Number(b.exact) - Number(a.exact) || b.time - a.time || b.event.ref.localeCompare(a.event.ref);
-	});
+	preferred.sort((a, b) => b.score - a.score || b.coverage - a.coverage || Number(b.exact) - Number(a.exact) || b.time - a.time || b.event.ref.localeCompare(a.event.ref));
 	return preferred.slice(0, 5).map(item => ({ ref: item.event.ref, actor: item.event.actor, at: item.event.at,
 		kind: item.event.kind, name: item.event.name, isError: item.event.isError, pairedRef: item.pairedRef,
 		payloadMatched: item.payloadMatched, matchMode: item.exact ? "exact" : "tokens", matchedTerms: item.matched, matchedTermCount: item.matched.length,

@@ -63,7 +63,7 @@ test("output-phrase search finds parent arguments and worker payloads without ex
 	} finally { await f.dispose(); }
 });
 
-test("ephemeral vectorless search ranks conceptual diagnostics without exposing payloads", async () => {
+test("ephemeral vectorless search ranks literal recorded terms without exposing payloads", async () => {
 	const f = await workerFixture();
 	try {
 		const add = (id: string, command: string, output: string) => {
@@ -72,7 +72,11 @@ test("ephemeral vectorless search ranks conceptual diagnostics without exposing 
 				content: [{ type: "text", text: output }], timestamp: Date.now() });
 			return { call: `${f.manager.getSessionId()}:${call}:b0`, result: `${f.manager.getSessionId()}:${result}` };
 		};
-		const syntax = add("syntax", "npx tsc --noEmit", "src/index.ts(46,31): error TS1005: ',' expected.");
+		const syntax = add("syntax", "npm run typecheck", [
+			"src/index.ts(46,97): error TS1005: ',' expected.",
+			"src/index.ts(46,104): error TS1005: ',' expected.",
+			"src/index.ts(46,108): error TS1005: ',' expected.",
+		].join("\n"));
 		add("regex", "rg 'sendMessage(' src", "regex parse error: unclosed group");
 		add("arity", "npx tsc --noEmit", "src/other.ts(8,2): error TS2554: Expected 2 arguments, but got 3.");
 		const broken = add("links", "check-roadmap-links", "broken link: 2026-07-12-phase7-and-beyond.md -> missing 2026-07-12-boost-review-desk-ssmp.md");
@@ -80,7 +84,7 @@ test("ephemeral vectorless search ranks conceptual diagnostics without exposing 
 		const feed = new LiveFeed(f.manager); await feed.capture();
 		const parse = await feed.search("parse error", undefined,
 			"What exact TypeScript parse error did the recorded typecheck report, including the error code, expected token, and affected source location?");
-		assert.equal(parse.matches[0].ref, syntax.result, "syntax diagnostic wins over newer regex and arity errors");
+		assert.equal(parse.matches[0].ref, syntax.result, "the source with the strongest literal recorded-term score wins over newer errors");
 		assert.equal(parse.matches[0].pairedRef, syntax.call);
 		assert.equal(parse.matches[0].kind, "tool_result");
 		const links = await feed.search("broken link", undefined, "Which roadmap validation reported a broken link and missing target filename?");
@@ -88,8 +92,8 @@ test("ephemeral vectorless search ranks conceptual diagnostics without exposing 
 		const typeError = await feed.search("TypeError sub", undefined, "What TypeError did sub report for positional arguments?");
 		assert.equal(typeError.matches[0].ref, python.result);
 		const safe = JSON.stringify([parse.matches, links.matches, typeError.matches]);
-		for (const secret of ["src/index.ts(46,31)", "phase7-and-beyond.md", "takes 2 positional arguments"]) assert(!safe.includes(secret));
-		assert.match((await feed.lookup(parse.matches[0].ref)).text, /src\/index\.ts\(46,31\)/);
+		for (const secret of ["src/index.ts(46,97)", "phase7-and-beyond.md", "takes 2 positional arguments"]) assert(!safe.includes(secret));
+		assert.match((await feed.lookup(parse.matches[0].ref)).text, /src\/index\.ts\(46,97\)/);
 	} finally { await f.dispose(); }
 });
 
