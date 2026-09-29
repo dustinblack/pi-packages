@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { test } from "node:test";
 import { setup, replacement, input, isMomRequest, deferred, readSidecar } from "./fixture.ts";
 import { SidecarStore } from "../src/sidecar.ts";
 
-const checkpoints = async (h: Awaited<ReturnType<typeof setup>>) => (await readSidecar(h)).filter(r => r.type === "checkpoint");
+const checkpoints = async (h: Awaited<ReturnType<typeof setup>>) => (await readSidecar(h)).filter(r => r.type === "map" && r.data.snapshot);
+const stateHash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 const advisorReview = (needsReanalysis: number, action: "accept" | "expand" = "accept") => ({ status: "reviewed" as const, model: "kev-test",
 	needsReanalysis, signals: { expand: needsReanalysis, contract: 0.02, redirect: 0.03, reorganize: 0.03 },
 	action, probabilities: { accept: action === "accept" ? 0.9 : 0.02, expand: action === "expand" ? 0.9 : 0.02, contract: 0.02, redirect: 0.03, reorganize: 0.03 },
@@ -16,11 +18,11 @@ test("fresh Mom contexts checkpoint automatically observed narrative and recover
 		await h.runtime.session.prompt("Preserve the original purpose. Do not delete user files.");
 		await mom.open(); await mom.update();
 		assert.equal((await checkpoints(h)).length, 1);
-		const first = mom.checkpoint!;
+		const first = mom.checkpoint!, coldHash = stateHash({ graph: first.graph, cut: first.cut });
 		assert(mom.graph.nodes.every(node => node.sources.length > 0));
-		assert.equal(first.version, 4);
 		mom.close(); mom = h.createMom(); await mom.open();
 		assert.deepEqual(mom.checkpoint, first);
+		assert.equal(stateHash({ graph: mom.checkpoint?.graph, cut: mom.checkpoint?.cut }), coldHash, "cold reopen restores the identical map and consumed cursor hash");
 		await mom.update(); assert.equal(h.requests().length, 1, "restore with no narrative delta costs no model call");
 		await h.runtime.session.prompt("Also investigate the failing route; return to the original purpose.");
 		await mom.update();
@@ -46,8 +48,8 @@ test("a low session-level review accepts Mom's draft without extra analysis", { 
 	try {
 		await h.runtime.session.prompt("Preserve this goal."); await mom.open(); await mom.update();
 		assert.equal(reviews, 1); assert.equal(h.requests().length, 1);
-		assert.equal(mom.checkpoint?.version === 4 && mom.checkpoint.advisor?.status, "reviewed");
-		assert.equal(mom.checkpoint?.version === 4 && mom.checkpoint.advisor?.reexamined, false);
+		assert.equal(mom.checkpoint?.advisor?.status, "reviewed");
+		assert.equal(mom.checkpoint?.advisor?.reexamined, false);
 	} finally { mom.close(); await h.close(); }
 });
 
@@ -58,7 +60,7 @@ test("a non-accept session-level decision triggers exactly one deeper Mom recons
 		await h.runtime.session.prompt("Preserve this goal."); await mom.open(); await mom.update();
 		assert.equal(reviews, 1); assert.equal(h.requests().length, 2, "advisor can add only one Mom call");
 		assert.match(JSON.stringify(h.requests()[1].messages), /probabilistic session-level advisor requested one deeper reconsideration/);
-		assert.equal(mom.checkpoint?.version === 4 && mom.checkpoint.advisor?.reexamined, true);
+		assert.equal(mom.checkpoint?.advisor?.reexamined, true);
 		assert.equal(mom.usage.calls, 2);
 	} finally { mom.close(); await h.close(); }
 });
@@ -69,8 +71,8 @@ test("advisor failure is recorded but cannot block an otherwise valid Mom update
 	try {
 		await h.runtime.session.prompt("Preserve this goal."); await mom.open(); await mom.update();
 		assert.equal(h.requests().length, 1);
-		assert.equal(mom.checkpoint?.version === 4 && mom.checkpoint.advisor?.status, "unavailable");
-		assert.match(mom.checkpoint?.version === 4 && mom.checkpoint.advisor?.status === "unavailable" ? mom.checkpoint.advisor.error : "", /advisor offline/);
+		assert.equal(mom.checkpoint?.advisor?.status, "unavailable");
+		assert.match(mom.checkpoint?.advisor?.status === "unavailable" ? mom.checkpoint.advisor.error : "", /advisor offline/);
 	} finally { mom.close(); await h.close(); }
 });
 
@@ -114,7 +116,7 @@ test("background failure waits for new material, gaps the second deterministic f
 		await h.runtime.session.prompt("Newer evidence must remain available after the skipped range.");
 		await assert.rejects(() => mom.update(), /closes no endeavor/);
 		assert.equal(h.requests().length, before + 4); assert.equal(mom.failure, undefined); assert.equal(mom.gaps.length, 1);
-		assert.equal((await readSidecar(h)).filter(record => record.type === "gap" && record.data.action === "open").length, 1);
+		assert.equal((await readSidecar(h)).filter(record => record.type === "map" && record.data.gap?.action === "open").length, 1);
 		assert.equal(mom.detail().skippedEvidence.length, 1); assert.equal(mom.detail().sessionUsage.calls, before + 4);
 		reject = false; await mom.update();
 		assert.match(input(h.requests().at(-1)).newEvents, /Newer evidence must remain available/);
@@ -155,9 +157,9 @@ test("an accepted graph-identical update advances a compact durable cursor and c
 		await h.runtime.session.prompt("Record this routine continuation without changing the map.");
 		await mom.update();
 		const records = await readSidecar(h);
-		assert.equal(records.filter(r => r.type === "checkpoint").length, 1, "the graph is not duplicated");
-		const progress = records.filter(r => r.type === "progress");
-		assert.equal(progress.length, 1); assert.equal(progress[0].data.checkpoint, firstId);
+		assert.equal(records.filter(r => r.type === "map" && r.data.snapshot).length, 1, "the graph is not duplicated");
+		const progress = records.filter(r => r.type === "map" && r.data.cut && !r.data.snapshot);
+		assert.equal(progress.length, 1); assert.equal(progress[0].data.base, firstId);
 		const acceptedCut = structuredClone(mom.checkpoint!.cut);
 		mom.close(); await h.runtime.session.reload(); mom = h.createMom(); await mom.open();
 		assert.deepEqual(mom.checkpoint?.cut, acceptedCut);
@@ -173,7 +175,7 @@ test("checkpoint append failure retains the old snapshot/cursor and retries the 
 	const mom = h.createMom({ store: {
 		load: async () => durable().load(),
 		append: async (type, data) => {
-			if (fail && type === "checkpoint") throw new Error("Injected append failure");
+			if (fail && type === "map" && data.snapshot) throw new Error("Injected append failure");
 			return durable().append(type, data);
 		},
 	} });
@@ -198,7 +200,7 @@ test("a sidecar failure while opening a deterministic gap skips nothing and reta
 	const mom = h.createMom({ store: {
 		load: async () => durable().load(),
 		append: async (type, data) => {
-			if (failGap && type === "gap" && data.action === "open") throw new Error("Injected gap append failure");
+			if (failGap && type === "map" && data.gap?.action === "open") throw new Error("Injected gap append failure");
 			return durable().append(type, data);
 		},
 	} });
@@ -216,7 +218,7 @@ test("a sidecar failure while opening a deterministic gap skips nothing and reta
 		await h.runtime.session.prompt("Newer evidence survives the failed gap write."); failGap = true;
 		await assert.rejects(() => mom.update(), /Injected gap append failure/);
 		assert.deepEqual(mom.checkpoint?.cut, before); assert.equal(mom.gaps.length, 0); assert.equal(mom.failure?.failures, 1);
-		assert.equal((await readSidecar(h)).some(record => record.type === "gap" && record.data.action === "open"), false);
+		assert.equal((await readSidecar(h)).some(record => record.type === "map" && record.data.gap?.action === "open"), false);
 		failGap = false; reject = false;
 		await h.runtime.session.prompt("A later boundary releases the retained range."); await mom.update(); await mom.update();
 		assert.match(input(h.requests().at(-1)).newEvents, /Newer evidence survives the failed gap write/);

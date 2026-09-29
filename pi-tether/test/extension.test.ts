@@ -3,7 +3,8 @@ import { test } from "node:test";
 import { NOTICE } from "../src/checkpoint.ts";
 import { setup, until, replacement, input, isMomRequest, deferred, readSidecar } from "./fixture.ts";
 
-const snapshots = async (h: Awaited<ReturnType<typeof setup>>) => (await readSidecar(h)).filter(r => r.type === "checkpoint");
+const snapshots = async (h: Awaited<ReturnType<typeof setup>>) => (await readSidecar(h)).filter(r => r.type === "map" && r.data.snapshot)
+	.map(record => ({ ...record, data: record.data.snapshot }));
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 test("normal parent narrative updates Mom without bookkeeping; cached status and idle time are free", { timeout: 15000 }, async () => {

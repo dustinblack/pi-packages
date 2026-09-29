@@ -4,7 +4,7 @@ import { NOTICE, loadState } from "../src/checkpoint.ts";
 import { SidecarStore } from "../src/sidecar.ts";
 import { setup, until, input, replacement, isMomRequest, deferred, readSidecar } from "./fixture.ts";
 
-const snapshots = async (h: Awaited<ReturnType<typeof setup>>) => (await readSidecar(h)).filter(r => r.type === "checkpoint");
+const snapshots = async (h: Awaited<ReturnType<typeof setup>>) => (await readSidecar(h)).filter(r => r.type === "map" && r.data.snapshot);
 const momState = (entry: any) => typeof entry.customType === "string" && entry.customType.startsWith("pi-tether.mom.");
 
 test("retry preserves its original coverage revision and processes a newer correction before notices", { timeout: 15000 }, async () => {
@@ -27,7 +27,7 @@ test("retry preserves its original coverage revision and processes a newer corre
 		await h.runtime.session.prompt("Do not delete the file.");
 		await h.command("resume");
 		await until(() => calls === 1);
-		await until(async () => (await readSidecar(h)).some(r => r.type === "attempt" && r.data.error));
+		await until(async () => (await readSidecar(h)).some(r => r.type === "usage" && r.data.error));
 		await h.command("correct Deletion is now authorized for this fixture file.");
 		await until(() => calls === 3, "correction captured after staged retry");
 		assert.equal((await snapshots(h)).length, 1);
@@ -36,7 +36,7 @@ test("retry preserves its original coverage revision and processes a newer corre
 		assert.match(status.content[0].text, /updating|observation pending/);
 		gate.resolve(); await until(async () => (await snapshots(h)).length === 2);
 		assert(!h.runtime.session.sessionManager.getBranch().some((e: any) => e.customType === NOTICE));
-		// Pause/resume, failed attempts and checkpoints all went to the sidecar, not the transcript.
+		// Pause/resume, failed usage and maps all went to the sidecar, not the transcript.
 		assert(!h.runtime.session.sessionManager.getEntries().some(momState), "Mom writes no state into the session file");
 	} finally { gate.resolve(); await h.close(); }
 });

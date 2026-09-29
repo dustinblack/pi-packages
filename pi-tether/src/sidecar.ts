@@ -1,20 +1,24 @@
 import { appendFile, readFile, truncate } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 
-export type SidecarType = "checkpoint" | "progress" | "control" | "notice" | "attempt" | "failure" | "gap";
-export interface SidecarRecord { v: 1; id: string; sessionId: string; type: SidecarType; at: number; data: Record<string, any> }
+/** The only durable Mom record families. Map records also own cursor/failure/control state. */
+export type SidecarType = "map" | "notice" | "usage";
+/** `control` is an input command translated to a map patch; it is never persisted as a record type. */
+export type SidecarWriteType = SidecarType | "control";
+export interface SidecarRecord { id: string; sessionId: string; type: SidecarType; at: number; data: Record<string, any> }
 
 /** Mom's durable state lives in an append-only sidecar beside the session transcript, never inside it. */
 export interface MomStore {
 	/** This session's durable records, oldest first; empty until the sidecar exists. */
 	load(): Promise<SidecarRecord[]>;
-	append(type: SidecarType, data: Record<string, any>): Promise<SidecarRecord>;
+	append(type: SidecarWriteType, data: Record<string, any>): Promise<SidecarRecord>;
 }
 
 // Pi's session lister scans every *.jsonl file in the session directory; the sidecar must not match.
 export const sidecarFile = (sessionFile: string) => sessionFile.replace(/\.jsonl$/, "") + ".mom";
 
-const types: readonly SidecarType[] = ["checkpoint", "progress", "control", "notice", "attempt", "failure", "gap"];
+const types: readonly SidecarType[] = ["map", "notice", "usage"];
+const recordKeys = ["at", "data", "id", "sessionId", "type"];
 
 export interface SidecarIO {
 	read(file: string): Promise<Buffer>;
@@ -51,15 +55,18 @@ export class SidecarStore implements MomStore {
 		for (const line of text.split("\n")) {
 			if (!line) continue;
 			const record = JSON.parse(line) as SidecarRecord;
-			if (record?.v !== 1 || !record || typeof record !== "object" || typeof record.id !== "string" ||
-				typeof record.sessionId !== "string" || !types.includes(record.type) ||
-				!Number.isFinite(record.at) || !record.data || typeof record.data !== "object") throw new Error(`Corrupt Mom state line in ${file}`);
+			if (!record || typeof record !== "object" || Array.isArray(record) ||
+				JSON.stringify(Object.keys(record).sort()) !== JSON.stringify(recordKeys) ||
+				typeof record.id !== "string" || typeof record.sessionId !== "string" || !types.includes(record.type) ||
+				!Number.isFinite(record.at) || !record.data || typeof record.data !== "object" || Array.isArray(record.data)) {
+				throw new Error(`Corrupt Mom state line in ${file}`);
+			}
 			if (record.sessionId === this.sessionId) this.records.push(record);
 		}
 		return this.records;
 	}
 
-	async append(type: SidecarType, data: Record<string, any>): Promise<SidecarRecord> {
+	async append(type: SidecarWriteType, data: Record<string, any>): Promise<SidecarRecord> {
 		const session = this.sessionFile();
 		if (!session) throw new Error("Mom needs a persisted session file for her state; in-memory sessions keep none.");
 		try {
@@ -68,7 +75,9 @@ export class SidecarStore implements MomStore {
 				await this.io.truncate(this.torn.file, this.torn.bytes);
 				this.torn = undefined;
 			}
-			const record: SidecarRecord = { v: 1, id: randomUUID(), sessionId: this.sessionId, type, at: Date.now(), data };
+			if (type === "control" && typeof data.enabled !== "boolean") throw new Error("Mom control state needs enabled=true or false.");
+			const record: SidecarRecord = { id: randomUUID(), sessionId: this.sessionId,
+				type: type === "control" ? "map" : type, at: Date.now(), data: type === "control" ? { enabled: data.enabled } : data };
 			await this.io.append(sidecarFile(session), JSON.stringify(record) + "\n");
 			this.records!.push(record);
 			return record;
