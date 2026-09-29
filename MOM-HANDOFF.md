@@ -6,14 +6,15 @@ Mom keeps track of the goal, what is unfinished, and where to return after a det
 
 - **The map is current state. The session transcript is history.** Mom synthesizes one compact work map; she does not create one record per message or maintain a second conversation history.
 - **Session JSONL is read-only evidence.** Mom never writes state there and never restores embedded Mom checkpoints, controls, attempts, or historical maps from it.
-- **`<session>.mom` is the only state store.** It contains accepted checkpoints, compact progress cursors, pause/resume state, notice-delivery keys, and usage/attempt records. A material checkpoint commits the map and consumed transcript/worker cursors together; a graph-identical acceptance advances only a cursor tied to that checkpoint and selected branch.
+- **`<session>.mom` is the only state store.** Its append-only record types are map, notice, and usage. Map records contain accepted snapshots, compact progress cursors, pause/resume state, deterministic retry failures, and visible gaps. A material checkpoint commits the map and consumed transcript/worker cursors together; a graph-identical acceptance advances only a cursor tied to that checkpoint and selected branch.
 - **Fresh model calls use page plus slice.** Each request contains the current graph, the bounded new event slice, and at most one preceding lead context event. It does not reconstruct or resend all earlier user turns. Older detail is available through bounded search and source inspection.
-- **Automatic inference runs only at settled boundaries.** A settled lead turn or settled delegate run wakes Mom. Startup, reload, tree navigation, message completion, tool results, delegate start/note events, compaction, and idleness do not. Automatic inference never starts while the lead is working, and a running delegate is not exposed as a partial run.
+- **Automatic inference runs only at settled boundaries.** A settled lead turn or settled delegate run wakes Mom. A successful compaction adds exactly one bounded review boundary. Startup, reload, tree navigation, message completion, tool results, delegate start/note events, and idleness do not. Automatic inference never starts while the lead is working, and a running delegate is not exposed as a partial run.
 - **Explicit operations remain available.** `/mom correct`, `/mom refresh`, `/mom resume`, and explicit Mom questions can request work directly. Failed updates retain their unconsumed evidence because only accepted checkpoints advance the durable cursor.
 
 ## Map behavior
 
-- Work is hierarchical. Features, theories, postulates, and things being tried are endeavors; rules, choices, and observations attach to an endeavor.
+- Work is one source-backed tree. The persisted `motherThread` pointer identifies the stable coordinating root endeavor and `purpose` points to the same node. Every other feature, theory, postulate, or try belongs beneath it; rules, choices, and observations attach to an endeavor.
+- The mother root carries English purpose copied as a complete normalized token sequence from cited user evidence. Each public purpose names one explicit `purposeSource` that also belongs to the node's `sources`; compact reads show the English `Why` plus only that citation and distinguish current, interrupted, blocker, return, and alternative paths.
 - User pivots silently park interrupted work. Explicit assent is recorded with its scope and remains governing until later clear direction supersedes it.
 - Completion and folding must preserve active or parked descendants through explicit carried, reparented, or resolved dispositions.
 - Material claims remain source-backed. Tool arguments and outputs are inspected only on demand and are not replayed in routine updates.
@@ -21,7 +22,7 @@ Mom keeps track of the goal, what is unfinished, and where to return after a det
 
 ## Current implementation work
 
-The in-progress change removes the rejected per-message trigger and full `userHistory` payload, makes sidecar state exclusive, and defers parent updates while a linked delegate is running so one post-settlement batch contains the complete lead and worker activity. Transaction validation now reports independent source, authority, contraction, and unfinished-disposition defects together so one repair can address a whole batch. History questions use an ephemeral vectorless scan over original sources, return only safe match metadata, and retain separate two-search/two-read limits. Optional Kev/JEV review remains present but disabled by default; explicitly enabling it adds its separate review call outside Mom's normal five-call ceiling.
+The current change makes the coordinating mother thread a first-class persisted root, rejects unrooted/root-replacement proposals, preserves root/hash/cursor through cold reopen, and renders English purpose plus its sole explicit grounding citation alongside exact blocker/alternative/return links. New or updated active, parked, or proposed endeavors and rules require a `purposeSource` whose event contains the complete intent at normalized token-sequence boundaries, with no minimum-character floor; that source must belong to `sources`. No rationale field exists. A current-format pre-root graph receives one deterministic atomic normalization. Its inherited nodes may remain without `purposeSource` only while unchanged, display `Why: evidence unavailable`, and survive the first post-cutover no-op without a forced rewrite; any upsert must satisfy strict grounding. Older sidecar record layouts remain unsupported. Background updates retain the settled one-proposal/one-repair ceiling. Explicit history questions retain five total calls and separate two-search/two-read limits. Optional Kev/JEV review remains present but disabled by default; explicitly enabling it adds its separate review call outside those ceilings.
 
 Mechanical coverage includes:
 
@@ -32,7 +33,7 @@ Mechanical coverage includes:
 - no Mom state custom entries in the session transcript;
 - branch-safe sidecar restore, failure retry, source lookup, hierarchy, carry, and display behavior.
 
-The scripted tests establish runtime mechanics only. Real-model map quality still requires the preserved transcript replay. Earlier replay attempts exposed sequential authority/fold errors and weak source selection; the current validators aggregate those defects and retrieval now ranks original evidence without persisting or exposing payload text. No new real-model success claim has been made yet.
+Scripted tests establish runtime mechanics, including deterministic alternatives and bounded ordered gap recovery, not general semantic reliability. The v3 isolated Luna-low artifact at `pi-tether/experiments/evidence/todo-007-real-luna-purpose-map.json` validates bounded real-session synthesis with English `Why`, explicit `purposeSource`, and parked work. An intentional attempt to replay the full frozen 7,336-line snapshot processed 29 batches in 48 model calls, then ended with an open gap and remaining evidence; it exposed the grounded gap-recovery failure that is now fixed. This was not a complete replay. The frozen snapshot was verified as an exact byte prefix because the live source appended during the run; no whole-source unchanged claim is made. The real capture contains no `alternative_to` edge. Full-trajectory replay belongs to todo 008.
 
 ## Verification and next step
 
@@ -43,4 +44,4 @@ cd pi-tether && npm run check
 cd ../pi-delegate && npx tsx --test test/tether-feed.test.ts
 ```
 
-Then run the production prompt against the three preserved transcripts and inspect pivots, assent, later conflicts, stale work, and retrieval. Do not seed a result from old session-embedded Mom state, alter the user's real session or sidecar, or claim semantic reliability from scripted replies.
+Then run the production prompt against the three preserved transcripts and inspect pivots, assent, later conflicts, stale work, root-purpose retention, and retrieval. Do not seed a result from old session-embedded Mom state, alter the user's real session or sidecar, or claim semantic reliability from scripted replies.

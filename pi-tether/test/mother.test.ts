@@ -3,6 +3,8 @@ import { createHash } from "node:crypto";
 import { test } from "node:test";
 import { setup, replacement, input, isMomRequest, deferred, readSidecar } from "./fixture.ts";
 import { SidecarStore } from "../src/sidecar.ts";
+import { CONTEXT_LIMIT } from "../src/mother.ts";
+import { MOM_PROMPT } from "../src/contract.ts";
 
 const checkpoints = async (h: Awaited<ReturnType<typeof setup>>) => (await readSidecar(h)).filter(r => r.type === "map" && r.data.snapshot);
 const stateHash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
@@ -98,7 +100,7 @@ test("a rejected background proposal gets one aggregated repair and background e
 });
 
 test("background failure waits for new material, gaps the second deterministic failure, and refresh catches it up", { timeout: 15000 }, async () => {
-	const h = await setup(), mom = h.createMom(); let reject = false;
+	const h = await setup(); let mom = h.createMom(), reject = false;
 	try {
 		await h.runtime.session.prompt("Preserve the original purpose."); await mom.open(); await mom.update();
 		h.api.onUnscripted((request) => {
@@ -118,12 +120,76 @@ test("background failure waits for new material, gaps the second deterministic f
 		assert.equal(h.requests().length, before + 4); assert.equal(mom.failure, undefined); assert.equal(mom.gaps.length, 1);
 		assert.equal((await readSidecar(h)).filter(record => record.type === "map" && record.data.gap?.action === "open").length, 1);
 		assert.equal(mom.detail().skippedEvidence.length, 1); assert.equal(mom.detail().sessionUsage.calls, before + 4);
-		reject = false; await mom.update();
-		assert.match(input(h.requests().at(-1)).newEvents, /Newer evidence must remain available/);
+		reject = false;
 		const calls = h.requests().length;
 		await mom.update(undefined, undefined, 0, true);
 		assert.equal(h.requests().length, calls + 1); assert.equal(mom.gaps.length, 0);
-		assert.match(input(h.requests().at(-1)).newEvents, /This range will fail deterministically/);
+		const refresh = input(h.requests().at(-1));
+		assert.match(refresh.newEvents, /This range will fail deterministically/);
+		assert.doesNotMatch(refresh.newEvents, /Newer evidence must remain available/, "refresh never mixes unbounded later evidence into a gap retry");
+		assert(MOM_PROMPT_LENGTH(h.requests().at(-1)) < CONTEXT_LIMIT);
+		const coldHash = stateHash({ graph: mom.graph, cut: mom.checkpoint?.cut });
+		mom.close(); await h.runtime.session.reload(); mom = h.createMom(); await mom.open();
+		assert.equal(stateHash({ graph: mom.graph, cut: mom.checkpoint?.cut }), coldHash, "resolved gap is cold-stable");
+		await mom.update();
+		assert.match(input(h.requests().at(-1)).newEvents, /Newer evidence must remain available/, "later evidence retains source order after recovery");
+	} finally { mom.close(); await h.close(); }
+});
+
+const MOM_PROMPT_LENGTH = (request: any) => MOM_PROMPT.length + JSON.stringify(request.messages).length;
+
+test("oversized durable gaps recover in bounded ordered chunks across cold reload", { timeout: 15000 }, async () => {
+	const h = await setup(); let mom = h.createMom();
+	try {
+		await h.runtime.session.prompt("Preserve the original purpose."); await mom.open(); await mom.update();
+		const from = structuredClone(mom.checkpoint!.cut), checkpointId = mom.checkpointId!;
+		for (let index = 0; index < 4; index++) {
+			await h.runtime.session.prompt(`Gap segment ${index}: ${String(index).repeat(13000)}`);
+		}
+		const refs: string[] = []; let through = from, more = true;
+		while (more) {
+			const captured = await mom.feed.capture(24000, true);
+			refs.push(...captured.events.map(event => event.ref)); through = captured.cut; more = captured.more;
+		}
+		assert(refs.length > 4, "fixture includes user and lead events across multiple feed pages");
+		const gap = { id: "oversized-gap", key: "oversized-range", from, through, refs, error: "deterministic rejection", failures: 2 };
+		const store = new SidecarStore(() => h.parent, h.runtime.session.sessionManager.getSessionId());
+		await store.append("map", { base: checkpointId, cut: through, failure: null, gap: { action: "open", ...gap } });
+		mom.close(); await h.runtime.session.reload(); mom = h.createMom(); await mom.open();
+		assert.deepEqual(mom.gaps[0]?.refs, refs);
+		h.api.script("Later material after the skipped range.", { text: "Distinct later assistant material." });
+		await h.runtime.session.prompt("Later material after the skipped range."); await mom.update();
+		assert.equal(mom.gaps.length, 1, "ordinary catch-up does not discard an older open gap");
+		const coverage = structuredClone(mom.checkpoint!.cut);
+
+		h.api.onUnscripted((request) => {
+			if (!isMomRequest(request)) return { text: "Lead continued." };
+			const body = input(request);
+			return { tool: { name: "commit_graph", arguments: { revision: body.graph.revision, purpose: body.graph.purpose, focus: body.graph.focus,
+				unfinished: [], upsertNodes: [], upsertEdges: [], removeEdges: [], merges: [], folds: [], removeNodes: [], supersessions: [], note: null } } };
+		});
+		const before = h.requests().length; await mom.update(undefined, undefined, 0, true);
+		const firstRequest = h.requests()[before], firstRefs = [...input(firstRequest).newEvents.matchAll(/\[src:([^\]]+)\]/g)].map(match => match[1]);
+		assert(MOM_PROMPT_LENGTH(firstRequest) < CONTEXT_LIMIT, "each refresh request stays below the context ceiling");
+		assert.doesNotMatch(input(firstRequest).newEvents, /Later material after the skipped range/);
+		assert.doesNotMatch(input(firstRequest).contextBeforeBatch ?? "", /Distinct later assistant material/, "gap context never reaches into later evidence");
+		assert(firstRefs.length > 0 && firstRefs.length < refs.length, "the first refresh is a bounded proper prefix");
+		assert.deepEqual(firstRefs, refs.slice(0, firstRefs.length), "recovery preserves source order");
+		const remaining = refs.slice(firstRefs.length);
+		assert.deepEqual(mom.gaps[0]?.refs, remaining, "accepted chunk leaves an explicit in-memory suffix");
+		assert.deepEqual((await readSidecar(h)).findLast(record => record.type === "map" && record.data.gap?.action === "open")?.data.gap.refs,
+			remaining, "accepted chunk atomically persists the remaining range");
+
+		mom.close(); await h.runtime.session.reload(); mom = h.createMom(); await mom.open();
+		assert.deepEqual(mom.gaps[0]?.refs, remaining, "cold restore resumes from the durable suffix");
+		while (mom.gaps.length) {
+			const calls = h.requests().length; await mom.update(undefined, undefined, 0, true);
+			assert.equal(h.requests().length, calls + 1, "each healthy chunk uses one background call");
+			assert(MOM_PROMPT_LENGTH(h.requests().at(-1)) < CONTEXT_LIMIT);
+		}
+		assert.deepEqual(mom.checkpoint?.cut, coverage, "gap recovery never moves the later coverage cursor backward");
+		mom.close(); await h.runtime.session.reload(); mom = h.createMom(); await mom.open();
+		assert.deepEqual(mom.gaps, []); assert.deepEqual(mom.checkpoint?.cut, coverage, "resolved coverage is cold-stable");
 	} finally { mom.close(); await h.close(); }
 });
 

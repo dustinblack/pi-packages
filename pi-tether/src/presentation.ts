@@ -7,6 +7,8 @@ export interface AnnotationView {
 	intent: string;
 	observed: string;
 	sources: string[];
+	/** One explicit grounding owner for the public intent/Why. */
+	purposeSource?: string;
 	history?: unknown;
 	actor?: string;
 	/** Only a boundary label was loaded, not the complete account. */
@@ -27,6 +29,7 @@ export interface ConnectionView {
 }
 export interface WorkView {
 	orientation: string;
+	motherThread: string | null;
 	purpose: string | null;
 	focus: string | null;
 	/** The endeavor containing a focused rule, choice, or observation. */
@@ -76,6 +79,7 @@ const list = (items: string[], limit = 5): string => items.slice(0, limit).join(
 function annotation(raw: RecordData, summaryOnly: boolean): AnnotationView {
 	return { id: raw.id, kind: text(raw.kind), state: text(raw.state), label: text(raw.label) || raw.id,
 		intent: text(raw.intent), observed: text(raw.observed), sources: strings(raw.sources),
+		...(typeof raw.purposeSource === "string" ? { purposeSource: raw.purposeSource } : {}),
 		...(raw.history !== undefined ? { history: copy(raw.history) } : {}),
 		...(typeof raw.actor === "string" ? { actor: raw.actor } : {}), ...(summaryOnly ? { summaryOnly: true } : {}) };
 }
@@ -101,6 +105,7 @@ export function presentGraph(raw: any): WorkView {
 		else unattachedAnnotations.push(item);
 	}
 	const purpose = typeof input.purpose === "string" ? input.purpose : null;
+	const motherThread = typeof input.motherThread === "string" ? input.motherThread : purpose;
 	const focus = typeof input.focus === "string" ? input.focus : null;
 	const focusEndeavor = focus ? owners.get(focus) ?? null : null;
 	const path: string[] = [];
@@ -127,7 +132,7 @@ export function presentGraph(raw: any): WorkView {
 	if (omittedRecords) outside.push(`${omittedRecords} of ${totalRecords} recorded items are outside the selection; ${all.size - selectedIds.size} are included as surrounding context and ${Math.max(0, totalRecords - all.size)} are not loaded.`);
 	if (unattachedAnnotations.length) outside.push(`${unattachedAnnotations.length} selected ${unattachedAnnotations.length === 1 ? "note has" : "notes have"} no recorded endeavor parent in this view; no attachment has been guessed.`);
 	const original = input.original && typeof input.original.text === "string" ? { ref: text(input.original.ref), text: input.original.text } : null;
-	const view: WorkView = { orientation: "", purpose, focus, focusEndeavor, focusPath: path, roots, endeavors, outside, connections,
+	const view: WorkView = { orientation: "", motherThread, purpose, focus, focusEndeavor, focusPath: path, roots, endeavors, outside, connections,
 		unattachedAnnotations, selected: [...selectedIds], historical: Boolean(input.historical), original,
 		totalRecords, omittedRecords };
 	for (const key of ["format", "checkpoint", "previousCheckpoint", "revision", "at", "initialized", "coverageComplete", "status", "change", "unfinished", "error"] as const) {
@@ -147,9 +152,9 @@ function orientation(view: WorkView, raw: Map<string, RecordData>): string {
 	if (!view.endeavors.length && !view.unattachedAnnotations.length) {
 		pieces.push("Mom has not saved an account of this work yet.");
 	} else if (purpose) {
-		pieces.push(`The main endeavor ${view.historical ? "was" : "is"} “${name(purpose)}”.`);
+		pieces.push(`The mother thread ${view.historical ? "was" : "is"} “${name(purpose)}”.`);
 		pieces.push(purpose.intent ? `Its purpose: ${sentence(excerpt(purpose.intent))}` : "Its full purpose is not included in this selected view.");
-	} else pieces.push("The main endeavor's account is outside this view; its purpose cannot be reconstructed from these records.");
+	} else pieces.push("The mother-thread account is outside this view; its purpose cannot be reconstructed from these records.");
 	if (view.original) pieces.push(`The original user request was: “${excerpt(view.original.text)}”`);
 	else pieces.push("The original user request is not available in this read.");
 	if (view.omittedRecords && view.selected.length) {
@@ -207,6 +212,7 @@ const compact = (value: string, limit = 90): string => {
 	return `${(boundary > limit / 2 ? head.slice(0, boundary) : head).trimEnd()}…`;
 };
 const GROUP_LIMIT = 2;
+const ENDEAVOR_LIMIT = 2;
 const grouped = (items: string[]): string => items.slice(0, GROUP_LIMIT).join("; ")
 	+ (items.length > GROUP_LIMIT ? `; … ${items.length - GROUP_LIMIT} more` : "");
 
@@ -226,10 +232,23 @@ export function summaryText(view: WorkView): string {
 		const checkpoint = text((item.history as RecordData).checkpoint);
 		lines.push(`${indent}Folded away → history ${checkpoint || "(checkpoint not recorded; see details)"}`);
 	};
+	const whyEligible = (item: AnnotationView) => !item.summaryOnly && Boolean(item.intent)
+		&& ["active", "parked", "proposed"].includes(item.state);
+	const why = (item: AnnotationView, indent: string, prefix = "") => {
+		if (!whyEligible(item)) return false;
+		if (!item.purposeSource || !item.sources.includes(item.purposeSource)) {
+			lines.push(`${indent}${prefix}Why: evidence unavailable`); return true;
+		}
+		lines.push(`${indent}${prefix}Why: ${compact(item.intent, 100)} [src:${item.purposeSource}]`);
+		return true;
+	};
 	const note = (item: AnnotationView, owner: string | null, indent: string, label = "") => {
 		const identified = item.id === view.focus || selected.has(item.id);
+		const prefix = `${label}${identified ? `[${item.id}] ` : ""}`;
 		const phrase = item.state === "settled" ? name(item) : item.intent || `${name(item)} (intent not loaded)`;
-		lines.push(`${indent}${label}${identified ? `[${item.id}] ` : ""}${compact(phrase, item.id === view.focus || item.state === "parked" ? 100 : 90)}${item.summaryOnly ? " · name/state only" : ""}`);
+		if (!(item.kind === "rule" && why(item, indent, prefix))) {
+			lines.push(`${indent}${prefix}${compact(phrase, item.id === view.focus || item.state === "parked" ? 100 : 90)}${item.summaryOnly ? " · name/state only" : ""}`);
+		}
 		// Keep exact attached-record scope. Labels are only previews; no endpoint
 		// is widened to its containing endeavor. Omitted targets are counted.
 		const targets = [...new Set(view.connections.filter(c => c.relation === "governs" && (c.fromAnnotation ?? c.from) === item.id)
@@ -266,21 +285,34 @@ export function summaryText(view: WorkView): string {
 	if (!items.length) lines.push(view.omittedRecords ? "No records loaded in this selection." : "Mom has not saved an account of this work yet.");
 	else if (!view.purpose || !endeavors.has(view.purpose)) lines.push(`Endeavor: account outside this view${view.purpose ? ` [${view.purpose}]` : ""}.`);
 
-	const important = new Set([view.focusEndeavor, view.purpose].filter((id): id is string => Boolean(id && endeavors.has(id))));
+	const pinned = [view.motherThread, view.focusEndeavor, view.purpose]
+		.filter((id): id is string => Boolean(id && endeavors.has(id)))
+		.filter((id, index, all) => all.indexOf(id) === index);
+	const important = new Set(pinned);
+	const alternativeIds = new Set(view.connections.filter(connection => connection.relation === "alternative_to")
+		.flatMap(connection => [connection.from, connection.to]));
 	const rest = view.endeavors.filter(e => !important.has(e.id)).sort((a, b) => {
-		const rank = (e: EndeavorView) => selected.has(e.id) || e.annotations.some(a => selected.has(a.id)) ? 0 : e.state === "active" ? 1 : e.state === "parked" ? 2 : 3;
+		const rank = (e: EndeavorView) => selected.has(e.id) || e.annotations.some(a => selected.has(a.id)) ? 0
+			: alternativeIds.has(e.id) ? 1 : e.state === "parked" ? 2 : e.state === "active" ? 3 : 4;
 		return rank(a) - rank(b);
 	});
-	const shown = [...important].map(id => endeavors.get(id)!).concat(rest.slice(0, GROUP_LIMIT));
+	const shown = pinned.map(id => endeavors.get(id)!).concat(rest.slice(0, ENDEAVOR_LIMIT));
 	for (const endeavor of shown) {
 		const focused = endeavor.id === view.focusEndeavor;
-		lines.push(`Endeavor: ${compact(name(endeavor), 70)} [${endeavor.id}] — ${state(endeavor)}${focused ? view.historical ? " · recorded focus" : coverageComplete ? " · current" : " · last saved focus" : ""}${endeavor.summaryOnly ? " · name/state only" : ""}`);
+		const heading = endeavor.id === view.motherThread ? "Mother thread" : "Endeavor";
+		lines.push(`${heading}: ${compact(name(endeavor), 70)} [${endeavor.id}] — ${state(endeavor)}${focused ? view.historical ? " · recorded focus" : coverageComplete ? " · current" : " · last saved focus" : ""}${endeavor.summaryOnly ? " · name/state only" : ""}`);
 		if (endeavor.parent) lines.push(`  Within: ${compact(endeavors.get(endeavor.parent)?.label || endeavor.parent)}`);
 		annotations(endeavor.annotations, endeavor.id);
-		if (endeavor.intent) lines.push(`  Purpose: ${compact(endeavor.intent)}`);
+		why(endeavor, "  ");
+		const links: [string, string[]][] = [
+			["Depends on", view.connections.filter(c => c.relation === "depends_on" && c.from === endeavor.id).map(c => c.toAnnotation ?? c.to)],
+			["Alternative to", view.connections.filter(c => c.relation === "alternative_to" && c.from === endeavor.id).map(c => c.toAnnotation ?? c.to)],
+			["Returns to", view.connections.filter(c => c.relation === "returns_to" && c.from === endeavor.id).map(c => c.toAnnotation ?? c.to)],
+		];
+		for (const [label, targets] of links) if (targets.length) lines.push(`  ${label}: ${grouped([...new Set(targets)].map(id => compact(byId.get(id)?.label || id, 70)))}`);
 		history(endeavor, "  ");
 	}
-	if (rest.length > GROUP_LIMIT) lines.push(`Other endeavors: … ${rest.length - GROUP_LIMIT} more (full map details).`);
+	if (rest.length > ENDEAVOR_LIMIT) lines.push(`Other endeavors: … ${rest.length - ENDEAVOR_LIMIT} more (full map details).`);
 	if (view.unattachedAnnotations.length) {
 		lines.push("Notes — parent not recorded in this view:");
 		annotations(view.unattachedAnnotations, null);

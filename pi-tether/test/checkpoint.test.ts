@@ -68,6 +68,9 @@ test("failure and skipped-gap state share the map stream and restore without tra
 		gap: { action: "open", id: "gap-one", key: "range", from, through, refs: [], error: "rejected", failures: 2 } });
 	const skipped = await loadState(store, manager);
 	assert.equal(skipped.failure, undefined); assert.equal(skipped.coverageCut?.parent, leaf); assert.equal(skipped.gaps[0]?.id, "gap-one");
+	await store.append("map", { base: "keep", cut: through,
+		gap: { action: "open", ...skipped.gaps[0], refs: ["remaining-ref"] } });
+	assert.deepEqual((await loadState(store, manager)).gaps[0]?.refs, ["remaining-ref"], "an atomic open record narrows durable remaining-gap coverage");
 	await store.append("map", { base: "keep", cut: through, gap: { action: "resolved", id: "gap-one" } });
 	assert.deepEqual((await loadState(store, manager)).gaps, []);
 });
@@ -126,7 +129,7 @@ test("source validator rejects invented citations and user-as-violation notices"
 		{ ref: "s:r", at: "", actor: "lead", kind: "tool_result", name: "bash" },
 	];
 	const known = new Map(events.map((e) => [e.ref, e])), fresh = new Set(events.map((e) => e.ref)), inspected = new Set<string>();
-	const node = { id: "main", kind: "try", parent: null, state: "active", label: "Purpose", intent: "Keep user files.", observed: "", actor: "lead", sources: ["s:u"] };
+	const node = { id: "main", kind: "try", parent: null, state: "active", label: "Purpose", intent: "Do not delete.", observed: "", actor: "lead", sources: ["s:u"], purposeSource: "s:u" };
 	const base = { revision: 0, purpose: "main", focus: "main", upsertNodes: [node], unfinished: [], upsertEdges: [], removeEdges: [], merges: [], folds: [], removeNodes: [], supersessions: [], note: null };
 	const accept = (value: unknown, refs = fresh, question?: string) => acceptGraph(value, emptyGraph(), undefined, known, refs, inspected, question);
 	assert.equal(accept(base).note, null);

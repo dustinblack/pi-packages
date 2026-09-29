@@ -8,7 +8,7 @@ const node = (id: string, parent: string | null, state: GraphNode["state"] = "ac
 });
 const put = (node: GraphNode): GraphEdit => ({ op: "put_node", node });
 const item = (node: string, disposition: UnfinishedItems[number]["disposition"] = "carried", target: string | null = "main"): UnfinishedItems[number] => ({ node, label: node, disposition, target, sources: ["s:return"] });
-const initial = () => editGraph(emptyGraph(), 0, [put(node("main", null)), put(node("child", "main")), put(node("hold", "child", "active", "rule")), put(node("pending", "child", "parked")), put(node("other", null))], "main", "child", refs);
+const initial = () => editGraph(emptyGraph(), 0, [put(node("main", null)), put(node("child", "main")), put(node("hold", "child", "active", "rule")), put(node("pending", "child", "parked")), put(node("other", "main"))], "main", "child", refs);
 const closing = () => [{ ...node("main", null), observed: "Child outcome incorporated", sources: ["s:return"] }, node("child", "main", "settled")];
 const folds = [{ thread: "child", reason: "Limited step completed", sources: ["s:return"] }];
 const fold = (before: ReturnType<typeof initial>, updates = closing()) => editGraph(before, before.revision, [...updates.map(put), { op: "fold", ...folds[0] }], "main", "main", refs, "previous");

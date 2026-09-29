@@ -29,7 +29,11 @@ test("agents read current neighborhoods, folded history and original sources wit
 			if (!isMomRequest(request)) return { text: "Recorded the research result; deferred wording remains open." };
 			const body = input(request), ref = /\[src:([^\]]+)\]/.exec(body.newEvents)![1];
 			const put = (id: string, kind: string, state: string, parent: string | null = "main") => ({
-				id, kind, parent, state, label: id, intent: id === "hold" ? "No file edits." : id, observed: "Reported in the source.", actor: "lead", sources: [ref],
+				id, kind, parent, state, label: id,
+				intent: id === "main" ? body.graph.nodes.find((node: any) => node.id === "main")?.intent ?? body.original.text
+					: id === "research" ? "Research returned with two findings" : id === "pending" ? "defer wording" : id === "hold" ? "No file edits" : id,
+				observed: "Reported in the source.", actor: "lead", sources: [ref],
+				purposeSource: id === "main" ? body.graph.nodes.find((node: any) => node.id === "main")?.purposeSource ?? body.original.ref : ref,
 			});
 			const edge = (from: string, relation: string, to: string) => ({ from, relation, to, sources: [ref] });
 			return { tool: { name: "commit_graph", arguments: { revision: body.graph.revision, purpose: "main", focus: body.graph.revision ? "pending" : "research", note: null,
