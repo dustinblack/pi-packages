@@ -1,57 +1,100 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { directlyGrounded, MOM_PROMPT } from "../src/contract.ts";
+import { directlyGrounded } from "../src/contract.ts";
+import { extractEvents } from "../src/feed.ts";
 import { checkGraph } from "../src/graph.ts";
-import { presentGraph, readText } from "../src/presentation.ts";
 
-const path = new URL("./evidence/todo-007-real-luna-purpose-map.json", import.meta.url);
-const raw = await readFile(path, "utf8"), artifact = JSON.parse(raw);
-const hash = (value: string) => createHash("sha256").update(value).digest("hex");
-assert.equal(artifact.schema, "todo-007-real-session-cold-catchup-v2");
-assert.deepEqual(artifact.model, { provider: "openai-codex", id: "gpt-5.6-luna", reasoning: "low" });
+const artifactPath = new URL("./evidence/todo-007-real-luna-purpose-map.json", import.meta.url);
+const artifact = JSON.parse(await readFile(artifactPath, "utf8"));
+const frozenPath = process.env.TODO007_FROZEN_SNAPSHOT;
+const sidecarPath = process.env.TODO007_SIDECAR;
+const livePath = process.env.TODO007_LIVE_SOURCE;
+assert(frozenPath && sidecarPath && livePath, "set TODO007_FROZEN_SNAPSHOT, TODO007_SIDECAR, and TODO007_LIVE_SOURCE to isolated/read-only evidence paths");
+const hash = (value: string | Buffer) => createHash("sha256").update(value).digest("hex");
+
+assert.equal(artifact.schema, "todo-007-real-session-capture-blocked-v3");
+assert.equal(artifact.status, "blocked");
+assert.deepEqual(artifact.model, { provider: "openai-codex", id: "gpt-5.6-luna", reasoning: "low", fallbackUsed: false });
 assert.equal(artifact.production.implementation, "Mom");
 assert.equal(artifact.production.backgroundCallCeiling, 2);
-assert.match(artifact.isolation, /copied before launch/);
-assert.equal(artifact.hashes.sourceBeforeSha256, artifact.hashes.sourceAfterSha256);
-assert.equal(artifact.hashes.sourceBeforeSha256, artifact.hashes.tempSessionInitialSha256);
-assert.notEqual(artifact.hashes.tempSessionAfterSha256, artifact.hashes.sourceAfterSha256);
-assert.equal(artifact.hashes.promptSha256, hash(MOM_PROMPT));
-assert(artifact.batches.length >= 3, "capture must contain a multi-chapter cold catch-up");
-assert(artifact.batches.every((batch: any) => batch.calls >= 1 && batch.calls <= artifact.production.backgroundCallCeiling));
-assert(artifact.batches.every((batch: any) => batch.motherThread === artifact.finalGraph.motherThread));
-assert.deepEqual(artifact.finalCursor, artifact.batches.at(-1).cursor);
-assert.equal(artifact.checks.sourceUnchanged, true);
-assert.equal(artifact.checks.tempOnlySidecar, true);
-assert.equal(artifact.checks.stableMotherRoot, true);
-assert.equal(artifact.checks.currentWork, true);
-assert.equal(artifact.checks.sourceBackedEnglishWhy, true);
-assert.equal(artifact.checks.interruptedParkedBranch, false);
-assert.equal(artifact.checks.consideredAlternative, false);
-assert.match(artifact.limitations.join("\n"), /no parked endeavor and no alternative_to/);
+assert.equal(artifact.production.backgroundSearchOrReadAllowed, false);
+
+const frozen = await readFile(frozenPath);
+const lines = frozen.toString("utf8").split("\n").filter(Boolean);
+assert.equal(frozen.byteLength, artifact.snapshot.bytes);
+assert.equal(lines.length, artifact.snapshot.lines);
+assert.equal(hash(frozen), artifact.snapshot.sha256);
+const finalEntry = JSON.parse(lines.at(-1)!);
+assert.equal(finalEntry.id, artifact.snapshot.finalEntryId);
+assert.equal(artifact.snapshot.finalEligibleRef, `01a0e020-12a4-7474-819f-ad784bb5febd:${finalEntry.id}`);
+
+const live = await readFile(livePath);
+assert(live.byteLength >= frozen.byteLength, "live source became shorter than the snapshot");
+assert(frozen.equals(live.subarray(0, frozen.byteLength)), "frozen snapshot is no longer an exact byte prefix of live source");
+assert.equal(artifact.sourceAfterRun.snapshotIsExactBytePrefix, true);
+assert.equal(artifact.sourceAfterRun.wholeLiveFileEqualityClaimed, false);
+
+const sourceEvents = new Map<string, any>();
+const sourceLineHashes = new Map<string, string>();
+for (const line of lines) {
+ const entry = JSON.parse(line);
+ if (typeof entry.id !== "string") continue;
+ sourceLineHashes.set(entry.id, hash(Buffer.from(line + "\n")));
+ for (const event of extractEvents({ key: "01a0e020-12a4-7474-819f-ad784bb5febd", actor: "lead" }, entry)) sourceEvents.set(event.ref, event);
+}
+assert(sourceEvents.has(artifact.snapshot.finalEligibleRef), "snapshot final ref is not an eligible feed event");
 checkGraph(artifact.finalGraph);
-assert.equal(artifact.finalGraph.motherThread, artifact.finalGraph.purpose);
-assert.equal(artifact.finalGraph.nodes.filter((node: any) => node.parent === null).length, 1);
 assert.equal(artifact.finalGraphSha256, hash(JSON.stringify(artifact.finalGraph)));
-const evidence = new Map(artifact.whyEvidence.map((item: any) => [item.node, item]));
-for (const node of artifact.finalGraph.nodes) {
-	if (!(["feature", "theory", "postulate", "try", "rule"].includes(node.kind) && ["active", "parked", "proposed"].includes(node.state))) continue;
-	const item: any = evidence.get(node.id);
-	assert(item && node.sources.includes(item.source), `missing cited Why evidence for ${node.id}`);
-	assert.equal(item.intent, node.intent);
-	assert(directlyGrounded(node.intent, item.text), `nonliteral Why evidence for ${node.id}`);
+assert.equal(artifact.coldReopenGraphSha256, artifact.finalGraphSha256);
+assert.equal(artifact.finalGraph.motherThread, artifact.stableMotherThread.value);
+assert.equal(artifact.stableMotherThread.allAcceptedSnapshotsStable, true);
+for (const item of artifact.whyEvidence) {
+ const event = sourceEvents.get(item.purposeSource);
+ assert(event?.text, `missing copied original event ${item.purposeSource}`);
+ assert.equal(item.sourceEntrySha256, sourceLineHashes.get(item.purposeSource.split(":")[1]));
+ assert.equal(item.exactGroundedExcerpt, item.intent);
+ assert(directlyGrounded(item.intent, event.text), `nonliteral public Why for ${item.node}`);
+ assert.equal(item.tokenBoundaryGroundedInFrozenEntry, true);
+ const node = artifact.finalGraph.nodes.find((candidate: any) => candidate.id === item.node);
+ assert(node && node.intent === item.intent && node.purposeSource === item.purposeSource);
 }
-for (const digest of Object.values(artifact.citedSourceLineSha256)) assert.match(String(digest), /^[a-f0-9]{64}$/);
-for (const item of [...artifact.finalGraph.nodes, ...artifact.finalGraph.edges]) for (const source of item.sources) {
-	const entryId = source.split(":")[1];
-	assert.match(artifact.citedSourceLineSha256[entryId], /^[a-f0-9]{64}$/, `missing source-line hash for ${source}`);
-}
-for (const batch of artifact.batches) for (const worker of batch.cursor.workers) assert.match(worker.hash, /^[a-f0-9]{64}$/);
-const story = readText(presentGraph({ ...artifact.finalGraph, roots: [artifact.finalGraph.motherThread], focusPath: [], boundaryNodes: [], totalNodes: artifact.finalGraph.nodes.length, omittedNodes: 0 }));
-assert.equal(artifact.story, story);
-assert.match(story, /^Mother thread:/);
-assert.match(story, /Why: Dig into Claude Code session/);
-assert.match(story, /Why: Never silently delete or overwrite user work/);
-assert.match(story, /\[src:01a0e020-/);
-assert.doesNotMatch(raw, /(?:sk-[A-Za-z0-9]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|Authorization\s*[:=]|Bearer\s+[A-Za-z0-9._-]{16,}|\/Users\/)/i);
-console.log(JSON.stringify({ valid: true, batches: artifact.batches.length, calls: artifact.batches.map((batch: any) => batch.calls), nodes: artifact.finalGraph.nodes.length, graphSha256: artifact.finalGraphSha256 }));
+
+const records = (await readFile(sidecarPath, "utf8")).trim().split("\n").map(line => JSON.parse(line));
+assert.deepEqual([...new Set(records.map(record => record.type))].sort(), ["map", "usage"]);
+const snapshots = records.filter(record => record.type === "map" && record.data.snapshot);
+const reopened = snapshots.at(-1).data.snapshot;
+assert.deepEqual(reopened.graph, artifact.finalGraph);
+assert.equal(hash(JSON.stringify(reopened.graph)), artifact.coldReopenGraphSha256);
+assert.equal(reopened.cut.parent, artifact.coverage.durableCursorParent);
+assert.equal(snapshots.length, artifact.totals.acceptedSnapshots);
+const usage = records.filter(record => record.type === "usage");
+assert.equal(usage.at(-1).data.usage.calls, artifact.totals.modelCalls);
+assert.equal(artifact.batches.length, artifact.totals.backgroundBatches);
+assert(artifact.batches.every((batch: any) => batch.calls >= 1 && batch.calls <= 2));
+assert.equal(artifact.batches.reduce((sum: number, batch: any) => sum + batch.calls, 0), artifact.totals.modelCalls);
+
+assert.equal(artifact.coverage.complete, false);
+assert.equal(artifact.coverage.cursorCoversFinalEligibleEvent, false);
+assert.equal(artifact.coverage.remainingSnapshotEvidence, true);
+assert.notEqual(artifact.coverage.durableCursorParent, artifact.snapshot.finalEntryId);
+assert.match(artifact.coverage.blocker, /90,000-character context limit/);
+assert(artifact.gaps.some((gap: any) => gap.action === "open"));
+assert(artifact.failures.some((failure: any) => /Public Why/.test(failure.error)));
+assert.deepEqual(artifact.hierarchy.topLevel, [artifact.finalGraph.motherThread]);
+assert.equal(artifact.hierarchy.current, artifact.finalGraph.focus);
+assert(artifact.hierarchy.parked.length > 0);
+assert.equal(artifact.hierarchy.alternativeCategoryAbsent, true);
+assert.deepEqual(artifact.hierarchy.alternatives, []);
+assert.equal(artifact.isolation.frozenSnapshotUnchanged, true);
+assert.equal(artifact.isolation.freshSidecar, true);
+assert.match(artifact.isolation.sourceSidecarFormat, /incompatible legacy/);
+assert.equal(artifact.isolation.sourceAdjacentCaptureFilesWritten, false);
+assert.deepEqual(artifact.isolation.tempSidecarRecordTypes, ["map", "usage"]);
+assert.equal(artifact.sanitization.rawSessionCommitted, false);
+assert.equal(artifact.sanitization.privateToolOutputCommitted, false);
+const artifactRaw = await readFile(artifactPath, "utf8");
+assert.doesNotMatch(artifactRaw, /(?:sk-[A-Za-z0-9]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|Authorization\s*[:=]|Bearer\s+[A-Za-z0-9._-]{16,}|\/Users\/)/i);
+console.log(JSON.stringify({ valid: true, status: artifact.status, snapshotLines: lines.length, finalRef: artifact.snapshot.finalEligibleRef,
+ batches: artifact.totals.backgroundBatches, calls: artifact.totals.modelCalls, cursor: artifact.coverage.durableCursorParent,
+ remainingEvidence: artifact.coverage.remainingSnapshotEvidence, graphSha256: artifact.finalGraphSha256 }));

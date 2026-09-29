@@ -1,306 +1,984 @@
 {
-  "schema": "todo-007-real-session-cold-catchup-v2",
-  "capturedAt": "2026-09-29T18:48:23.964Z",
+  "schema": "todo-007-real-session-capture-blocked-v3",
+  "status": "blocked",
+  "capturedAt": "2026-09-29T19:34:44Z",
   "model": {
     "provider": "openai-codex",
     "id": "gpt-5.6-luna",
-    "reasoning": "low"
+    "reasoning": "low",
+    "fallbackUsed": false
   },
   "production": {
     "extension": "pi-tether/src/index.ts",
     "implementation": "Mom",
     "backgroundCallCeiling": 2,
+    "backgroundSearchOrReadAllowed": false,
     "sidecarSuffix": ".mom"
   },
-  "isolation": "The source JSONL was copied before launch. Pi opened only the isolated copy as its session, and Mom created a fresh sidecar beside that copy. The source transcript was read-only evidence and retained the same SHA-256 before and after.",
-  "hashes": {
-    "sourceBeforeSha256": "65a2e7b0124929c7a4cb9580b15a247fb71242724bf52a9ab52f661dc4ae7499",
-    "sourceAfterSha256": "65a2e7b0124929c7a4cb9580b15a247fb71242724bf52a9ab52f661dc4ae7499",
-    "tempSessionInitialSha256": "65a2e7b0124929c7a4cb9580b15a247fb71242724bf52a9ab52f661dc4ae7499",
-    "tempSessionAfterSha256": "1c1bf7d33e11274efb210cb41725f0260e34ef23864669146730b59751b8a424",
-    "tempSidecarSha256": "845f0a71a2608e169890ae49c254f15cd2aefc64e8002e0f0c8fbc321c2f6c63",
-    "promptSha256": "115be6b9afb361b8ac3c92ce05d39242b1e57205e3e0fdbeb1ec20613fa4a543"
+  "snapshot": {
+    "sourcePath": "$HOME/.pi/agent/sessions/--Users-ssweens-src-pi-packages--/2026-09-26T23-49-53-444Z_01a0e020-12a4-7474-819f-ad784bb5febd.jsonl",
+    "timestamp": "2026-09-29T19:34:44Z",
+    "bytes": 54015174,
+    "lines": 7336,
+    "sha256": "410ce1d76e5524680569686852a1475449aee04aa35681975bea600838743071",
+    "finalEntryId": "94296916",
+    "finalEligibleRef": "01a0e020-12a4-7474-819f-ad784bb5febd:94296916"
   },
-  "files": {
-    "source": "2026-09-26T23-49-53-444Z_01a0e020-12a4-7474-819f-ad784bb5febd.jsonl",
-    "tempSession": "isolated-temp/session.jsonl",
-    "tempSidecar": "isolated-temp/session.mom"
-  },
-  "checks": {
-    "sourceUnchanged": true,
-    "tempOnlySidecar": true,
-    "stableMotherRoot": true,
-    "callsPerBackgroundBatchAtMostTwo": true,
-    "currentWork": true,
-    "sourceBackedEnglishWhy": true,
-    "interruptedParkedBranch": false,
-    "consideredAlternative": false
-  },
-  "limitations": [
-    "The captured cold-catch-up prefix contains no parked endeavor and no alternative_to relation in the accepted graph; this capture does not claim either category.",
-    "The 75-second run accepted three bounded backlog batches and stopped with later source history still pending; it proves multi-chapter cold catch-up, not full-session completion."
-  ],
-  "batches": [
-    {
-      "revision": 1,
-      "motherThread": "mother",
-      "focus": "aaron_audit",
-      "calls": 2,
-      "cumulativeCalls": 2,
-      "cursor": {
-        "parent": "f2577ae1",
-        "workers": []
-      },
-      "graphSha256": "1fcf751b5c7a54ff44afdad195f1842d434d825d84205266c92a0f5b1619690e"
-    },
-    {
-      "revision": 2,
-      "motherThread": "mother",
-      "focus": "tether_landing",
-      "calls": 2,
-      "cumulativeCalls": 4,
-      "cursor": {
-        "parent": "c8279712",
-        "workers": [
-          {
-            "runId": "scout-245c7f28-9ec7-4295-ba1c-b0d724ba4cf6",
-            "sessionId": "01a0e02c-56c1-7474-819f-ad7a1ed4879b",
-            "offset": 0,
-            "messages": 0,
-            "lastId": null,
-            "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-            "file": "2026-09-27T00-03-17-313Z_01a0e02c-56c1-7474-819f-ad7a1ed4879b.jsonl"
-          }
-        ]
-      },
-      "graphSha256": "e26032c4e24809e27954644baea01a623d386c5f05e69b44efa02ff9f317eed7"
-    },
-    {
-      "revision": 3,
-      "motherThread": "mother",
-      "focus": "tether_landing",
-      "calls": 1,
-      "cumulativeCalls": 5,
-      "cursor": {
-        "parent": "fbfe2782",
-        "workers": [
-          {
-            "runId": "scout-245c7f28-9ec7-4295-ba1c-b0d724ba4cf6",
-            "sessionId": "01a0e02c-56c1-7474-819f-ad7a1ed4879b",
-            "offset": 0,
-            "messages": 0,
-            "lastId": null,
-            "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-            "file": "2026-09-27T00-03-17-313Z_01a0e02c-56c1-7474-819f-ad7a1ed4879b.jsonl"
-          },
-          {
-            "runId": "scout-372e3ad0-170b-43e9-ab1b-36f702c3974e",
-            "sessionId": "01a0e053-4612-7474-819f-ad814f6e0bea",
-            "offset": 0,
-            "messages": 0,
-            "lastId": null,
-            "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-            "file": "2026-09-27T00-45-48-946Z_01a0e053-4612-7474-819f-ad814f6e0bea.jsonl"
-          }
-        ]
-      },
-      "graphSha256": "0ddd8c2b428acdada1d96b41660958cef9b4c69af9e2ace74e7da5c3350f8fbd"
-    }
-  ],
-  "finalCursor": {
-    "parent": "fbfe2782",
-    "workers": [
-      {
-        "runId": "scout-245c7f28-9ec7-4295-ba1c-b0d724ba4cf6",
-        "sessionId": "01a0e02c-56c1-7474-819f-ad7a1ed4879b",
-        "offset": 0,
-        "messages": 0,
-        "lastId": null,
-        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "file": "2026-09-27T00-03-17-313Z_01a0e02c-56c1-7474-819f-ad7a1ed4879b.jsonl"
-      },
-      {
-        "runId": "scout-372e3ad0-170b-43e9-ab1b-36f702c3974e",
-        "sessionId": "01a0e053-4612-7474-819f-ad814f6e0bea",
-        "offset": 0,
-        "messages": 0,
-        "lastId": null,
-        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "file": "2026-09-27T00-45-48-946Z_01a0e053-4612-7474-819f-ad814f6e0bea.jsonl"
-      }
+  "isolation": {
+    "frozenSnapshotUnchanged": true,
+    "processingLocation": "isolated temporary directory",
+    "freshSidecar": true,
+    "sourceSidecarFormat": "incompatible legacy v1 checkpoint/attempt records; not copied, migrated, or trusted",
+    "sourceSidecarSha256BeforeAndAfter": "cacbd5c02b4821daefe28486b3f89dcce82ddba4a96e45aa80e65640438e6af2",
+    "sourceAdjacentCaptureFilesWritten": false,
+    "tempSidecarRecordTypes": [
+      "map",
+      "usage"
     ]
   },
+  "sourceAfterRun": {
+    "snapshotIsExactBytePrefix": true,
+    "bytes": 54258429,
+    "lines": 7364,
+    "sha256": "863868fcca06f0b449c4ac21b6a8b4e49f2ec2e8fa7c0cf0e9c657d1851cf807",
+    "wholeLiveFileEqualityClaimed": false,
+    "verifiedAt": "2026-09-29T19:58:07.684020Z"
+  },
+  "coverage": {
+    "complete": false,
+    "durableCursorParent": "43284208",
+    "snapshotFinalEntryId": "94296916",
+    "snapshotFinalEligibleRef": "01a0e020-12a4-7474-819f-ad784bb5febd:94296916",
+    "cursorCoversFinalEligibleEvent": false,
+    "remainingSnapshotEvidence": true,
+    "blocker": "A deterministic graph transaction failed grounding twice and opened gap 0f87f2d9-3bc1-4ba2-9e2b-921ed8abacc2 through 43284208. /mom refresh then exceeded the production 90,000-character context limit when combining the 224-event retry range with pending evidence. Retrying against a prefix ending at 43284208 used two more calls but Luna again failed exact purposeSource grounding; no gap-free durable coverage can be published."
+  },
+  "totals": {
+    "backgroundBatches": 29,
+    "modelCalls": 48,
+    "acceptedSnapshots": 21,
+    "sidecarRecords": 55
+  },
+  "batches": [
+    {
+      "batch": 1,
+      "calls": 2,
+      "cumulativeCalls": 2,
+      "outcome": "accepted",
+      "cursorParent": "f2577ae1",
+      "error": null
+    },
+    {
+      "batch": 2,
+      "calls": 1,
+      "cumulativeCalls": 3,
+      "outcome": "accepted",
+      "cursorParent": "c8279712",
+      "error": null
+    },
+    {
+      "batch": 3,
+      "calls": 1,
+      "cumulativeCalls": 4,
+      "outcome": "accepted",
+      "cursorParent": "fbfe2782",
+      "error": null
+    },
+    {
+      "batch": 4,
+      "calls": 2,
+      "cumulativeCalls": 6,
+      "outcome": "accepted",
+      "cursorParent": "6fd17dfa",
+      "error": null
+    },
+    {
+      "batch": 5,
+      "calls": 2,
+      "cumulativeCalls": 8,
+      "outcome": "failed",
+      "cursorParent": null,
+      "error": "Error: Graph transaction defects:\n- Public Why for mother_event_rule must be one complete normalized token sequence copied from purposeSource 01a0e020-12a4-7474-819f-ad784bb5febd:3043380c; paraphrase, stitched fragments, and word-substring matches are not grounding."
+    },
+    {
+      "batch": 6,
+      "calls": 1,
+      "cumulativeCalls": 9,
+      "outcome": "accepted",
+      "cursorParent": "24efc2e3",
+      "error": null
+    },
+    {
+      "batch": 7,
+      "calls": 1,
+      "cumulativeCalls": 10,
+      "outcome": "accepted",
+      "cursorParent": "45987d66",
+      "error": null
+    },
+    {
+      "batch": 8,
+      "calls": 2,
+      "cumulativeCalls": 12,
+      "outcome": "accepted",
+      "cursorParent": "bd82a56b",
+      "error": null
+    },
+    {
+      "batch": 9,
+      "calls": 1,
+      "cumulativeCalls": 13,
+      "outcome": "accepted",
+      "cursorParent": "a18a500c",
+      "error": null
+    },
+    {
+      "batch": 10,
+      "calls": 2,
+      "cumulativeCalls": 15,
+      "outcome": "accepted",
+      "cursorParent": "0092444a",
+      "error": null
+    },
+    {
+      "batch": 11,
+      "calls": 1,
+      "cumulativeCalls": 16,
+      "outcome": "accepted",
+      "cursorParent": "b4891b30",
+      "error": null
+    },
+    {
+      "batch": 12,
+      "calls": 2,
+      "cumulativeCalls": 18,
+      "outcome": "accepted",
+      "cursorParent": "4717064a",
+      "error": null
+    },
+    {
+      "batch": 13,
+      "calls": 2,
+      "cumulativeCalls": 20,
+      "outcome": "accepted",
+      "cursorParent": "def9db4d",
+      "error": null
+    },
+    {
+      "batch": 14,
+      "calls": 2,
+      "cumulativeCalls": 22,
+      "outcome": "accepted",
+      "cursorParent": "77745cac",
+      "error": null
+    },
+    {
+      "batch": 15,
+      "calls": 2,
+      "cumulativeCalls": 24,
+      "outcome": "accepted",
+      "cursorParent": "43b4e45e",
+      "error": null
+    },
+    {
+      "batch": 16,
+      "calls": 1,
+      "cumulativeCalls": 25,
+      "outcome": "accepted",
+      "cursorParent": "6b36c841",
+      "error": null
+    },
+    {
+      "batch": 17,
+      "calls": 2,
+      "cumulativeCalls": 27,
+      "outcome": "accepted",
+      "cursorParent": "ed1f10db",
+      "error": null
+    },
+    {
+      "batch": 18,
+      "calls": 2,
+      "cumulativeCalls": 29,
+      "outcome": "accepted",
+      "cursorParent": "6315a85b",
+      "error": null
+    },
+    {
+      "batch": 19,
+      "calls": 2,
+      "cumulativeCalls": 31,
+      "outcome": "accepted",
+      "cursorParent": "fc473fd8",
+      "error": null
+    },
+    {
+      "batch": 20,
+      "calls": 2,
+      "cumulativeCalls": 33,
+      "outcome": "accepted",
+      "cursorParent": "4282f7c4",
+      "error": null
+    },
+    {
+      "batch": 21,
+      "calls": 2,
+      "cumulativeCalls": 35,
+      "outcome": "failed",
+      "cursorParent": null,
+      "error": "Error: Graph transaction defects:\n- Public Why for live_mom_implementation must be one complete normalized token sequence copied from purposeSource 01a0e020-12a4-7474-819f-ad784bb5febd:380789ad; paraphrase, stitched fragments, and word-substring matches are not grounding."
+    },
+    {
+      "batch": 22,
+      "calls": 2,
+      "cumulativeCalls": 37,
+      "outcome": "failed",
+      "cursorParent": "59f36d88",
+      "error": "Error: Graph transaction defects:\n- Upsert snapshot_validation omits prior user authority 01a0e020-12a4-7474-819f-ad784bb5febd:dadd2ce3; retain it or declare a later fresh user supersession.\n- Upsert snapshot_validation omits prior user authority 01a0e020-12a4-7474-819f-ad784bb5febd:7fdb3f11; retain it or declare a later fresh user supersession."
+    },
+    {
+      "batch": 23,
+      "calls": 1,
+      "cumulativeCalls": 38,
+      "outcome": "failed",
+      "cursorParent": null,
+      "error": "Error: Mom context exceeds 90,000 characters. Last checkpoint retained; no silent truncation."
+    },
+    {
+      "batch": 24,
+      "calls": 2,
+      "cumulativeCalls": 40,
+      "outcome": "failed",
+      "cursorParent": null,
+      "error": "Error: Graph transaction defects:\n- Public Why for live_checkpoint_rule must be one complete normalized token sequence copied from purposeSource 01a0e020-12a4-7474-819f-ad784bb5febd:2176e255; paraphrase, stitched fragments, and word-substring matches are not grounding."
+    },
+    {
+      "batch": 25,
+      "calls": 2,
+      "cumulativeCalls": 42,
+      "outcome": "failed",
+      "cursorParent": "43284208",
+      "error": "Error: Graph transaction defects:\n- Public Why for live_cutover must be one complete normalized token sequence copied from purposeSource 01a0e020-12a4-7474-819f-ad784bb5febd:380789ad; paraphrase, stitched fragments, and word-substring matches are not grounding.\n- Public Why for live_scope_rule must be one complete normalized token sequence copied from purposeSource 01a0e020-12a4-7474-819f-ad784bb5febd:380789ad; paraphrase, stitched fragments, and word-substring matches are not grounding."
+    },
+    {
+      "batch": 26,
+      "calls": 1,
+      "cumulativeCalls": 43,
+      "outcome": "failed",
+      "cursorParent": null,
+      "error": "Error: Mom context exceeds 90,000 characters. Last checkpoint retained; no silent truncation."
+    },
+    {
+      "batch": 27,
+      "calls": 1,
+      "cumulativeCalls": 44,
+      "outcome": "failed",
+      "cursorParent": null,
+      "error": "Error: Mom context exceeds 90,000 characters. Last checkpoint retained; no silent truncation."
+    },
+    {
+      "batch": 28,
+      "calls": 2,
+      "cumulativeCalls": 46,
+      "outcome": "accepted",
+      "cursorParent": "2c4da396",
+      "error": null
+    },
+    {
+      "batch": 29,
+      "calls": 2,
+      "cumulativeCalls": 48,
+      "outcome": "accepted",
+      "cursorParent": "43284208",
+      "error": null
+    }
+  ],
+  "failures": [
+    {
+      "failures": 1,
+      "fromParent": "6fd17dfa",
+      "throughParent": "24efc2e3",
+      "error": "Error: Graph transaction defects:\n- Public Why for mother_event_rule must be one complete normalized token sequence copied from purposeSource 01a0e020-12a4-7474-819f-ad784bb5febd:3043380c; paraphrase, stitched fragments, and word-substring matches are not grounding."
+    },
+    {
+      "failures": 1,
+      "fromParent": "4282f7c4",
+      "throughParent": "59f36d88",
+      "error": "Error: Graph transaction defects:\n- Public Why for live_mom_implementation must be one complete normalized token sequence copied from purposeSource 01a0e020-12a4-7474-819f-ad784bb5febd:380789ad; paraphrase, stitched fragments, and word-substring matches are not grounding."
+    },
+    {
+      "failures": 1,
+      "fromParent": "59f36d88",
+      "throughParent": "43284208",
+      "error": "Error: Graph transaction defects:\n- Public Why for live_checkpoint_rule must be one complete normalized token sequence copied from purposeSource 01a0e020-12a4-7474-819f-ad784bb5febd:2176e255; paraphrase, stitched fragments, and word-substring matches are not grounding."
+    }
+  ],
+  "gaps": [
+    {
+      "action": "open",
+      "id": "a700220a-b7e0-4ea2-be51-69e718b8a2e3",
+      "throughParent": "59f36d88"
+    },
+    {
+      "action": "open",
+      "id": "0f87f2d9-3bc1-4ba2-9e2b-921ed8abacc2",
+      "throughParent": "43284208"
+    },
+    {
+      "action": "resolved",
+      "id": "a700220a-b7e0-4ea2-be51-69e718b8a2e3",
+      "throughParent": "2c4da396"
+    },
+    {
+      "action": "resolved",
+      "id": "a700220a-b7e0-4ea2-be51-69e718b8a2e3",
+      "throughParent": "43284208"
+    }
+  ],
+  "stableMotherThread": {
+    "value": "session_root",
+    "allAcceptedSnapshotsStable": true
+  },
   "finalGraph": {
-    "revision": 3,
-    "motherThread": "mother",
-    "purpose": "mother",
-    "focus": "tether_landing",
+    "revision": 20,
+    "motherThread": "session_root",
+    "purpose": "session_root",
+    "focus": "live_integration",
     "nodes": [
       {
-        "id": "mother",
+        "id": "session_root",
         "kind": "try",
         "parent": null,
         "state": "active",
-        "label": "Resume and evaluate the prior Claude Code work",
+        "label": "Resume the Claude Code session",
         "intent": "Dig into Claude Code session 9ef739b2-a82f-4d9c-ad69-0d1013ad5066 and let's pick up where it left off",
-        "observed": "The recovered session left an uncommitted pi-tether extension with passing automated checks and a remaining real-work trial. The current continuation is auditing it against the Aaron flow.",
+        "observed": "The work now centers on Mom owning the single correctable map while ingesting the full main and subagent stream without silently missing context. The unresolved design challenge is digesting that stream without doubling model usage or slowing the lead; capture, indexing, retrieval, semantic processing, coverage, lag, and cost must be separated and tested.",
         "actor": "",
         "sources": [
           "01a0e020-12a4-7474-819f-ad784bb5febd:c9c8130b",
-          "01a0e020-12a4-7474-819f-ad784bb5febd:d7adab30"
-        ]
+          "01a0e020-12a4-7474-819f-ad784bb5febd:e47a188a",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:bb46dc77",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:faad3c93",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:bf65cdd0"
+        ],
+        "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:c9c8130b"
       },
       {
         "id": "aaron_audit",
-        "kind": "theory",
-        "parent": "mother",
-        "state": "active",
+        "kind": "try",
+        "parent": "session_root",
+        "state": "parked",
         "label": "Audit pi-tether against the Aaron flow",
         "intent": "Audit it against the Aaron flow from that thread",
-        "observed": "The prior assessment says pi-tether has automated coverage and prior live UI exercise, but has not yet validated consistent model recognition of tangents or normal work with pi-omp enabled. The audit has begun with tether and history lookups; no audit conclusion is recorded yet.",
+        "observed": "The audit established that Tether should adapt Aaron's relationship principles rather than copy its workflow. The current direction is to build the hierarchical lead-and-trail model and its return/landing behavior.",
         "actor": "",
         "sources": [
           "01a0e020-12a4-7474-819f-ad784bb5febd:438cf1eb",
-          "01a0e020-12a4-7474-819f-ad784bb5febd:97416790",
-          "01a0e020-12a4-7474-819f-ad784bb5febd:d7922690",
-          "01a0e020-12a4-7474-819f-ad784bb5febd:f2577ae1"
-        ]
+          "01a0e020-12a4-7474-819f-ad784bb5febd:2e191afe",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:e8a3c976"
+        ],
+        "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:438cf1eb"
       },
       {
-        "id": "tether_landing",
+        "id": "landing_tidy",
         "kind": "feature",
-        "parent": "mother",
-        "state": "active",
-        "label": "Build hierarchical lead-and-trail Tether with landing",
-        "intent": "The missing capability is not more ledger display. It is a return/landing/tidy protocol: Tether keeps the map, and a trailing agent or fresh-eyes subagent periodically reconciles the map with the session and working directory.",
-        "observed": "The user chose safe auto-clean for narrowly defined temporary artifacts, with everything else reported, and required subagents/delegates for the landing work. Implementation activity continued afterward, including multiple edits and shell checks; no final implementation outcome is recorded in this slice.",
+        "parent": "session_root",
+        "state": "parked",
+        "label": "Build the trailing landing and tidy protocol",
+        "intent": "go get that",
+        "observed": "The implementation direction was revised toward lightweight returns and targeted working-tree checks rather than a mandatory tidy ceremony.",
         "actor": "",
         "sources": [
-          "01a0e020-12a4-7474-819f-ad784bb5febd:6725f8ef",
-          "01a0e020-12a4-7474-819f-ad784bb5febd:b7bba13a",
           "01a0e020-12a4-7474-819f-ad784bb5febd:91d38ef5",
           "01a0e020-12a4-7474-819f-ad784bb5febd:6a2ffbdf",
           "01a0e020-12a4-7474-819f-ad784bb5febd:c8279712:b1",
           "01a0e020-12a4-7474-819f-ad784bb5febd:2a94cb3c",
-          "01a0e020-12a4-7474-819f-ad784bb5febd:2171796b"
-        ]
+          "01a0e020-12a4-7474-819f-ad784bb5febd:2171796b",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:a522994e"
+        ],
+        "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:91d38ef5"
       },
       {
         "id": "residue_policy",
         "kind": "choice",
-        "parent": "tether_landing",
+        "parent": "landing_tidy",
         "state": "settled",
-        "label": "Use safe auto-clean for narrowly defined temporary artifacts",
-        "intent": "Use safe auto-clean for narrowly defined temporary artifacts while reporting everything else.",
-        "observed": "The user selected “Safe auto-clean.”",
+        "label": "Use safe auto-clean for residue",
+        "intent": "Safe auto-clean",
+        "observed": "The user selected safe auto-clean: automatically remove only narrowly defined temporary artifacts and report everything else.",
         "actor": "user",
         "sources": [
           "01a0e020-12a4-7474-819f-ad784bb5febd:2a94cb3c"
-        ]
+        ],
+        "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:2a94cb3c"
       },
       {
-        "id": "no_silent_cleanup",
+        "id": "delegates_rule",
         "kind": "rule",
-        "parent": "tether_landing",
+        "parent": "landing_tidy",
         "state": "active",
-        "label": "Do not silently delete or overwrite user work",
-        "intent": "“Never silently delete or overwrite user work.”",
-        "observed": "The proposed landing boundary requires inspection, attribution, surfacing unexplained residue, and scoped confirmed cleanup rather than silent mutation.",
-        "actor": "",
-        "sources": [
-          "01a0e020-12a4-7474-819f-ad784bb5febd:6a2ffbdf"
-        ]
-      },
-      {
-        "id": "delegate_landing",
-        "kind": "rule",
-        "parent": "tether_landing",
-        "state": "active",
-        "label": "Use subagents and delegates for landing work",
+        "label": "Use subagents and delegates",
         "intent": "And it should use subagents/delegates",
-        "observed": "The user required subagents/delegates as part of the Tether landing and residue-handling approach.",
+        "observed": "The lead required subagents/delegates as part of this direction.",
         "actor": "user",
         "sources": [
           "01a0e020-12a4-7474-819f-ad784bb5febd:2171796b"
-        ]
+        ],
+        "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:2171796b"
+      },
+      {
+        "id": "mother_coordinator",
+        "kind": "feature",
+        "parent": "session_root",
+        "state": "active",
+        "label": "Build the event-driven mother session",
+        "intent": "having a almost like a mother thread session sub agent",
+        "observed": "The accepted architecture is a slim feed: Mom routinely receives full user messages, existing lead and worker narrative, and lightweight structured tool records, while detailed tool arguments and results remain available for selective source lookup. No summarization model or mandatory reporting turn is added in front of Mom; Mom processes batches and owns the map. The remaining blind spot is facts present only in tool output and never surfaced by an agent, so independent semantic coverage is not claimed.",
+        "actor": "user",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:6fd17dfa",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:61332fe3",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:b3de2315",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:d78db232",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:04b14e3e",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:e47a188a",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:8aa53cef",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:bb46dc77",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:a131c4ac",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:faad3c93",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:bf65cdd0",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:947105af",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:760b8f61",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:50b39c79",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:a59c0a35"
+        ],
+        "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:6fd17dfa"
+      },
+      {
+        "id": "agent_reporting_rule",
+        "kind": "rule",
+        "parent": "mother_coordinator",
+        "state": "active",
+        "label": "Have subagents report to the mother thread",
+        "intent": "all of our sub agents can report to that thread what it is we're doing, progress we've made, things we're exploring, why we're exploring them",
+        "observed": "The user described the mother-thread process as the place where subagents report work, progress, explorations, and reasons for exploration.",
+        "actor": "user",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:6fd17dfa"
+        ],
+        "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:6fd17dfa"
+      },
+      {
+        "id": "mother_architecture_choice",
+        "kind": "choice",
+        "parent": "mother_coordinator",
+        "state": "settled",
+        "label": "Use a separate mother session",
+        "intent": "Separate mother",
+        "observed": "The user selected a dedicated persistent mother session rather than making the lead the mother.",
+        "actor": "user",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:61332fe3"
+        ],
+        "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:61332fe3"
+      },
+      {
+        "id": "mother_event_rule",
+        "kind": "rule",
+        "parent": "mother_coordinator",
+        "state": "active",
+        "label": "Wake the mother only for meaningful events",
+        "intent": "make it event-driven rather than a continuously thinking model",
+        "observed": "The implementation direction is event-driven, with useful check-ins at natural pauses rather than constant progress chatter.",
+        "actor": "",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:23296f38",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:9c4e1df2"
+        ],
+        "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:23296f38"
+      },
+      {
+        "id": "mother_safety_rule",
+        "kind": "rule",
+        "parent": "mother_coordinator",
+        "state": "active",
+        "label": "Do not let reminders delete anything",
+        "intent": "It should not interrupt work or treat a reminder as permission to delete anything.",
+        "observed": "The mother may remind the team to clean the room, but reminders do not authorize deletion.",
+        "actor": "",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:23296f38"
+        ],
+        "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:23296f38"
+      },
+      {
+        "id": "worker_reporting_boundary",
+        "kind": "rule",
+        "parent": "mother_coordinator",
+        "state": "active",
+        "label": "Do not claim live worker updates without a reporting path",
+        "intent": "I won’t present live worker updates as working until there’s an actual reporting path.",
+        "observed": "pi-delegate currently reports worker completion, not live progress; a separate mother requires an explicit inter-session reporting channel.",
+        "actor": "",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:3043380c",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:9c4e1df2"
+        ],
+        "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:9c4e1df2"
+      },
+      {
+        "id": "milestone_feed_choice",
+        "kind": "choice",
+        "parent": "mother_coordinator",
+        "state": "settled",
+        "label": "Use an in-process milestone feed",
+        "intent": "Recommended: extend pi-delegate with bounded typed activity events and test Tether's receipt without interrupting the lead.",
+        "observed": "The user selected the in-process feed option.",
+        "actor": "user",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:04b14e3e"
+        ],
+        "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:04b14e3e"
+      },
+      {
+        "id": "mapping_postulate",
+        "kind": "postulate",
+        "parent": "session_root",
+        "state": "proposed",
+        "label": "Mom maintains all Tether mapping",
+        "intent": "Mom does ALL tether",
+        "observed": "The user strengthened Postulate #1 into #1b: Mom, rather than Tether or the lead, owns all Tether mapping, history, breadcrumbs, return paths, status answers, and tidy reminders; the Tether UI is only a display and correction surface.",
+        "actor": "user",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:a18a500c",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:8aa53cef",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:fcf30e59"
+        ],
+        "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:8aa53cef"
+      },
+      {
+        "id": "mom_cost_latency_rule",
+        "kind": "rule",
+        "parent": "mother_coordinator",
+        "state": "active",
+        "label": "Do not double model usage or slow the lead",
+        "intent": "we don't necessarily want to double or more the model usage with this Mom approach, nor do we want to slow things down",
+        "observed": "The user set cost and responsiveness as continuing constraints on Mom's architecture; the lead must not be blocked while Mom digests context, and incremental model usage must not be assumed acceptable.",
+        "actor": "user",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:faad3c93"
+        ],
+        "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:faad3c93"
+      },
+      {
+        "id": "slim_feed_validation",
+        "kind": "feature",
+        "parent": "mother_coordinator",
+        "state": "parked",
+        "label": "Validate and tune the slim Mom feed",
+        "intent": "I’ll prove the smaller feed first: real parent and worker conversations, lightweight tool records, and source lookup—without adding agent reporting calls. Then check whether it preserves enough information for Mom’s map before replacing the live Tether machinery.",
+        "observed": "The lead concluded Mom is not ready to replace Tether: the tuned 9/9 result was not independent validation, one citation was lost, and the historical worker session was incomplete. The slim-feed experiment is displaced while the simpler snapshot approach is tested.",
+        "actor": "",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:a59c0a35",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:dc1bd88a",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:d1874e47",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:da6afa72",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:81d1f6dd",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:eec737ff",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:dadd2ce3"
+        ],
+        "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:a59c0a35"
+      },
+      {
+        "id": "stale_reconciliation_rule",
+        "kind": "rule",
+        "parent": "slim_feed_validation",
+        "state": "active",
+        "label": "Reconcile superseded records in the same patch",
+        "intent": "when Mom records a changed decision or reported completion, reconcile the older record in the same patch while preserving unaffected facts",
+        "observed": "GPT-6 Astra recommended this narrower fix after confirming that the three stale-record failures were visible in the feed; the lead labeled those transitions and is adding negative controls before testing it.",
+        "actor": "gpt-6-astra",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:600b197e",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:24e048d5:b1"
+        ],
+        "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:600b197e"
+      },
+      {
+        "id": "snapshot_validation",
+        "kind": "feature",
+        "parent": "mother_coordinator",
+        "state": "parked",
+        "label": "Test replacement snapshots for Mom",
+        "intent": "I’ll test replacement snapshots on the same feed and model.",
+        "observed": "The fixed comparison and authority-boundary tests completed successfully, but the experiment is complete and has been explicitly displaced by bounded live integration rather than another representation redesign.",
+        "actor": "",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:d5bbe005",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:dadd2ce3",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:7fdb3f11",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:d8c7fe0c"
+        ],
+        "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:d5bbe005"
+      },
+      {
+        "id": "snapshot_fixed_comparison_rule",
+        "kind": "rule",
+        "parent": "snapshot_validation",
+        "state": "active",
+        "label": "Keep the snapshot comparison fixed",
+        "intent": "One fixed comparison. No keyword selector, aging rules, or tuning against the results.",
+        "observed": "The fixed comparison governed the completed snapshot experiment and remains historical to that parked work.",
+        "actor": "",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:d5bbe005"
+        ],
+        "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:d5bbe005"
+      },
+      {
+        "id": "decision_retention_rule",
+        "kind": "rule",
+        "parent": "snapshot_validation",
+        "state": "active",
+        "label": "Retain continuing decisions through rewrites",
+        "intent": "I’ll focus on the two failures: keeping older decisions through rewrites, and staying quiet when nothing is being overlooked.",
+        "observed": "The next test keeps exact raw user instructions beside the rewritten page so continuing decisions remain available through final snapshots.",
+        "actor": "",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:9d07095e",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:8a7922c9"
+        ],
+        "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:9d07095e"
+      },
+      {
+        "id": "advice_trigger_rule",
+        "kind": "rule",
+        "parent": "snapshot_validation",
+        "state": "active",
+        "label": "Advise only on overlooked obligations",
+        "intent": "For advice, Mom must point to an existing obligation and new evidence that it’s being overlooked—not merely say work is unfinished.",
+        "observed": "The lead defined a source-backed advice condition: an existing obligation plus new evidence of oversight, rather than unfinished work alone.",
+        "actor": "",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:8a7922c9"
+        ],
+        "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:8a7922c9"
+      },
+      {
+        "id": "snapshot_batch_boundary_rule",
+        "kind": "rule",
+        "parent": "snapshot_validation",
+        "state": "active",
+        "label": "Label only actors in the current batch",
+        "intent": "label only this batch’s actors",
+        "observed": "The lead identified historical worker-roster entries being misread as newly pending and adopted current-batch actor labeling as the bounded correction.",
+        "actor": "",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:cec1ae19"
+        ],
+        "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:cec1ae19"
+      },
+      {
+        "id": "snapshot_failure_evidence_rule",
+        "kind": "rule",
+        "parent": "snapshot_validation",
+        "state": "active",
+        "label": "Pair failure consults with matched tool evidence",
+        "intent": "give explicit failure consults the matched tool invocation plus result within the existing two-page budget",
+        "observed": "The lead adopted matched invocation-and-result evidence after a historical error answer guessed without inspecting the caller.",
+        "actor": "",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:cec1ae19"
+        ],
+        "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:cec1ae19"
+      },
+      {
+        "id": "live_integration",
+        "kind": "feature",
+        "parent": "mother_coordinator",
+        "state": "active",
+        "label": "Drive the live Mom integration in tmux",
+        "intent": "I’ll drive the implementation and live checks.",
+        "observed": "The next implementation is a single live cutover inside pi-tether, driven in a separate tmux Pi session. The current batch shows automatic observation, atomic checkpoints, cached status, and no ledger-writing tool type-checking; recovery, live worker capture, and the isolated Pi session are now being exercised. The scope remains bounded to the current session and pi-delegate workers, with no additional watcher model or representation redesign.",
+        "actor": "",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:359abb9b",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:a079d1dd",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:601b196a",
+          "01a0e020-12a4-7474-819f-ad784bb5febd:bc1acfc9"
+        ],
+        "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:359abb9b"
+      },
+      {
+        "id": "live_scope_rule",
+        "kind": "rule",
+        "parent": "live_integration",
+        "state": "active",
+        "label": "Keep live integration bounded to this session",
+        "intent": "Scope: current session—including reopening it—and `pi-delegate` workers.",
+        "observed": "The live implementation scope excludes cross-session merging, lesson routing, and a broader harness rewrite.",
+        "actor": "",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:bc1acfc9"
+        ],
+        "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:bc1acfc9"
+      },
+      {
+        "id": "live_verification_rule",
+        "kind": "rule",
+        "parent": "live_integration",
+        "state": "active",
+        "label": "Verify live behavior in the isolated Pi session",
+        "intent": "I’ll implement the cutover here, then exercise reload, worker returns, recovery, and quiet notices there.",
+        "observed": "The lead is using a separate tmux dogfood Pi instance to exercise the cutover while leaving the main session alone.",
+        "actor": "",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:359abb9b"
+        ],
+        "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:359abb9b"
       }
     ],
     "edges": [
       {
-        "from": "tether_landing",
+        "from": "landing_tidy",
         "relation": "returns_to",
-        "to": "mother",
+        "to": "session_root",
         "sources": [
-          "01a0e020-12a4-7474-819f-ad784bb5febd:91d38ef5"
+          "01a0e020-12a4-7474-819f-ad784bb5febd:e8a3c976"
         ]
       },
       {
-        "from": "residue_policy",
-        "relation": "depends_on",
-        "to": "no_silent_cleanup",
+        "from": "mother_coordinator",
+        "relation": "returns_to",
+        "to": "session_root",
         "sources": [
-          "01a0e020-12a4-7474-819f-ad784bb5febd:c8279712:b1"
+          "01a0e020-12a4-7474-819f-ad784bb5febd:6fd17dfa"
+        ]
+      },
+      {
+        "from": "slim_feed_validation",
+        "relation": "returns_to",
+        "to": "mother_coordinator",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:a59c0a35"
+        ]
+      },
+      {
+        "from": "snapshot_validation",
+        "relation": "returns_to",
+        "to": "mother_coordinator",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:d5bbe005"
+        ]
+      },
+      {
+        "from": "live_integration",
+        "relation": "returns_to",
+        "to": "mother_coordinator",
+        "sources": [
+          "01a0e020-12a4-7474-819f-ad784bb5febd:bc1acfc9"
         ]
       }
     ]
   },
-  "finalGraphSha256": "0ddd8c2b428acdada1d96b41660958cef9b4c69af9e2ace74e7da5c3350f8fbd",
+  "finalGraphSha256": "c6037e7ec11a15358fed9b580c0759e1bb1715d5e42b1cf55f0efbfa9e83cf70",
+  "coldReopenGraphSha256": "c6037e7ec11a15358fed9b580c0759e1bb1715d5e42b1cf55f0efbfa9e83cf70",
+  "hierarchy": {
+    "topLevel": [
+      "session_root"
+    ],
+    "current": "live_integration",
+    "parked": [
+      "aaron_audit",
+      "landing_tidy",
+      "slim_feed_validation",
+      "snapshot_validation"
+    ],
+    "alternatives": [],
+    "alternativeCategoryAbsent": true
+  },
   "whyEvidence": [
     {
-      "node": "mother",
+      "node": "session_root",
       "intent": "Dig into Claude Code session 9ef739b2-a82f-4d9c-ad69-0d1013ad5066 and let's pick up where it left off",
-      "source": "01a0e020-12a4-7474-819f-ad784bb5febd:c9c8130b",
-      "actor": "lead",
-      "kind": "user",
-      "text": "Dig into Claude Code session 9ef739b2-a82f-4d9c-ad69-0d1013ad5066 and let's pick up where it left off"
+      "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:c9c8130b",
+      "exactGroundedExcerpt": "Dig into Claude Code session 9ef739b2-a82f-4d9c-ad69-0d1013ad5066 and let's pick up where it left off",
+      "sourceEntrySha256": "e2ae45044301197ad104acf4be11a86c24e7ff2943faa155d82e24c4f8b0d16c",
+      "tokenBoundaryGroundedInFrozenEntry": true
     },
     {
       "node": "aaron_audit",
       "intent": "Audit it against the Aaron flow from that thread",
-      "source": "01a0e020-12a4-7474-819f-ad784bb5febd:438cf1eb",
-      "actor": "lead",
-      "kind": "user",
-      "text": "Audit it against the Aaron flow from that thread"
+      "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:438cf1eb",
+      "exactGroundedExcerpt": "Audit it against the Aaron flow from that thread",
+      "sourceEntrySha256": "021af3e90d00e33224572ca11209c58b7fc111e80704781c7bc85d43367c7df3",
+      "tokenBoundaryGroundedInFrozenEntry": true
     },
     {
-      "node": "tether_landing",
-      "intent": "The missing capability is not more ledger display. It is a return/landing/tidy protocol: Tether keeps the map, and a trailing agent or fresh-eyes subagent periodically reconciles the map with the session and working directory.",
-      "source": "01a0e020-12a4-7474-819f-ad784bb5febd:6a2ffbdf",
-      "actor": "lead",
-      "kind": "assistant",
-      "text": "No. **Current Tether does not reorganize or clean anything behind us.**\n\nIt only:\n\n- Stores the latest thread snapshot in the Pi session.\n- Shows active/open threads.\n- Lets the agent or user rename, park, activate, complete, or drop entries.\n- Re-injects that state after reload/compaction.\n\nIt does **not**:\n\n- Build parent/child ancestry.\n- Re-anchor a tangent to the original purpose.\n- Fold findings back into parent tasks.\n- Inspect `git status`.\n- Attribute files to tasks.\n- Detect abandoned work.\n- Clean temporary files or directories.\n- Reorganize task state after the fact.\n- Run a tidy/landing pass.\n\n`done` currently means only “remove this thread from the live list.” It does not mean the working directory is clean or the result has been landed.\n\n## Desired trailing flow\n\nThe Tether role should be:\n\n```text\nUser leads\n  ↓\nTether records why work was spawned and where it came from\n  ↓\nAgent/delegate works at depth\n  ↓\nTether checks the result against the parent purpose\n  ↓\nFindings and files are accounted for\n  ↓\nChild is folded back, parked, or explicitly abandoned\n  ↓\nParent continues with a clean state\n```\n\nAt return/landing, it should reconcile:\n\n- Current root purpose.\n- Parent and child tasks.\n- Outcome and remaining work.\n- Files changed.\n- Validation performed.\n- Untracked or unexplained files.\n- Open side work.\n- Exact next step.\n\n## Important safety boundary\n\n“Clean” cannot mean “delete everything that is not in the current task.” Some dirty files are intentional user work.\n\nThe safe behavior is:\n\n1. Inspect the working tree.\n2. Attribute changes where possible.\n3. Surface unexplained residue.\n4. Propose cleanup or parking.\n5. Execute only scoped, confirmed cleanup.\n6. Never silently delete or overwrite user work.\n\nSo the missing capability is not more ledger display. It is a **return/landing/tidy protocol**: Tether keeps the map, and a trailing agent or fresh-eyes subagent periodically reconciles the map with the session and working directory."
+      "node": "landing_tidy",
+      "intent": "go get that",
+      "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:91d38ef5",
+      "exactGroundedExcerpt": "go get that",
+      "sourceEntrySha256": "4ac19eb79c768ac1a7371cd1e1761e9018913b2c562009ab821c764bb37fe511",
+      "tokenBoundaryGroundedInFrozenEntry": true
     },
     {
-      "node": "no_silent_cleanup",
-      "intent": "“Never silently delete or overwrite user work.”",
-      "source": "01a0e020-12a4-7474-819f-ad784bb5febd:6a2ffbdf",
-      "actor": "lead",
-      "kind": "assistant",
-      "text": "No. **Current Tether does not reorganize or clean anything behind us.**\n\nIt only:\n\n- Stores the latest thread snapshot in the Pi session.\n- Shows active/open threads.\n- Lets the agent or user rename, park, activate, complete, or drop entries.\n- Re-injects that state after reload/compaction.\n\nIt does **not**:\n\n- Build parent/child ancestry.\n- Re-anchor a tangent to the original purpose.\n- Fold findings back into parent tasks.\n- Inspect `git status`.\n- Attribute files to tasks.\n- Detect abandoned work.\n- Clean temporary files or directories.\n- Reorganize task state after the fact.\n- Run a tidy/landing pass.\n\n`done` currently means only “remove this thread from the live list.” It does not mean the working directory is clean or the result has been landed.\n\n## Desired trailing flow\n\nThe Tether role should be:\n\n```text\nUser leads\n  ↓\nTether records why work was spawned and where it came from\n  ↓\nAgent/delegate works at depth\n  ↓\nTether checks the result against the parent purpose\n  ↓\nFindings and files are accounted for\n  ↓\nChild is folded back, parked, or explicitly abandoned\n  ↓\nParent continues with a clean state\n```\n\nAt return/landing, it should reconcile:\n\n- Current root purpose.\n- Parent and child tasks.\n- Outcome and remaining work.\n- Files changed.\n- Validation performed.\n- Untracked or unexplained files.\n- Open side work.\n- Exact next step.\n\n## Important safety boundary\n\n“Clean” cannot mean “delete everything that is not in the current task.” Some dirty files are intentional user work.\n\nThe safe behavior is:\n\n1. Inspect the working tree.\n2. Attribute changes where possible.\n3. Surface unexplained residue.\n4. Propose cleanup or parking.\n5. Execute only scoped, confirmed cleanup.\n6. Never silently delete or overwrite user work.\n\nSo the missing capability is not more ledger display. It is a **return/landing/tidy protocol**: Tether keeps the map, and a trailing agent or fresh-eyes subagent periodically reconciles the map with the session and working directory."
-    },
-    {
-      "node": "delegate_landing",
+      "node": "delegates_rule",
       "intent": "And it should use subagents/delegates",
-      "source": "01a0e020-12a4-7474-819f-ad784bb5febd:2171796b",
-      "actor": "lead",
-      "kind": "user",
-      "text": "And it should use subagents/delegates"
+      "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:2171796b",
+      "exactGroundedExcerpt": "And it should use subagents/delegates",
+      "sourceEntrySha256": "60cd42c5eb68c2f1e1eddc8290e6b66ec2b0a08a8183ce5f554cba4ad3d32e2f",
+      "tokenBoundaryGroundedInFrozenEntry": true
+    },
+    {
+      "node": "mother_coordinator",
+      "intent": "having a almost like a mother thread session sub agent",
+      "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:6fd17dfa",
+      "exactGroundedExcerpt": "having a almost like a mother thread session sub agent",
+      "sourceEntrySha256": "da5eba56462fe01e3be5a3c577987985682db19762f1c72f836619587f32bef8",
+      "tokenBoundaryGroundedInFrozenEntry": true
+    },
+    {
+      "node": "agent_reporting_rule",
+      "intent": "all of our sub agents can report to that thread what it is we're doing, progress we've made, things we're exploring, why we're exploring them",
+      "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:6fd17dfa",
+      "exactGroundedExcerpt": "all of our sub agents can report to that thread what it is we're doing, progress we've made, things we're exploring, why we're exploring them",
+      "sourceEntrySha256": "da5eba56462fe01e3be5a3c577987985682db19762f1c72f836619587f32bef8",
+      "tokenBoundaryGroundedInFrozenEntry": true
+    },
+    {
+      "node": "mother_event_rule",
+      "intent": "make it event-driven rather than a continuously thinking model",
+      "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:23296f38",
+      "exactGroundedExcerpt": "make it event-driven rather than a continuously thinking model",
+      "sourceEntrySha256": "4e4199a6ca126f5e0459a976b922a4440170d295a0b2d49d9419f137fee4e22e",
+      "tokenBoundaryGroundedInFrozenEntry": true
+    },
+    {
+      "node": "mother_safety_rule",
+      "intent": "It should not interrupt work or treat a reminder as permission to delete anything.",
+      "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:23296f38",
+      "exactGroundedExcerpt": "It should not interrupt work or treat a reminder as permission to delete anything.",
+      "sourceEntrySha256": "4e4199a6ca126f5e0459a976b922a4440170d295a0b2d49d9419f137fee4e22e",
+      "tokenBoundaryGroundedInFrozenEntry": true
+    },
+    {
+      "node": "worker_reporting_boundary",
+      "intent": "I won’t present live worker updates as working until there’s an actual reporting path.",
+      "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:9c4e1df2",
+      "exactGroundedExcerpt": "I won’t present live worker updates as working until there’s an actual reporting path.",
+      "sourceEntrySha256": "d945a9027ab082360be9c1b7b0832cf4ae332884af206d2e01ab21151af1a607",
+      "tokenBoundaryGroundedInFrozenEntry": true
+    },
+    {
+      "node": "mapping_postulate",
+      "intent": "Mom does ALL tether",
+      "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:8aa53cef",
+      "exactGroundedExcerpt": "Mom does ALL tether",
+      "sourceEntrySha256": "f141425635ff135201490885a8eed58631be18f1a82d9d7e424c7c667c341b27",
+      "tokenBoundaryGroundedInFrozenEntry": true
+    },
+    {
+      "node": "mom_cost_latency_rule",
+      "intent": "we don't necessarily want to double or more the model usage with this Mom approach, nor do we want to slow things down",
+      "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:faad3c93",
+      "exactGroundedExcerpt": "we don't necessarily want to double or more the model usage with this Mom approach, nor do we want to slow things down",
+      "sourceEntrySha256": "0e5b68ab052fa4ae3e93cd52cf0fe0a79c55517f9135c1b47f706c587580ace5",
+      "tokenBoundaryGroundedInFrozenEntry": true
+    },
+    {
+      "node": "slim_feed_validation",
+      "intent": "I’ll prove the smaller feed first: real parent and worker conversations, lightweight tool records, and source lookup—without adding agent reporting calls. Then check whether it preserves enough information for Mom’s map before replacing the live Tether machinery.",
+      "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:a59c0a35",
+      "exactGroundedExcerpt": "I’ll prove the smaller feed first: real parent and worker conversations, lightweight tool records, and source lookup—without adding agent reporting calls. Then check whether it preserves enough information for Mom’s map before replacing the live Tether machinery.",
+      "sourceEntrySha256": "d2c347bd4ebf9a77631bd6e2a007872243253dbb88f46aeadc37d2ff5adc3189",
+      "tokenBoundaryGroundedInFrozenEntry": true
+    },
+    {
+      "node": "stale_reconciliation_rule",
+      "intent": "when Mom records a changed decision or reported completion, reconcile the older record in the same patch while preserving unaffected facts",
+      "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:600b197e",
+      "exactGroundedExcerpt": "when Mom records a changed decision or reported completion, reconcile the older record in the same patch while preserving unaffected facts",
+      "sourceEntrySha256": "4c46079913cb32f91361592629299e9eef9b3cc0dd6207f148328f6cf4e542ec",
+      "tokenBoundaryGroundedInFrozenEntry": true
+    },
+    {
+      "node": "snapshot_validation",
+      "intent": "I’ll test replacement snapshots on the same feed and model.",
+      "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:d5bbe005",
+      "exactGroundedExcerpt": "I’ll test replacement snapshots on the same feed and model.",
+      "sourceEntrySha256": "d8ea168873e7411899e6edcfb43e36c45670f6ee109b2bf1e4273f3aa41d9cbb",
+      "tokenBoundaryGroundedInFrozenEntry": true
+    },
+    {
+      "node": "snapshot_fixed_comparison_rule",
+      "intent": "One fixed comparison. No keyword selector, aging rules, or tuning against the results.",
+      "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:d5bbe005",
+      "exactGroundedExcerpt": "One fixed comparison. No keyword selector, aging rules, or tuning against the results.",
+      "sourceEntrySha256": "d8ea168873e7411899e6edcfb43e36c45670f6ee109b2bf1e4273f3aa41d9cbb",
+      "tokenBoundaryGroundedInFrozenEntry": true
+    },
+    {
+      "node": "decision_retention_rule",
+      "intent": "I’ll focus on the two failures: keeping older decisions through rewrites, and staying quiet when nothing is being overlooked.",
+      "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:9d07095e",
+      "exactGroundedExcerpt": "I’ll focus on the two failures: keeping older decisions through rewrites, and staying quiet when nothing is being overlooked.",
+      "sourceEntrySha256": "1ca1a5ac366e47faf9a44f93bf7cff8ba88af723315c775d8429a0120cf92902",
+      "tokenBoundaryGroundedInFrozenEntry": true
+    },
+    {
+      "node": "advice_trigger_rule",
+      "intent": "For advice, Mom must point to an existing obligation and new evidence that it’s being overlooked—not merely say work is unfinished.",
+      "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:8a7922c9",
+      "exactGroundedExcerpt": "For advice, Mom must point to an existing obligation and new evidence that it’s being overlooked—not merely say work is unfinished.",
+      "sourceEntrySha256": "6283ba8728b1c00e8dcddd474b6b9ea50aab3be448016301b15704521579fff6",
+      "tokenBoundaryGroundedInFrozenEntry": true
+    },
+    {
+      "node": "snapshot_batch_boundary_rule",
+      "intent": "label only this batch’s actors",
+      "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:cec1ae19",
+      "exactGroundedExcerpt": "label only this batch’s actors",
+      "sourceEntrySha256": "87ada8dc00f54125fbf86df5692307e06f1216fd75b5bbabcda60a6b5e09a052",
+      "tokenBoundaryGroundedInFrozenEntry": true
+    },
+    {
+      "node": "snapshot_failure_evidence_rule",
+      "intent": "give explicit failure consults the matched tool invocation plus result within the existing two-page budget",
+      "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:cec1ae19",
+      "exactGroundedExcerpt": "give explicit failure consults the matched tool invocation plus result within the existing two-page budget",
+      "sourceEntrySha256": "87ada8dc00f54125fbf86df5692307e06f1216fd75b5bbabcda60a6b5e09a052",
+      "tokenBoundaryGroundedInFrozenEntry": true
+    },
+    {
+      "node": "live_integration",
+      "intent": "I’ll drive the implementation and live checks.",
+      "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:359abb9b",
+      "exactGroundedExcerpt": "I’ll drive the implementation and live checks.",
+      "sourceEntrySha256": "89f70f74d40a03c062970ef12a4a39567d3d18f43e12b7b25cdcf5ae83cfaf1c",
+      "tokenBoundaryGroundedInFrozenEntry": true
+    },
+    {
+      "node": "live_scope_rule",
+      "intent": "Scope: current session—including reopening it—and `pi-delegate` workers.",
+      "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:bc1acfc9",
+      "exactGroundedExcerpt": "Scope: current session—including reopening it—and `pi-delegate` workers.",
+      "sourceEntrySha256": "0f130518820fe249bcc72151c8243d73eb5bc978c7b8deed118d8392eee1f4d6",
+      "tokenBoundaryGroundedInFrozenEntry": true
+    },
+    {
+      "node": "live_verification_rule",
+      "intent": "I’ll implement the cutover here, then exercise reload, worker returns, recovery, and quiet notices there.",
+      "purposeSource": "01a0e020-12a4-7474-819f-ad784bb5febd:359abb9b",
+      "exactGroundedExcerpt": "I’ll implement the cutover here, then exercise reload, worker returns, recovery, and quiet notices there.",
+      "sourceEntrySha256": "89f70f74d40a03c062970ef12a4a39567d3d18f43e12b7b25cdcf5ae83cfaf1c",
+      "tokenBoundaryGroundedInFrozenEntry": true
     }
   ],
-  "citedSourceLineSha256": {
-    "97416790": "7ce543ff6075310f7c7b6cdd770fb44e909dfeb7cb5507ed5a261b335617b78f",
-    "c9c8130b": "e2ae45044301197ad104acf4be11a86c24e7ff2943faa155d82e24c4f8b0d16c",
-    "d7adab30": "524acd5fb39f9e6df8201b1e1d432df0c5107b14574aaaee87ce7e1ae33a736d",
-    "438cf1eb": "021af3e90d00e33224572ca11209c58b7fc111e80704781c7bc85d43367c7df3",
-    "d7922690": "08fc7dd963ca432ee77911b20602b29706b92e311172cc95cfd385d39d624f66",
-    "f2577ae1": "c525d7af81928af700bb9ec3d49d360f012e80b35a0f9685458ba3f793412836",
-    "6725f8ef": "9ce8473ba6b3c80b750c063578e157c713c2eb85d35d8a7563445d0fd2eac6f8",
-    "b7bba13a": "70e67cf2471de31ec17a4866dcd0784e3cece5389b7973955fe9d34eba6cdd0e",
-    "91d38ef5": "4ac19eb79c768ac1a7371cd1e1761e9018913b2c562009ab821c764bb37fe511",
-    "6a2ffbdf": "8faeeb059cecbd09eab13cf691f8ebf1c569ffcc43209e73884d7cd38cadab5c",
-    "c8279712": "9d491190b3e1147de41bd760e2d42df4460fbcb2046c47217c682e72c43459f1",
-    "2a94cb3c": "81142bffa9d5a94709639ef88d892f807d74aa84db2de4bacec436b9df41222a",
-    "2171796b": "60cd42c5eb68c2f1e1eddc8290e6b66ec2b0a08a8183ce5f554cba4ad3d32e2f"
-  },
-  "story": "Mother thread: Resume and evaluate the prior Claude Code work [mother] — in progress\n  Why: Dig into Claude Code session 9ef739b2-a82f-4d9c-ad69-0d1013ad5066 and let's pick up where it left… [src:01a0e020-12a4-7474-819f-ad784bb5febd:c9c8130b]; [src:01a0e020-12a4-7474-819f-ad784bb5febd:d7adab30]\nEndeavor: Build hierarchical lead-and-trail Tether with landing [tether_landing] — in progress · current\n  Within: Resume and evaluate the prior Claude Code work\n  Rules in force (2):\n    Why: Never silently delete or overwrite user work. [src:01a0e020-12a4-7474-819f-ad784bb5febd:6a2ffbdf]\n    Why: And it should use subagents/delegates [src:01a0e020-12a4-7474-819f-ad784bb5febd:2171796b]\n  Recorded outcomes (1):\n    Use safe auto-clean for narrowly defined temporary artifacts\n  Why: The missing capability is not more ledger display. It is a return/landing/tidy protocol: Tether… [src:01a0e020-12a4-7474-819f-ad784bb5febd:6725f8ef]; [src:01a0e020-12a4-7474-819f-ad784bb5febd:b7bba13a]; … 5 more\n  Depends on: Do not silently delete or overwrite user work\n  Returns to: Resume and evaluate the prior Claude Code work\nEndeavor: Audit pi-tether against the Aaron flow [aaron_audit] — in progress\n  Within: Resume and evaluate the prior Claude Code work\n  Why: Audit it against the Aaron flow from that thread [src:01a0e020-12a4-7474-819f-ad784bb5febd:438cf1eb]; [src:01a0e020-12a4-7474-819f-ad784bb5febd:97416790]; … 2 more\nDetails: select an endeavor for full annotations and sources."
+  "sanitization": {
+    "rawSessionCommitted": false,
+    "privateToolOutputCommitted": false,
+    "credentialScan": "passed"
+  }
 }
