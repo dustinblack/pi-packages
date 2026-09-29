@@ -9,13 +9,14 @@ dependencies: []
 
 ## Where we are
 
-trunk:    007 — recover the full session purpose and preserve the coordinating mother thread as a map node
-tangents: 016 — pending decision — improve buried-history recall before any production retrieval change
+trunk:    008 — score trajectory replay against independently validated movement labels
+tangents: 011, 012, 014, 015 — ready; 016 — pending decision
 
 ## Findings
 
 - Design of record: `AwesomeNotes/Coding Agents AI stuff/Mom - complete design map 2026-09-29.md` (every rule with its session line pointer) plus `MOM-HANDOFF.md`. Pointers `[n]` below are raw line indices in `~/.pi/agent/sessions/--Users-ssweens-src-pi-packages--/2026-09-26T23-49-53-444Z_01a0e020-12a4-7474-819f-ad784bb5febd.jsonl`.
-- Mom's sidecar-only state, settled-boundary waking, advisor, presentation, and tests landed at `65856a8`. Todo 003's bounded background update and durable gap recovery landed at `17e508b`; todo 004's literal-only history ranking through `178e6e8`; todo 005's raw-segment compaction review and branch-wide repeated-boundary correction through `6872740`, with final reviewer `SHIP` and latest closure `925bd40`; todo 006's real-terminal current-display acceptance and reviewed cached `/mom map` alias through `b976dd4`; todo 009's enabled-only lead pivot/assent instructions through `45a85e6`; and todo 010's map/notice/usage-only sidecar through `77350ec`. 105 Tether + 38 delegate tests pass.
+- Mom's sidecar-only state, settled-boundary waking, advisor, presentation, and tests landed at `65856a8`. Todo 003's bounded background update and durable gap recovery landed at `17e508b`; todo 004's literal-only history ranking through `178e6e8`; todo 005's raw-segment compaction review and branch-wide repeated-boundary correction through `6872740`, with final reviewer `SHIP` and latest closure `925bd40`; todo 006's real-terminal current-display acceptance and reviewed cached `/mom map` alias through `b976dd4`; todo 007's persisted full-purpose mother root through `a29b32b`; todo 009's enabled-only lead pivot/assent instructions through `45a85e6`; and todo 010's map/notice/usage-only sidecar through `77350ec`. 111 Tether + 38 delegate tests attributable to this hub pass; the full current-main delegate suite reports 39 because it also includes one independently owned standalone test.
+- The map now persists one stable coordinating mother root, and public English `Why` text names an explicit grounded `purposeSource`. Bounded ordered recovery keeps oversized gaps within the one-proposal/one-repair budget. A read-only current-session capture validates the persisted root, grounded purpose, current/parked hierarchy, and immutable frozen prefix; its attempted full 7,336-line replay stopped after 29 batches and 48 calls with evidence remaining. It contains no real alternative edge and is not a full trajectory proof; deterministic fixtures cover alternatives, while todo 008 owns full replay acceptance.
 - PageIndex-style retrieval probes used 3 predeclared questions and 20 calls. Literal search passed 1/3 in 11 calls; map navigation passed 0/3 in 9 calls. Production stayed unchanged; richer labeled handles and original-source selection remain a pending experiment in 016.
 - Live terminal acceptance: the original five-turn line was simplified by the backlog owner to 1–2 real turns in the approved file-todo board summary before execution; it was not a quoted user directive. Closure follows that board criterion: two real consecutive settled turns each produced one later Mom update; `/mom map` showed the current accepted map, the widget reported `up to date`, no stale node was marked current, and no permanent update failure appeared → 006 complete.
 - Update budget: background updates now use one proposal plus at most one aggregated repair, with `commit_graph` as their only tool. Explicit questions retain five calls, two searches, and two reads. A failed exact range waits for newer settled material or explicit refresh; two deterministic failures create an atomic visible gap so newer evidence proceeds, while provider/source/invalidation/storage failures never skip. `/mom refresh` retries the oldest gap → 003 complete at `17e508b`.
@@ -30,7 +31,7 @@ tangents: 016 — pending decision — improve buried-history recall before any 
 - 004 — complete — `0bb158b` + merge `178e6e8` — exact literal ranking restored without keyword heuristics
 - 005 — complete — `608e83a` + review fixes `d50ae02`, `6872740` + latest closure `925bd40` — final reviewer `SHIP`; raw compaction review and one deferred corrective advisory
 - 006 — complete — `b055b52` + merge `b976dd4` — real-terminal current display accepted; reviewed `/mom map` alias
-- 007 — ready — making-mom, delegates
+- 007 — complete — `ec71ff0` + fixes through `4eefa7c` + merge `a29b32b` — stable full-purpose mother root, grounded `purposeSource`, bounded gap recovery
 - 008 — ready — making-mom, delegates
 - 009 — complete — `be537b4` + merge `45a85e6` — lead receives pivot/assent rules only while Mom is enabled
 - 010 — complete — `d4cb4d9` + `d55f39e8` + merge `77350ec` — sidecar pruned to map, notice, and usage
