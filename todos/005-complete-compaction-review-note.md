@@ -1,5 +1,5 @@
 ---
-status: ready
+status: complete
 issue_id: "005"
 tags: [mom, pi-tether, compaction]
 dependencies: ["003"]
@@ -36,11 +36,12 @@ After every compaction, Mom checks the result against her map. If something stil
 ## Evidence
 
 - Substantive implementation: `608e83a` (`feat(pi-tether): review compactions with Mom (todo 005)`).
-- Raw mechanism: on a first compaction, capture begins at the branch root; on every repeated compaction it begins at the previous compaction's `firstKeptEntryId`, and ends immediately before the new `firstKeptEntryId`. Every still-replaced branch entry is retained in the immutable capture, and active-map source events are rendered first into the bounded review input. `session_compact` binds the actual summary and compaction trigger to that capture.
+- Raw mechanism: search backward across the entire selected branch for the latest prior compaction, even when the new `firstKeptEntryId` appears before that compaction record. On a first compaction capture begins at branch root; on every repeated compaction it begins at the latest prior compaction's `firstKeptEntryId`, inclusive, and ends immediately before the new `firstKeptEntryId`. Every still-replaced branch entry is retained in the immutable capture, and active-map source events are rendered first into the bounded review input. `session_compact` binds the actual summary and compaction trigger to that capture.
 - Notice flow: dropped active material saves one sidecar-only `nextRequest` advisory. Input/start hooks append it without `triggerTurn`; notice-key persistence deduplicates delivery. Later background updates retain it until delivery.
 - Real SDK/runtime capture: `pi-tether/experiments/evidence/todo-005-real-compaction-capture.json`. It records one compaction-review request, raw hold recovery, one omitted non-active raw event due to the 36,000-character bound, next-input delivery, no notice-created lead call, and no Mom state records in session JSONL.
 - Review P1 correction: `d50ae02` (`fix(pi-tether): retain repeated compaction raw range (todo 005)`). The regression reconstructs a prior compaction whose active `KEEP.txt` hold is before the prior compaction record but at its `firstKeptEntryId`; the next review now includes that hold and all entries through the new boundary.
-- `cd pi-tether && npm run check` — typecheck passed; 103 tests passed, 0 failed.
+- Remaining P1 correction: `6872740` (`fix(pi-tether): search full branch for prior compaction (todo 005)`). The SDK-realistic regression calls Pi's `prepareCompaction` on valid branch ordering and proves Pi can select the new boundary before the prior compaction record; capture still starts at the prior compaction's `firstKeptEntryId`, never branch root.
+- `cd pi-tether && npm run check` — typecheck passed; 104 tests passed, 0 failed.
 - `cd pi-delegate && npm run check` — typecheck passed; 38 tests passed, 0 failed.
 - `git diff --check` — passed before the substantive commit.
-- Initial implementation push: `2cca2b1..608e83a`; review-fix push: `f16e8ea..d50ae02`, both to `origin/main`.
+- Initial implementation push: `2cca2b1..608e83a`; first review fix: `f16e8ea..d50ae02`; remaining P1 fix: `6198f46..6872740`, pushed to main.
