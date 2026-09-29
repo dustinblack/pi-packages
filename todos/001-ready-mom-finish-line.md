@@ -9,13 +9,13 @@ dependencies: []
 
 ## Where we are
 
-trunk:    002 — land the uncommitted working tree
+trunk:    003 — make routine updates one call without retry storms
 tangents: none open
 
 ## Findings
 
 - Design of record: `AwesomeNotes/Coding Agents AI stuff/Mom - complete design map 2026-09-29.md` (every rule with its session line pointer) plus `MOM-HANDOFF.md`. Pointers `[n]` below are raw line indices in `~/.pi/agent/sessions/--Users-ssweens-src-pi-packages--/2026-09-26T23-49-53-444Z_01a0e020-12a4-7474-819f-ad784bb5febd.jsonl`.
-- Last commit `b5a3195`. The working tree has 26 tracked changes and 8 untracked files (sidecar-only state, waking at settled boundaries, advisor, presentation). 90 Tether + 38 delegate tests pass (making-mom, 2026-09-29).
+- Mom's sidecar-only state, settled-boundary waking, advisor, presentation, and tests landed at `65856a8`. 91 Tether + 38 delegate tests pass.
 - Live: the `mom` tool and widget show "could not update this account; last saved view only", with stale nodes marked current.
 - Update budget: up to 5 serial full-context calls per update, with no round reserved for any purpose. A failed update keeps its cursor, so the same growing batch is retried at every wake → 003.
 - Compaction does not wake Mom, and the option-B note is not implemented. This conflicts with the user's direction [5753][5840] → 005.
@@ -24,7 +24,7 @@ tangents: none open
 
 ## Children
 
-- 002 — ready — making-mom (01a0e020), delegates
+- 002 — complete — `65856a8` + closure commit — working tree landed and pushed
 - 003 — ready — making-mom, delegates
 - 004 — ready — making-mom, delegates
 - 005 — ready — making-mom, delegates
