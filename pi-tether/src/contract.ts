@@ -94,8 +94,29 @@ export function acceptGraph(value: unknown, previous: WorkGraph, checkpoint: str
 	if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid graph transaction shape.");
 	// Strict provider transport represents optional properties as null; internal data omits them.
 	const { note: rawNote, answer: rawAnswer, ...rest } = value as Record<string, unknown>;
-	const v = { ...rest, ...(rawNote != null ? { note: rawNote } : {}), ...(rawAnswer != null ? { answer: rawAnswer } : {}) };
-	if (!Check(Transaction, v)) throw shapeError("Invalid graph transaction shape:", Transaction, v, "upsertNodes");
+	const proposed = { ...rest, ...(rawNote != null ? { note: rawNote } : {}), ...(rawAnswer != null ? { answer: rawAnswer } : {}) };
+	if (!Check(Transaction, proposed)) throw shapeError("Invalid graph transaction shape:", Transaction, proposed, "upsertNodes");
+	// purposeSource is deterministic provenance ownership, not model judgment. If the
+	// exact public text is grounded by cited evidence, choose the first such citation
+	// in observed source order. This changes neither semantic text nor accepted evidence;
+	// an ungrounded claim still reaches the strict rejection below.
+	const sourceOrder = new Map([...known.keys()].map((source, index) => [source, index]));
+	const publicWhy = (node: (typeof proposed.upsertNodes)[number]) =>
+		(["feature", "theory", "postulate", "try"].includes(node.kind) || node.kind === "rule")
+		&& ["active", "parked", "proposed"].includes(node.state);
+	const upsertNodes = proposed.upsertNodes.map(node => {
+		if (!publicWhy(node)) return node;
+		const rootNeedsUser = !previous.nodes.length && node.id === proposed.purpose;
+		const owner = [...node.sources]
+			.filter(source => {
+				const event = known.get(source);
+				return Boolean(event?.text && directlyGrounded(node.intent, event.text)
+					&& (!rootNeedsUser || (event.actor === "lead" && ["user", "user_answer"].includes(event.kind))));
+			})
+			.sort((a, b) => (sourceOrder.get(a) ?? Number.MAX_SAFE_INTEGER) - (sourceOrder.get(b) ?? Number.MAX_SAFE_INTEGER))[0];
+		return owner ? { ...node, purposeSource: owner } : node;
+	});
+	const v = { ...proposed, upsertNodes };
 	if (question && !v.answer?.trim()) throw new Error("Answer the explicit question in answer.");
 	let note: Notice | null = null;
 	if (v.note) {

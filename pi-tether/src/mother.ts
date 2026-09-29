@@ -4,14 +4,27 @@ import type { Message, Model } from "@earendil-works/pi-ai";
 import type { MomStore } from "./sidecar.ts";
 import type { AdvisorRecord, SessionAdvisor } from "./advisor.ts";
 import { branchCheckpoints, emptyUsage, graphChange, loadState, noticeKey, sumUsage, type Checkpoint, type CursorFailure, type SkippedGap, type Usage } from "./checkpoint.ts";
-import { LiveFeed, renderEvent, renderEvents, suffix, type Cut } from "./feed.ts";
+import { LiveFeed, renderEvent, renderEvents, suffix, type Cut, type FeedEvent } from "./feed.ts";
 import type { CompactionReview } from "./compaction.ts";
 import { acceptGraph, MOM_PROMPT, momTools, validateSearchQuery } from "./contract.ts";
 import { emptyGraph, graphSlice } from "./graph.ts";
 
 export const DEFAULT_MODEL = "openai-codex/gpt-5.6-luna";
 export const CONTEXT_LIMIT = 90000;
-type StagedBatch = Awaited<ReturnType<LiveFeed["capture"]>> & { revision: number; from: Cut; startIndex: number; endIndex: number; retryGapId?: string };
+type StagedBatch = Awaited<ReturnType<LiveFeed["capture"]>> & { revision: number; from: Cut; startIndex: number; endIndex: number;
+	retryGapId?: string; retryGapRemaining?: string[] };
+
+/** Gap evidence was originally admitted under the same 24k feed budget. Keep
+ * recovery bounded too, including for sidecars produced by older/broken builds. */
+function boundedGapEvents(events: readonly FeedEvent[], limit = 24000): { events: FeedEvent[]; remaining: string[] } {
+	const selected: FeedEvent[] = [];
+	for (const event of events) {
+		if (renderEvents([...selected, event]).length > limit) break;
+		selected.push(event);
+	}
+	if (!selected.length && events.length) throw new Error("One recorded gap event exceeds Mom's 24,000-character recovery limit; nothing was truncated.");
+	return { events: selected, remaining: events.slice(selected.length).map(event => event.ref) };
+}
 
 export interface MomHost {
 	ctx: ExtensionContext;
@@ -146,8 +159,17 @@ export class Mom {
 				const gap = this.gaps[0], pending = this.staged!;
 				const old = gap.refs.map(ref => this.feed.byRef.get(ref)).filter((event): event is NonNullable<typeof event> => Boolean(event));
 				if (old.length !== gap.refs.length) throw new Error("Mom cannot retry a skipped range because its recorded sources are unreadable.");
-				const seen = new Set(old.map(event => event.ref));
-				this.staged = { ...pending, events: [...old, ...pending.events.filter(event => !seen.has(event.ref))], retryGapId: gap.id };
+				const chunk = boundedGapEvents(old);
+				// A durable gap is retried alone. Pending later evidence remains staged in
+				// source order and cannot inflate recovery past the context ceiling or be
+				// accidentally covered by the retry's cursor record.
+				newer = pending.events.length ? pending : undefined;
+				this.queued = newer;
+				const gapStart = this.feed.events.findIndex(event => event.ref === chunk.events[0]?.ref);
+				if (gapStart < 0) throw new Error("Mom cannot locate the recorded gap boundary in the restored evidence stream.");
+				this.staged = { events: chunk.events, cut: this.checkpoint?.cut ?? gap.through, from: gap.from,
+					gaps: [], more: chunk.remaining.length > 0, revision, startIndex: gapStart, endIndex: this.committed,
+					retryGapId: gap.id, retryGapRemaining: chunk.remaining };
 			}
 			const batch = this.staged;
 			this.valid(batch.cut);
@@ -174,7 +196,7 @@ export class Mom {
 			const original = this.feed.events.find((e) => e.actor === "lead" && e.kind === "user");
 			// The map is current state; the session log is history. Include only one boundary
 			// event so a short assent can resolve the preceding proposal, then use evidence tools.
-			const prior = this.feed.events.slice(0, this.committed).findLast((e) => e.actor === "lead" && Boolean(e.text) && ["assistant", "tool_call"].includes(e.kind));
+			const prior = this.feed.events.slice(0, batch.startIndex).findLast((e) => e.actor === "lead" && Boolean(e.text) && ["assistant", "tool_call"].includes(e.kind));
 			const messages: Message[] = [{ role: "user", timestamp: Date.now(), content: JSON.stringify({
 				original: original ? { ref: original.ref, text: original.text } : null,
 				graph: this.graph, contextBeforeBatch: prior ? renderEvent(prior) : null,
@@ -266,25 +288,32 @@ export class Mom {
 						|| JSON.stringify(next.graph) !== JSON.stringify(this.graph)
 						|| JSON.stringify(effectiveNote) !== JSON.stringify(this.checkpoint.note ?? null)
 						|| JSON.stringify(next.unfinished) !== JSON.stringify(this.checkpoint.unfinished ?? []);
-					const resolvedGap = batch.retryGapId ? { gap: { action: "resolved", id: batch.retryGapId } } : {};
+					const retriedGap = batch.retryGapId ? this.gaps.find(gap => gap.id === batch.retryGapId) : undefined;
+					const gapUpdate = !batch.retryGapId ? {} : batch.retryGapRemaining?.length && retriedGap
+						? { gap: { action: "open", ...retriedGap, refs: batch.retryGapRemaining } }
+						: { gap: { action: "resolved", id: batch.retryGapId } };
 					if (material) {
 						const checkpoint: Checkpoint = { sessionId: this.host.ctx.sessionManager.getSessionId(),
 							graph: next.graph, change: graphChange(this.checkpoint?.graph ?? this.initialGraph, next.graph),
 							note: effectiveNote, unfinished: next.unfinished, cut: batch.cut, at: acceptedAt, model: this.host.model,
 							...(advisor ? { advisor } : {}) };
 						let record;
-						try { record = await this.host.store.append("map", { snapshot: checkpoint, failure: null, ...resolvedGap }); }
+						try { record = await this.host.store.append("map", { snapshot: checkpoint, failure: null, ...gapUpdate }); }
 						catch (error) { throw new Error(`Mom could not write her state beside the session: ${String(error)}`); }
 						this.checkpoint = checkpoint; this.checkpointId = record.id;
 						this.checkpoints.push({ id: record.id, data: checkpoint });
 					} else {
 						if (!this.checkpointId) throw new Error("Mom cannot advance evidence coverage without a saved sidecar checkpoint.");
-						try { await this.host.store.append("map", { base: this.checkpointId, cut: batch.cut, failure: null, ...resolvedGap }); }
+						try { await this.host.store.append("map", { base: this.checkpointId, cut: batch.cut, failure: null, ...gapUpdate }); }
 						catch (error) { throw new Error(`Mom could not advance her state beside the session: ${String(error)}`); }
 						this.checkpoint = { ...this.checkpoint!, cut: batch.cut, at: acceptedAt };
 					}
 					this.usage = acceptedUsage;
-					if (batch.retryGapId) this.gaps = this.gaps.filter(gap => gap.id !== batch.retryGapId);
+					if (batch.retryGapId) {
+						if (batch.retryGapRemaining?.length && retriedGap) this.gaps = this.gaps.map(gap => gap.id === batch.retryGapId
+							? { ...retriedGap, refs: batch.retryGapRemaining! } : gap);
+						else this.gaps = this.gaps.filter(gap => gap.id !== batch.retryGapId);
+					}
 					// Usage is its own compact stream; a failed write never invalidates an accepted map.
 					try { await this.host.store.append("usage", { usage: this.usage, error: null }); } catch { /* usage bookkeeping is best-effort */ }
 					this.failure = undefined;
@@ -334,6 +363,12 @@ export class Mom {
 			if (question) throw deterministicFailure ?? new Error("Mom did not produce an accepted graph transaction within five calls. Last checkpoint retained.");
 			const failureError = deterministicFailure ?? new Error("Mom did not produce an accepted background graph transaction within two calls.");
 			if (batch.gaps.length) throw new Error(`Mom evidence remained unreadable; cursor retained and no skipped gap recorded. ${batch.gaps.join("; ")}`);
+			if (batch.retryGapId) {
+				// The existing durable gap remains authoritative. A failed refresh neither
+				// advances coverage nor manufactures a duplicate skipped range.
+				this.staged = this.queued; this.queued = undefined;
+				throw failureError;
+			}
 			const refs = batch.events.map(event => event.ref);
 			const key = JSON.stringify({ from: batch.from, through: batch.cut, refs });
 			const failures = this.failure?.key === key ? this.failure.failures + 1 : 1;

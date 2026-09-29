@@ -74,8 +74,12 @@ test("public Why accepts token-boundary quotes with one explicit grounding owner
 	const rendered = readText(presentGraph(graphSlice(accepted.graph)));
 	assert.match(rendered, /Why: Do not push or close the todo \[src:s:rule\]/);
 	assert.doesNotMatch(rendered, /Why: Do not push[^\n]*s:user/);
-	assert.throws(() => acceptGraph({ ...transaction, upsertNodes: [root, { ...rule, purposeSource: user.ref }] }, emptyGraph(), undefined,
-		known, new Set(known.keys()), new Set()), /complete normalized token sequence/);
+	const canonical = acceptGraph({ ...transaction, upsertNodes: [
+		{ ...root, sources: [ruleSource.ref, user.ref], purposeSource: ruleSource.ref },
+		{ ...rule, purposeSource: user.ref },
+	] }, emptyGraph(), undefined, known, new Set(known.keys()), new Set());
+	assert.equal(canonical.graph.nodes.find(item => item.id === "mother")?.purposeSource, user.ref, "initial root chooses grounded user evidence");
+	assert.equal(canonical.graph.nodes.find(item => item.id === "hold")?.purposeSource, ruleSource.ref, "wrong owner is canonicalized without a repair");
 	assert.throws(() => acceptGraph({ ...transaction, upsertNodes: [{ ...root, rationale: "Because efficiency demands it." }, rule] }, emptyGraph(), undefined,
 		known, new Set(known.keys()), new Set()), /Invalid graph transaction shape/);
 	// The former three-word anchor accepted "Keep this original" even though the

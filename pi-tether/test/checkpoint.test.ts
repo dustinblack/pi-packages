@@ -68,6 +68,9 @@ test("failure and skipped-gap state share the map stream and restore without tra
 		gap: { action: "open", id: "gap-one", key: "range", from, through, refs: [], error: "rejected", failures: 2 } });
 	const skipped = await loadState(store, manager);
 	assert.equal(skipped.failure, undefined); assert.equal(skipped.coverageCut?.parent, leaf); assert.equal(skipped.gaps[0]?.id, "gap-one");
+	await store.append("map", { base: "keep", cut: through,
+		gap: { action: "open", ...skipped.gaps[0], refs: ["remaining-ref"] } });
+	assert.deepEqual((await loadState(store, manager)).gaps[0]?.refs, ["remaining-ref"], "an atomic open record narrows durable remaining-gap coverage");
 	await store.append("map", { base: "keep", cut: through, gap: { action: "resolved", id: "gap-one" } });
 	assert.deepEqual((await loadState(store, manager)).gaps, []);
 });
