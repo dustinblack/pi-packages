@@ -53,4 +53,4 @@ The machine-readable audit is `todo-006-live-terminal-audit.json`.
 
 ## Scope note
 
-The delegated acceptance brief intentionally bounded live model work to two turns. The committed full suites cover repeated settled boundaries; this capture makes no unsupported claim that five separate real-model turns were executed.
+The original acceptance line required five consecutive settled turns. Before execution, the backlog owner simplified live acceptance to 1–2 real turns in the approved file-todo board summary; this was not a quoted user directive. This capture follows that board criterion and records two real turns. The committed full suites cover repeated settled boundaries; this capture makes no unsupported claim that five separate real-model turns were executed.
