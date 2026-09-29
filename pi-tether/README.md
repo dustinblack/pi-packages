@@ -48,7 +48,7 @@ Measured on the frozen negative-zero case with `kev-latest`: each review took ab
 |---|---|
 | `/mom` or `alt+t` | Open the saved overview. Scroll with arrows or Page Up/Down; Escape closes it. |
 | `/mom status` | Show where you are, update status, and usage. |
-| `/mom graph [id] [depth]` | Show the compact map, or select one record for complete fields and sources. |
+| `/mom map [id] [depth]` or `/mom graph [id] [depth]` | Show the compact map, or select one record for complete fields and sources. |
 | `/mom detail` | Show raw saved data and exact diagnostic errors. |
 | `/mom source <id> [offset]` | Read original evidence. Use the bare source ID, without `src:` or brackets. |
 | `/mom ask <question>` | Ask Mom to reason about recorded history with bounded source lookup. |

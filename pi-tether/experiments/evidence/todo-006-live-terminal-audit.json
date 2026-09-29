@@ -1,0 +1,89 @@
+{
+  "todo": "006",
+  "capturedAt": "2026-09-29T17:47:00Z",
+  "pty": "tmux 160x50",
+  "extension": {
+    "path": "/private/tmp/pi-packages-todo-006/pi-tether/src/index.ts",
+    "explicitLoads": 1,
+    "extensionDiscoveryDisabled": true
+  },
+  "models": {
+    "lead": {
+      "provider": "openai-codex",
+      "id": "gpt-5.6-luna",
+      "reasoning": "low",
+      "assistantMessages": 2,
+      "evidence": "session JSONL assistant metadata"
+    },
+    "mom": {
+      "provider": "openai-codex",
+      "id": "gpt-5.6-luna",
+      "reasoning": "low",
+      "fallback": false,
+      "calls": 2,
+      "evidence": "exact --mom-model flag, extension no-fallback contract, and sidecar/sessionUsage call totals"
+    }
+  },
+  "commands": [
+    "pi --no-extensions --no-skills --no-prompt-templates --no-context-files --approve --extension /private/tmp/pi-packages-todo-006/pi-tether/src/index.ts --session <isolated>/session.jsonl --model openai-codex/gpt-5.6-luna --thinking low --mom-model openai-codex/gpt-5.6-luna --mom-interval-ms 500",
+    "/mom map",
+    "/mom detail"
+  ],
+  "turns": [
+    {
+      "assistant": "TURN_ONE_SETTLED",
+      "assistantTimestamp": "2026-09-29T17:45:54.674Z",
+      "mapTimestamp": "2026-09-29T17:46:03.687Z",
+      "widget": "up to date; Validate Mom updates in a real Pi terminal; you are here"
+    },
+    {
+      "assistant": "TURN_TWO_SETTLED",
+      "assistantTimestamp": "2026-09-29T17:46:19.765Z",
+      "mapTimestamp": "2026-09-29T17:46:31.396Z",
+      "widget": "up to date; current map includes the session-and-sidecar-hashes requirement"
+    }
+  ],
+  "session": {
+    "file": "<isolated>/session.jsonl",
+    "sha256": "d134cb8544abf221a82a90116db6cdd1c747859a8e96edbdd50bbeed629ce958",
+    "lines": 8,
+    "recordTypes": {
+      "session": 1,
+      "model_change": 1,
+      "thinking_level_change": 1,
+      "message": 5
+    },
+    "momStateRecords": 0
+  },
+  "sidecar": {
+    "file": "<isolated>/session.mom",
+    "sha256": "a84015d4d0729f20dca5fb01e93f1d7a56f334e7b0522fdd5071c1f2ec6f0467",
+    "lines": 4,
+    "recordTypes": {
+      "map": 2,
+      "usage": 2
+    },
+    "invalidRecordTypes": [],
+    "mapFailures": [null, null],
+    "usageErrors": [null, null]
+  },
+  "momDetail": {
+    "missingSources": [],
+    "skippedEvidence": [],
+    "calls": 2,
+    "input": 5921,
+    "output": 734,
+    "cacheRead": 2688,
+    "cacheWrite": 0,
+    "nominalCost": 0.00211876,
+    "elapsedMs": 17058,
+    "revision": 2,
+    "nodes": 2
+  },
+  "observations": {
+    "midTurnWake": false,
+    "permanentFeedError": false,
+    "staleNodeMarkedCurrent": false,
+    "mapCommandSucceededAfterFix": true
+  }
+}

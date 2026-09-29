@@ -1,0 +1,18 @@
+Todo 006 real PTY pre-fix capture (sanitized)
+Captured 2026-09-29 in isolated tmux session.
+Extension: /Users/ssweens/src/pi-packages/pi-tether/src/index.ts at main before the todo-006 branch fix.
+
+Live widget after one settled turn:
+  Mom · up to date · last saved 5s ago
+  └─ Validate Mom updates in a real Pi terminal · you are here · done · main line · 1/1 done
+
+Command:
+  /mom map
+
+Terminal result:
+  Error: Mom couldn't complete that request. Your last saved view is unchanged. Use /mom detail for the reason and /mom for your place in the work.
+
+/mom detail root cause:
+  "lastReadError": "Error: Use /mom, status, graph, detail, ask, correct, source, refresh, pause, or resume."
+
+The map itself was current. The failure was the command parser rejecting `map` while accepting only `graph`.

@@ -33,6 +33,30 @@ test("normal parent narrative updates Mom without bookkeeping; cached status and
 	} finally { await h.close(); }
 });
 
+test("/mom map is a cached alias for the graph command", { timeout: 15000 }, async () => {
+	const h = await setup(true);
+	try {
+		await h.runtime.session.prompt("Keep the live terminal map current.");
+		await until(async () => (await snapshots(h)).length === 1);
+		const notices: Array<{ text: string; level: string }> = [];
+		const ui = new Proxy(h.context.ui, { get(target, key, receiver) {
+			if (key === "notify") return (text: string, level: string) => notices.push({ text, level });
+			return Reflect.get(target, key, receiver);
+		} });
+		const context = new Proxy(h.context, { get(target, key, receiver) {
+			if (key === "ui") return ui;
+			return Reflect.get(target, key, receiver);
+		} });
+		const calls = h.requests().length;
+		await h.command("map", context);
+		assert.equal(h.requests().length, calls, "cached map reads make no model call");
+		assert.equal(notices.length, 1);
+		assert.equal(notices[0].level, "info");
+		assert.match(notices[0].text, /Main purpose/);
+		assert.deepEqual(h.errors, []); assert.deepEqual(h.api.errors, []);
+	} finally { await h.close(); }
+});
+
 test("startup and reload render saved state without inferring over pending transcript evidence", { timeout: 15000 }, async () => {
 	const h = await setup(true);
 	try {
