@@ -9,15 +9,15 @@ dependencies: []
 
 ## Where we are
 
-trunk:    006 — let the user talk directly with Mom and switch back without slash commands
+trunk:    007 — recover the full session purpose and preserve the coordinating mother thread as a map node
 tangents: 016 — pending decision — improve buried-history recall before any production retrieval change
 
 ## Findings
 
 - Design of record: `AwesomeNotes/Coding Agents AI stuff/Mom - complete design map 2026-09-29.md` (every rule with its session line pointer) plus `MOM-HANDOFF.md`. Pointers `[n]` below are raw line indices in `~/.pi/agent/sessions/--Users-ssweens-src-pi-packages--/2026-09-26T23-49-53-444Z_01a0e020-12a4-7474-819f-ad784bb5febd.jsonl`.
-- Mom's sidecar-only state, settled-boundary waking, advisor, presentation, and tests landed at `65856a8`. Todo 003's bounded background update and durable gap recovery landed at `17e508b`; todo 004's literal-only history ranking through `178e6e8`; todo 005's raw-segment compaction review and branch-wide repeated-boundary correction through `6872740`, with final reviewer `SHIP` and latest closure `925bd40`; todo 009's enabled-only lead pivot/assent instructions through `45a85e6`; and todo 010's map/notice/usage-only sidecar through `77350ec`. 104 Tether + 38 delegate tests pass.
+- Mom's sidecar-only state, settled-boundary waking, advisor, presentation, and tests landed at `65856a8`. Todo 003's bounded background update and durable gap recovery landed at `17e508b`; todo 004's literal-only history ranking through `178e6e8`; todo 005's raw-segment compaction review and branch-wide repeated-boundary correction through `6872740`, with final reviewer `SHIP` and latest closure `925bd40`; todo 006's real-terminal current-display acceptance and reviewed cached `/mom map` alias through `b976dd4`; todo 009's enabled-only lead pivot/assent instructions through `45a85e6`; and todo 010's map/notice/usage-only sidecar through `77350ec`. 105 Tether + 38 delegate tests pass.
 - PageIndex-style retrieval probes used 3 predeclared questions and 20 calls. Literal search passed 1/3 in 11 calls; map navigation passed 0/3 in 9 calls. Production stayed unchanged; richer labeled handles and original-source selection remain a pending experiment in 016.
-- Live: the `mom` tool and widget show "could not update this account; last saved view only", with stale nodes marked current.
+- Live terminal acceptance: two real consecutive settled turns each produced one later Mom update; `/mom map` showed the current accepted map, the widget reported `up to date`, no stale node was marked current, and no permanent update failure appeared → 006 complete.
 - Update budget: background updates now use one proposal plus at most one aggregated repair, with `commit_graph` as their only tool. Explicit questions retain five calls, two searches, and two reads. A failed exact range waits for newer settled material or explicit refresh; two deterministic failures create an atomic visible gap so newer evidence proceeds, while provider/source/invalidation/storage failures never skip. `/mom refresh` retries the oldest gap → 003 complete at `17e508b`.
 - Every successful compaction receives one bounded Mom review against the actual replaced branch range plus the source-backed map. The remaining review P1 now searches the entire selected branch for the latest prior compaction, so a new boundary before that compaction record still starts capture at the prior `firstKeptEntryId`, never branch root → 005 complete through `6872740`.
 - Waking on every event cost 787 calls and $2.02 in one session [6766]. That is fixed in the working tree but not yet measured → 015.
@@ -29,7 +29,7 @@ tangents: 016 — pending decision — improve buried-history recall before any 
 - 003 — complete — `17e508b` + closure commit — one-call routine updates, bounded repair, durable visible gap and refresh recovery
 - 004 — complete — `0bb158b` + merge `178e6e8` — exact literal ranking restored without keyword heuristics
 - 005 — complete — `608e83a` + review fixes `d50ae02`, `6872740` + latest closure `925bd40` — final reviewer `SHIP`; raw compaction review and one deferred corrective advisory
-- 006 — ready — making-mom, delegates
+- 006 — complete — `b055b52` + merge `b976dd4` — real-terminal current display accepted; reviewed `/mom map` alias
 - 007 — ready — making-mom, delegates
 - 008 — ready — making-mom, delegates
 - 009 — complete — `be537b4` + merge `45a85e6` — lead receives pivot/assent rules only while Mom is enabled
@@ -37,7 +37,7 @@ tangents: 016 — pending decision — improve buried-history recall before any 
 - 011 — ready — making-mom, delegates
 - 012 — ready — making-mom, delegates
 - 013 — complete — `d6158d1`, `5722cba` + merge `94bb3bb` — search won 1/3 versus map 0/3; no production change
-- 014 — ready — making-mom, delegates
+- 014 — ready — dedicated Mom view for direct talk and switching back without slash commands
 - 015 — ready — making-mom, delegates
 - 016 — pending — richer labeled map handles and improved original-source selection
 
