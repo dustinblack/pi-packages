@@ -26,13 +26,14 @@ export function prepareCompactionReview(event: SessionBeforeCompactEvent, sessio
 	const end = entries.findIndex(entry => entry.id === event.preparation.firstKeptEntryId);
 	if (end < 0) throw new Error("Compaction's first kept entry is absent from its source branch.");
 	let start = 0;
-	for (let i = end - 1; i >= 0; i--) if (entries[i].type === "compaction") {
+	for (let i = entries.length - 1; i >= 0; i--) if (entries[i].type === "compaction") {
 		const previousFirstKept = entries[i].firstKeptEntryId;
 		if (typeof previousFirstKept !== "string") throw new Error("Previous compaction is missing its first kept entry.");
 		start = entries.findIndex((entry, index) => index <= i && entry.id === previousFirstKept);
 		if (start < 0) throw new Error("Previous compaction's first kept entry is absent from its source branch.");
 		break;
 	}
+	if (start > end) throw new Error("Compaction's first kept entry precedes the previous compaction boundary.");
 	const rawEntries = entries.slice(start, end);
 	const stream = { key: sessionId, actor: "lead" };
 	return { sessionId, firstKeptEntryId: event.preparation.firstKeptEntryId, rawEntries,

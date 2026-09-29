@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 import { NOTICE } from "../src/checkpoint.ts";
+import { prepareCompaction } from "../node_modules/@earendil-works/pi-coding-agent/dist/core/compaction/compaction.js";
 import { finishCompactionReview, prepareCompactionReview } from "../src/compaction.ts";
 import { input, isMomRequest, replacement, setup, until } from "./fixture.ts";
 
@@ -49,6 +50,29 @@ test("repeated compaction starts at the previous first-kept entry and retains it
 		new Set(["session:hold"]));
 	assert.match(review.rawReplacedEvents, /Do not modify KEEP\.txt/);
 	assert.doesNotMatch(review.rawReplacedEvents, /Already replaced/);
+});
+
+test("SDK preparation can put the new boundary before the latest prior compaction record", () => {
+	const at = new Date().toISOString();
+	const user = (id: string, parentId: string | null, content: string) =>
+		({ id, parentId, type: "message", timestamp: at, message: { role: "user", content, timestamp: Date.now() } });
+	const entries = [
+		user("old", null, "Already replaced before the prior boundary."),
+		user("hold", "old", "Do not modify KEEP.txt."),
+		user("middle", "hold", "m".repeat(8000)),
+		{ id: "prior-compact", parentId: "middle", type: "compaction", timestamp: at, summary: "Migration only.", firstKeptEntryId: "hold", tokensBefore: 100 },
+		user("newer", "prior-compact", "n".repeat(8000)),
+		user("tail", "newer", "t".repeat(8000)),
+	] as any[];
+	const preparation = prepareCompaction(entries as any, { enabled: true, reserveTokens: 1000, keepRecentTokens: 5000 });
+	assert(preparation);
+	assert.equal(preparation.firstKeptEntryId, "middle");
+	assert(entries.findIndex(entry => entry.id === preparation.firstKeptEntryId) < entries.findIndex(entry => entry.type === "compaction"),
+		"Pi validly selected a new boundary before the latest prior compaction record");
+	const pending = prepareCompactionReview({ ...beforeEvent(entries, preparation.firstKeptEntryId), preparation }, "session");
+	assert.deepEqual(pending.rawEntries.map(entry => entry.id), ["hold"]);
+	assert.match(finishCompactionReview(pending, { compactionEntry: { id: "next", timestamp: at, firstKeptEntryId: "middle", summary: "" } } as any,
+		new Set(["session:hold"])).rawReplacedEvents, /Do not modify KEEP\.txt/);
 });
 
 test("a compaction that drops an active hold causes one deferred advisory and no lead call", { timeout: 15000 }, async () => {

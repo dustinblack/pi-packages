@@ -1,5 +1,5 @@
 ---
-status: complete
+status: ready
 issue_id: "005"
 tags: [mom, pi-tether, compaction]
 dependencies: ["003"]
@@ -28,9 +28,10 @@ After every compaction, Mom checks the result against her map. If something stil
 - [x] No lead turn is started; the note reaches the lead on its next request
 - [x] Live capture of one real compaction review
 
-## Review finding
+## Review findings
 
-- P1: repeated compactions started raw capture at the prior compaction entry. Pi's next replaced context begins at that prior compaction's `firstKeptEntryId`, so active raw messages between that entry and the prior compaction record could be omitted from review.
+- P1 (first correction): repeated compactions started raw capture at the prior compaction entry. Pi's next replaced context begins at that prior compaction's `firstKeptEntryId`, so active raw messages between that entry and the prior compaction record could be omitted from review.
+- P1 (remaining): the correction searched for a prior compaction only before the new `firstKeptEntryId`. Pi can validly choose that new boundary before the prior compaction record, causing capture to fall back to branch root instead of the prior compaction's `firstKeptEntryId`.
 
 ## Evidence
 
