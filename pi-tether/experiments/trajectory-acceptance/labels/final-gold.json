@@ -1,0 +1,931 @@
+{
+  "version": 1,
+  "phase": "final adjudicated gold sealed before production Mom/Luna scoring",
+  "productionScoringRun": false,
+  "matchingPairRule": "On disagreement, a third independent model receives the same blind case de novo, without identities, prior rationales, vote counts, rubrics, maps, results, or Luna output; a matching pair is final. If all three labels differ, all three re-read only that case and must document a unanimous consensus before any Luna run.",
+  "provenance": {
+    "protocol": {
+      "path": "../PROTOCOL.md",
+      "sha256": "30365176b9e4670308820b76058521d320a524c1bd3f3039125b62e6c71ad18e"
+    },
+    "sourcePacket": {
+      "path": "/private/tmp/todo-008-trajectory/validator-packet.json",
+      "sha256": "9c516e360ac2e56b1c7166411f5a70c756d7507355c1b935d516df8aa4e2dc58"
+    },
+    "adjudicationPacket": {
+      "path": "/private/tmp/todo-008-trajectory/adjudication-packet.json",
+      "sha256": "e96b7e8dbb562e6d914e55d8cf5aa02ab60558b1cbd479c11e6d3e56c8f62fc1"
+    },
+    "validatorLabels": [
+      {
+        "id": "astra",
+        "identity": "Astra (independent validator A)",
+        "model": "OpenAI (exact model identifier unavailable)",
+        "source": "astra.json",
+        "sha256": "1ecd06d7f24813718801c44e5df44a435e6e1c842df6dfcc766bb1317e827d6a"
+      },
+      {
+        "id": "sol",
+        "identity": "independent-validator-b",
+        "model": "Codex 5.6 Sol",
+        "source": "sol.json",
+        "sha256": "be31dc20df76c827a89e56dc6d28b20f87704b508a6775cce1743da9df88e009"
+      },
+      {
+        "id": "mimo",
+        "identity": "blind-third-adjudicator",
+        "model": "xiaomi-token-plan-sgp/mimo-v2.6-flash",
+        "source": "adjudicator.json",
+        "sha256": "bfdefa64e4883c79461deb6cbb0cce01f4a2f0fd53c64dd324f890daa8126104"
+      }
+    ]
+  },
+  "coverage": {
+    "initialExactAgreement": {
+      "count": 13,
+      "total": 15
+    },
+    "finalMatchingPair": {
+      "count": 15,
+      "total": 15,
+      "rate": 1
+    }
+  },
+  "classCounts": {
+    "accept": 5,
+    "expand": 1,
+    "contract": 4,
+    "redirect": 3,
+    "reorganize": 2
+  },
+  "criticalGates": {
+    "scoreThresholds": {
+      "overall": ">=12/15",
+      "perTranscript": ">=4/5"
+    },
+    "criticalFailIf": [
+      "validated evidence shows unsupported current purpose",
+      "validated evidence shows a rejected or superseded alternative revived as current",
+      "validated evidence shows an unresolved return point lost"
+    ]
+  },
+  "cases": [
+    {
+      "caseId": "pi-pivot-01",
+      "corpus": "pi-packages",
+      "coverage": "pivot",
+      "boundaryRef": "s0:6fd17dfa",
+      "finalLabel": "reorganize",
+      "resolution": "initial-unanimous-pair",
+      "agreeingValidators": [
+        {
+          "id": "astra",
+          "identity": "Astra (independent validator A)",
+          "model": "OpenAI (exact model identifier unavailable)",
+          "source": "astra.json",
+          "sha256": "1ecd06d7f24813718801c44e5df44a435e6e1c842df6dfcc766bb1317e827d6a"
+        },
+        {
+          "id": "sol",
+          "identity": "independent-validator-b",
+          "model": "Codex 5.6 Sol",
+          "source": "sol.json",
+          "sha256": "be31dc20df76c827a89e56dc6d28b20f87704b508a6775cce1743da9df88e009"
+        }
+      ],
+      "decisiveRefs": [
+        "s0:37804f94",
+        "s0:6fd17dfa",
+        "s0:61332fe3",
+        "s0:b3de2315"
+      ],
+      "criticalObligations": [
+        {
+          "validatorId": "astra",
+          "value": {
+            "unsupportedCurrentPurpose": "No evidence that tethering or dogfooding is abandoned.",
+            "rejectedAlternative": "Managing all the tethering steps ourselves is displaced by a separate mother.",
+            "unresolvedReturn": "Preserve history, original intent, explorations and reminders while settling how the mother operates.",
+            "refs": [
+              "s0:37804f94",
+              "s0:6fd17dfa",
+              "s0:61332fe3"
+            ]
+          }
+        },
+        {
+          "validatorId": "sol",
+          "value": {
+            "unsupportedCurrentPurpose": false,
+            "rejectedAlternative": true,
+            "unresolvedReturn": false,
+            "refs": [
+              "s0:37804f94",
+              "s0:6fd17dfa",
+              "s0:61332fe3"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "pi-assent-01",
+      "corpus": "pi-packages",
+      "coverage": "assent",
+      "boundaryRef": "s0:04b14e3e",
+      "finalLabel": "accept",
+      "resolution": "initial-unanimous-pair",
+      "agreeingValidators": [
+        {
+          "id": "astra",
+          "identity": "Astra (independent validator A)",
+          "model": "OpenAI (exact model identifier unavailable)",
+          "source": "astra.json",
+          "sha256": "1ecd06d7f24813718801c44e5df44a435e6e1c842df6dfcc766bb1317e827d6a"
+        },
+        {
+          "id": "sol",
+          "identity": "independent-validator-b",
+          "model": "Codex 5.6 Sol",
+          "source": "sol.json",
+          "sha256": "be31dc20df76c827a89e56dc6d28b20f87704b508a6775cce1743da9df88e009"
+        }
+      ],
+      "decisiveRefs": [
+        "s0:0fe8fa5a",
+        "s0:04b14e3e",
+        "s0:a18a500c"
+      ],
+      "criticalObligations": [
+        {
+          "validatorId": "astra",
+          "value": {
+            "unsupportedCurrentPurpose": "A new purpose beyond Mom keeping work tethered is unsupported.",
+            "rejectedAlternative": "pi-intercom is mentioned as an available idea, not explicitly rejected.",
+            "unresolvedReturn": "The subsequent mapping requirement remains to be addressed; feed selection does not discharge it.",
+            "refs": [
+              "s0:0fe8fa5a",
+              "s0:04b14e3e",
+              "s0:a18a500c"
+            ]
+          }
+        },
+        {
+          "validatorId": "sol",
+          "value": {
+            "unsupportedCurrentPurpose": false,
+            "rejectedAlternative": false,
+            "unresolvedReturn": false,
+            "refs": [
+              "s0:04b14e3e",
+              "s0:a18a500c"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "pi-conflict-01",
+      "corpus": "pi-packages",
+      "coverage": "conflict",
+      "boundaryRef": "s0:bf65cdd0",
+      "finalLabel": "accept",
+      "resolution": "initial-unanimous-pair",
+      "agreeingValidators": [
+        {
+          "id": "astra",
+          "identity": "Astra (independent validator A)",
+          "model": "OpenAI (exact model identifier unavailable)",
+          "source": "astra.json",
+          "sha256": "1ecd06d7f24813718801c44e5df44a435e6e1c842df6dfcc766bb1317e827d6a"
+        },
+        {
+          "id": "sol",
+          "identity": "independent-validator-b",
+          "model": "Codex 5.6 Sol",
+          "source": "sol.json",
+          "sha256": "be31dc20df76c827a89e56dc6d28b20f87704b508a6775cce1743da9df88e009"
+        }
+      ],
+      "decisiveRefs": [
+        "s0:faad3c93",
+        "s0:bf65cdd0",
+        "s0:e014f775",
+        "s0:947105af"
+      ],
+      "criticalObligations": [
+        {
+          "validatorId": "astra",
+          "value": {
+            "unsupportedCurrentPurpose": "An expensive full-information ingestion mandate is unsupported.",
+            "rejectedAlternative": "A design that doubles usage or slows work is challenged, but no particular replacement is settled at the boundary.",
+            "unresolvedReturn": "Determine how Mom digests enough information cheaply; tether state updates and slim observations remain exploratory here.",
+            "refs": [
+              "s0:faad3c93",
+              "s0:bf65cdd0",
+              "s0:e014f775",
+              "s0:947105af"
+            ]
+          }
+        },
+        {
+          "validatorId": "sol",
+          "value": {
+            "unsupportedCurrentPurpose": true,
+            "rejectedAlternative": false,
+            "unresolvedReturn": false,
+            "refs": [
+              "s0:bf65cdd0",
+              "s0:947105af"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "pi-return-01",
+      "corpus": "pi-packages",
+      "coverage": "return",
+      "boundaryRef": "s0:faad3c93",
+      "finalLabel": "contract",
+      "resolution": "initial-unanimous-pair",
+      "agreeingValidators": [
+        {
+          "id": "astra",
+          "identity": "Astra (independent validator A)",
+          "model": "OpenAI (exact model identifier unavailable)",
+          "source": "astra.json",
+          "sha256": "1ecd06d7f24813718801c44e5df44a435e6e1c842df6dfcc766bb1317e827d6a"
+        },
+        {
+          "id": "sol",
+          "identity": "independent-validator-b",
+          "model": "Codex 5.6 Sol",
+          "source": "sol.json",
+          "sha256": "be31dc20df76c827a89e56dc6d28b20f87704b508a6775cce1743da9df88e009"
+        }
+      ],
+      "decisiveRefs": [
+        "s0:25caa5c5",
+        "s0:faad3c93",
+        "s0:bf65cdd0"
+      ],
+      "criticalObligations": [
+        {
+          "validatorId": "astra",
+          "value": {
+            "unsupportedCurrentPurpose": "Unbounded model consumption is not an authorized means of achieving the Mom design.",
+            "rejectedAlternative": "High-overhead approaches are constrained, not every possible mother process.",
+            "unresolvedReturn": "Return to a viable information-ingestion design within the usage and latency limits; the tether question remains open.",
+            "refs": [
+              "s0:25caa5c5",
+              "s0:faad3c93",
+              "s0:bf65cdd0"
+            ]
+          }
+        },
+        {
+          "validatorId": "sol",
+          "value": {
+            "unsupportedCurrentPurpose": false,
+            "rejectedAlternative": true,
+            "unresolvedReturn": false,
+            "refs": [
+              "s0:faad3c93"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "pi-stale-01",
+      "corpus": "pi-packages",
+      "coverage": "stale",
+      "boundaryRef": "s0:947105af",
+      "finalLabel": "contract",
+      "resolution": "initial-unanimous-pair",
+      "agreeingValidators": [
+        {
+          "id": "astra",
+          "identity": "Astra (independent validator A)",
+          "model": "OpenAI (exact model identifier unavailable)",
+          "source": "astra.json",
+          "sha256": "1ecd06d7f24813718801c44e5df44a435e6e1c842df6dfcc766bb1317e827d6a"
+        },
+        {
+          "id": "sol",
+          "identity": "independent-validator-b",
+          "model": "Codex 5.6 Sol",
+          "source": "sol.json",
+          "sha256": "be31dc20df76c827a89e56dc6d28b20f87704b508a6775cce1743da9df88e009"
+        }
+      ],
+      "decisiveRefs": [
+        "s0:e014f775",
+        "s0:947105af",
+        "s0:50b39c79"
+      ],
+      "criticalObligations": [
+        {
+          "validatorId": "astra",
+          "value": {
+            "unsupportedCurrentPurpose": "Always ingesting full tool content is unsupported by this narrower direction.",
+            "rejectedAlternative": "Routine extra ledger or model calls are avoided if the slim stream suffices; not an absolute ban on deeper inspection.",
+            "unresolvedReturn": "Verify that the slim stream is sufficient, retaining Mom\u2019s ability to dig into tool content when needed.",
+            "refs": [
+              "s0:e014f775",
+              "s0:947105af",
+              "s0:50b39c79"
+            ]
+          }
+        },
+        {
+          "validatorId": "sol",
+          "value": {
+            "unsupportedCurrentPurpose": false,
+            "rejectedAlternative": true,
+            "unresolvedReturn": false,
+            "refs": [
+              "s0:947105af",
+              "s0:50b39c79"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "buzz-pivot-01",
+      "corpus": "buzz",
+      "coverage": "pivot",
+      "boundaryRef": "s0:da050b05",
+      "finalLabel": "redirect",
+      "resolution": "initial-unanimous-pair",
+      "agreeingValidators": [
+        {
+          "id": "astra",
+          "identity": "Astra (independent validator A)",
+          "model": "OpenAI (exact model identifier unavailable)",
+          "source": "astra.json",
+          "sha256": "1ecd06d7f24813718801c44e5df44a435e6e1c842df6dfcc766bb1317e827d6a"
+        },
+        {
+          "id": "sol",
+          "identity": "independent-validator-b",
+          "model": "Codex 5.6 Sol",
+          "source": "sol.json",
+          "sha256": "be31dc20df76c827a89e56dc6d28b20f87704b508a6775cce1743da9df88e009"
+        }
+      ],
+      "decisiveRefs": [
+        "s0:266d1eca",
+        "s0:da050b05",
+        "s0:8bab40c5"
+      ],
+      "criticalObligations": [
+        {
+          "validatorId": "astra",
+          "value": {
+            "unsupportedCurrentPurpose": "Continuing to recommend existing clients is no longer the requested task.",
+            "rejectedAlternative": "The offered existing clients are explicitly rejected.",
+            "unresolvedReturn": "Build the sister project with the chosen desktop form and initial own-relay scope; retain private kinds.",
+            "refs": [
+              "s0:266d1eca",
+              "s0:da050b05",
+              "s0:8bab40c5"
+            ]
+          }
+        },
+        {
+          "validatorId": "sol",
+          "value": {
+            "unsupportedCurrentPurpose": false,
+            "rejectedAlternative": true,
+            "unresolvedReturn": false,
+            "refs": [
+              "s0:266d1eca",
+              "s0:da050b05"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "buzz-assent-01",
+      "corpus": "buzz",
+      "coverage": "assent",
+      "boundaryRef": "s0:59596baa",
+      "finalLabel": "accept",
+      "resolution": "initial-unanimous-pair",
+      "agreeingValidators": [
+        {
+          "id": "astra",
+          "identity": "Astra (independent validator A)",
+          "model": "OpenAI (exact model identifier unavailable)",
+          "source": "astra.json",
+          "sha256": "1ecd06d7f24813718801c44e5df44a435e6e1c842df6dfcc766bb1317e827d6a"
+        },
+        {
+          "id": "sol",
+          "identity": "independent-validator-b",
+          "model": "Codex 5.6 Sol",
+          "source": "sol.json",
+          "sha256": "be31dc20df76c827a89e56dc6d28b20f87704b508a6775cce1743da9df88e009"
+        }
+      ],
+      "decisiveRefs": [
+        "s0:da050b05",
+        "s0:8bab40c5",
+        "s0:59596baa",
+        "s0:1c59f52c",
+        "s0:2c77772c"
+      ],
+      "criticalObligations": [
+        {
+          "validatorId": "astra",
+          "value": {
+            "unsupportedCurrentPurpose": "Replacing Buzz kinds with generic-only semantics is unsupported.",
+            "rejectedAlternative": "No named competing protocol is explicitly rejected; dropping private kinds is inconsistent with the choice.",
+            "unresolvedReturn": "Continue the simple sister project; subsequent relay testing must retain the chosen kinds.",
+            "refs": [
+              "s0:da050b05",
+              "s0:8bab40c5",
+              "s0:59596baa",
+              "s0:1c59f52c"
+            ]
+          }
+        },
+        {
+          "validatorId": "sol",
+          "value": {
+            "unsupportedCurrentPurpose": false,
+            "rejectedAlternative": false,
+            "unresolvedReturn": false,
+            "refs": [
+              "s0:59596baa",
+              "s0:2c77772c"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "buzz-conflict-01",
+      "corpus": "buzz",
+      "coverage": "conflict",
+      "boundaryRef": "s0:2c77772c",
+      "finalLabel": "expand",
+      "resolution": "initial-unanimous-pair",
+      "agreeingValidators": [
+        {
+          "id": "astra",
+          "identity": "Astra (independent validator A)",
+          "model": "OpenAI (exact model identifier unavailable)",
+          "source": "astra.json",
+          "sha256": "1ecd06d7f24813718801c44e5df44a435e6e1c842df6dfcc766bb1317e827d6a"
+        },
+        {
+          "id": "sol",
+          "identity": "independent-validator-b",
+          "model": "Codex 5.6 Sol",
+          "source": "sol.json",
+          "sha256": "be31dc20df76c827a89e56dc6d28b20f87704b508a6775cce1743da9df88e009"
+        }
+      ],
+      "decisiveRefs": [
+        "s0:59596baa",
+        "s0:1c59f52c",
+        "s0:2c77772c",
+        "s0:e840a189"
+      ],
+      "criticalObligations": [
+        {
+          "validatorId": "astra",
+          "value": {
+            "unsupportedCurrentPurpose": "Generic relay support does not authorize dropping Buzz compatibility.",
+            "rejectedAlternative": "Restricting support to only the original or single test relay is superseded by any-relay addability.",
+            "unresolvedReturn": "Spin up the chosen nostr-rs-relay and test broader relay support without losing Buzz kinds or simplicity.",
+            "refs": [
+              "s0:59596baa",
+              "s0:1c59f52c",
+              "s0:2c77772c",
+              "s0:e840a189"
+            ]
+          }
+        },
+        {
+          "validatorId": "sol",
+          "value": {
+            "unsupportedCurrentPurpose": false,
+            "rejectedAlternative": false,
+            "unresolvedReturn": false,
+            "refs": [
+              "s0:1c59f52c",
+              "s0:2c77772c"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "buzz-return-01",
+      "corpus": "buzz",
+      "coverage": "return",
+      "boundaryRef": "s0:b145efe3",
+      "finalLabel": "accept",
+      "resolution": "initial-unanimous-pair",
+      "agreeingValidators": [
+        {
+          "id": "astra",
+          "identity": "Astra (independent validator A)",
+          "model": "OpenAI (exact model identifier unavailable)",
+          "source": "astra.json",
+          "sha256": "1ecd06d7f24813718801c44e5df44a435e6e1c842df6dfcc766bb1317e827d6a"
+        },
+        {
+          "id": "sol",
+          "identity": "independent-validator-b",
+          "model": "Codex 5.6 Sol",
+          "source": "sol.json",
+          "sha256": "be31dc20df76c827a89e56dc6d28b20f87704b508a6775cce1743da9df88e009"
+        }
+      ],
+      "decisiveRefs": [
+        "s0:a1250b16",
+        "s0:b145efe3",
+        "s0:42aee4fd",
+        "s0:e9d418fe"
+      ],
+      "criticalObligations": [
+        {
+          "validatorId": "astra",
+          "value": {
+            "unsupportedCurrentPurpose": "A fresh scope or a completed project cannot be inferred from continue.",
+            "rejectedAlternative": "No alternative is rejected in this context.",
+            "unresolvedReturn": "Resume outstanding work after git initialization and carry it to completion; the meaning of the earlier 1 is not recoverable here.",
+            "refs": [
+              "s0:a1250b16",
+              "s0:b145efe3",
+              "s0:42aee4fd",
+              "s0:e9d418fe"
+            ]
+          }
+        },
+        {
+          "validatorId": "sol",
+          "value": {
+            "unsupportedCurrentPurpose": false,
+            "rejectedAlternative": false,
+            "unresolvedReturn": false,
+            "refs": [
+              "s0:b145efe3",
+              "s0:42aee4fd",
+              "s0:e9d418fe"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "buzz-stale-01",
+      "corpus": "buzz",
+      "coverage": "stale",
+      "boundaryRef": "s0:f837571f",
+      "finalLabel": "contract",
+      "resolution": "initial-unanimous-pair",
+      "agreeingValidators": [
+        {
+          "id": "astra",
+          "identity": "Astra (independent validator A)",
+          "model": "OpenAI (exact model identifier unavailable)",
+          "source": "astra.json",
+          "sha256": "1ecd06d7f24813718801c44e5df44a435e6e1c842df6dfcc766bb1317e827d6a"
+        },
+        {
+          "id": "sol",
+          "identity": "independent-validator-b",
+          "model": "Codex 5.6 Sol",
+          "source": "sol.json",
+          "sha256": "be31dc20df76c827a89e56dc6d28b20f87704b508a6775cce1743da9df88e009"
+        }
+      ],
+      "decisiveRefs": [
+        "s0:f837571f",
+        "s0:50f748d3",
+        "s0:bfee19ac"
+      ],
+      "criticalObligations": [
+        {
+          "validatorId": "astra",
+          "value": {
+            "unsupportedCurrentPurpose": "Agent management is no longer supported as current scope.",
+            "rejectedAlternative": "The larger management feature is explicitly dropped.",
+            "unresolvedReturn": "Finish agent mentioning and other unaffected work; all refers to the surviving scope absent an explicit reversal.",
+            "refs": [
+              "s0:f837571f",
+              "s0:50f748d3",
+              "s0:bfee19ac"
+            ]
+          }
+        },
+        {
+          "validatorId": "sol",
+          "value": {
+            "unsupportedCurrentPurpose": false,
+            "rejectedAlternative": true,
+            "unresolvedReturn": false,
+            "refs": [
+              "s0:f837571f"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "ssmp-pivot-01",
+      "corpus": "ssmp",
+      "coverage": "pivot",
+      "boundaryRef": "s0:46f05f8d",
+      "finalLabel": "reorganize",
+      "resolution": "third-validator-matching-pair",
+      "agreeingValidators": [
+        {
+          "id": "sol",
+          "identity": "independent-validator-b",
+          "model": "Codex 5.6 Sol",
+          "source": "sol.json",
+          "sha256": "be31dc20df76c827a89e56dc6d28b20f87704b508a6775cce1743da9df88e009"
+        },
+        {
+          "id": "mimo",
+          "identity": "blind-third-adjudicator",
+          "model": "xiaomi-token-plan-sgp/mimo-v2.6-flash",
+          "source": "adjudicator.json",
+          "sha256": "bfdefa64e4883c79461deb6cbb0cce01f4a2f0fd53c64dd324f890daa8126104"
+        }
+      ],
+      "decisiveRefs": [
+        "s0:5b2a18b4",
+        "s0:7ac45e2b",
+        "s0:46f05f8d",
+        "s0:0c94469e",
+        "s0:3c3e3700"
+      ],
+      "criticalObligations": [
+        {
+          "validatorId": "sol",
+          "value": {
+            "unsupportedCurrentPurpose": false,
+            "rejectedAlternative": false,
+            "unresolvedReturn": true,
+            "refs": [
+              "s0:46f05f8d",
+              "s0:0c94469e"
+            ]
+          }
+        },
+        {
+          "validatorId": "mimo",
+          "value": [
+            "Draft the suggested fixes to completeness before the session is wrapped up, so audit results are not lost.",
+            "Preserve the session's audit purpose and the full set of identified fixes (no scope added or dropped).",
+            "Work through the drafting a chunk at a time.",
+            "A reviewer pass is not required after every chunk when a chunk is small."
+          ]
+        }
+      ]
+    },
+    {
+      "caseId": "ssmp-assent-01",
+      "corpus": "ssmp",
+      "coverage": "assent",
+      "boundaryRef": "s0:542649d5",
+      "finalLabel": "accept",
+      "resolution": "third-validator-matching-pair",
+      "agreeingValidators": [
+        {
+          "id": "astra",
+          "identity": "Astra (independent validator A)",
+          "model": "OpenAI (exact model identifier unavailable)",
+          "source": "astra.json",
+          "sha256": "1ecd06d7f24813718801c44e5df44a435e6e1c842df6dfcc766bb1317e827d6a"
+        },
+        {
+          "id": "mimo",
+          "identity": "blind-third-adjudicator",
+          "model": "xiaomi-token-plan-sgp/mimo-v2.6-flash",
+          "source": "adjudicator.json",
+          "sha256": "bfdefa64e4883c79461deb6cbb0cce01f4a2f0fd53c64dd324f890daa8126104"
+        }
+      ],
+      "decisiveRefs": [
+        "s0:6df05718",
+        "s0:2f67af54",
+        "s0:542649d5",
+        "s0:a512d158",
+        "s0:f6c169b9"
+      ],
+      "criticalObligations": [
+        {
+          "validatorId": "astra",
+          "value": {
+            "unsupportedCurrentPurpose": "Remaining at review-only is unsupported after the existing update authorization.",
+            "rejectedAlternative": "A partial roadmap is not explicitly established or rejected in the supplied before evidence.",
+            "unresolvedReturn": "Complete the full roadmap; the subsequent reminder specifically preserves three open items and all six capabilities.",
+            "refs": [
+              "s0:6df05718",
+              "s0:2f67af54",
+              "s0:542649d5",
+              "s0:f6c169b9"
+            ]
+          }
+        },
+        {
+          "validatorId": "mimo",
+          "value": [
+            "Implement the full roadmap as previously proposed; do not narrow or extend it.",
+            "Start from fresh scratch per the chosen recommendation.",
+            "Deliver the canonical reliability fixes and all six production capabilities covered by the roadmap.",
+            "Continue the 3 open todo items to completion or explicitly mark them complete/finished."
+          ]
+        }
+      ]
+    },
+    {
+      "caseId": "ssmp-conflict-01",
+      "corpus": "ssmp",
+      "coverage": "conflict",
+      "boundaryRef": "s0:0a36e982",
+      "finalLabel": "redirect",
+      "resolution": "initial-unanimous-pair",
+      "agreeingValidators": [
+        {
+          "id": "astra",
+          "identity": "Astra (independent validator A)",
+          "model": "OpenAI (exact model identifier unavailable)",
+          "source": "astra.json",
+          "sha256": "1ecd06d7f24813718801c44e5df44a435e6e1c842df6dfcc766bb1317e827d6a"
+        },
+        {
+          "id": "sol",
+          "identity": "independent-validator-b",
+          "model": "Codex 5.6 Sol",
+          "source": "sol.json",
+          "sha256": "be31dc20df76c827a89e56dc6d28b20f87704b508a6775cce1743da9df88e009"
+        }
+      ],
+      "decisiveRefs": [
+        "s0:46984f5c",
+        "s0:32f0bc26",
+        "s0:0a36e982",
+        "s0:bf0fbca9",
+        "s0:c313b62e"
+      ],
+      "criticalObligations": [
+        {
+          "validatorId": "astra",
+          "value": {
+            "unsupportedCurrentPurpose": "Treating the broken project as ready for the live slice is unsupported.",
+            "rejectedAlternative": "Unqualified use of that project is rejected; the evidence does not authorize abandoning the live slice.",
+            "unresolvedReturn": "Resolve or bypass the missing-sample/mount obstacle and return to live testing, with the assistant responsible for loading.",
+            "refs": [
+              "s0:46984f5c",
+              "s0:32f0bc26",
+              "s0:0a36e982",
+              "s0:bf0fbca9",
+              "s0:c313b62e"
+            ]
+          }
+        },
+        {
+          "validatorId": "sol",
+          "value": {
+            "unsupportedCurrentPurpose": false,
+            "rejectedAlternative": true,
+            "unresolvedReturn": true,
+            "refs": [
+              "s0:0a36e982",
+              "s0:bf0fbca9",
+              "s0:c313b62e"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "ssmp-return-01",
+      "corpus": "ssmp",
+      "coverage": "return",
+      "boundaryRef": "s0:c313b62e",
+      "finalLabel": "redirect",
+      "resolution": "initial-unanimous-pair",
+      "agreeingValidators": [
+        {
+          "id": "astra",
+          "identity": "Astra (independent validator A)",
+          "model": "OpenAI (exact model identifier unavailable)",
+          "source": "astra.json",
+          "sha256": "1ecd06d7f24813718801c44e5df44a435e6e1c842df6dfcc766bb1317e827d6a"
+        },
+        {
+          "id": "sol",
+          "identity": "independent-validator-b",
+          "model": "Codex 5.6 Sol",
+          "source": "sol.json",
+          "sha256": "be31dc20df76c827a89e56dc6d28b20f87704b508a6775cce1743da9df88e009"
+        }
+      ],
+      "decisiveRefs": [
+        "s0:0a36e982",
+        "s0:bf0fbca9",
+        "s0:c313b62e",
+        "s0:7e0b39de"
+      ],
+      "criticalObligations": [
+        {
+          "validatorId": "astra",
+          "value": {
+            "unsupportedCurrentPurpose": "A claim that missing samples or mounting were fixed is unsupported.",
+            "rejectedAlternative": "The blocked route is bypassed in favor of Live D; permanent abandonment of its underlying requirements is not evidenced.",
+            "unresolvedReturn": "Carry out Live D and preserve any unresolved validation requirements; later commit-and-push authorization alone is not proof of their resolution.",
+            "refs": [
+              "s0:0a36e982",
+              "s0:bf0fbca9",
+              "s0:c313b62e",
+              "s0:7e0b39de"
+            ]
+          }
+        },
+        {
+          "validatorId": "sol",
+          "value": {
+            "unsupportedCurrentPurpose": false,
+            "rejectedAlternative": true,
+            "unresolvedReturn": false,
+            "refs": [
+              "s0:bf0fbca9",
+              "s0:c313b62e"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "ssmp-stale-01",
+      "corpus": "ssmp",
+      "coverage": "stale",
+      "boundaryRef": "s0:3c3e3700",
+      "finalLabel": "contract",
+      "resolution": "initial-unanimous-pair",
+      "agreeingValidators": [
+        {
+          "id": "astra",
+          "identity": "Astra (independent validator A)",
+          "model": "OpenAI (exact model identifier unavailable)",
+          "source": "astra.json",
+          "sha256": "1ecd06d7f24813718801c44e5df44a435e6e1c842df6dfcc766bb1317e827d6a"
+        },
+        {
+          "id": "sol",
+          "identity": "independent-validator-b",
+          "model": "Codex 5.6 Sol",
+          "source": "sol.json",
+          "sha256": "be31dc20df76c827a89e56dc6d28b20f87704b508a6775cce1743da9df88e009"
+        }
+      ],
+      "decisiveRefs": [
+        "s0:46f05f8d",
+        "s0:0c94469e",
+        "s0:3c3e3700",
+        "s0:46984f5c"
+      ],
+      "criticalObligations": [
+        {
+          "validatorId": "astra",
+          "value": {
+            "unsupportedCurrentPurpose": "A universal no-review policy is unsupported; the exception is conditional on small chunks.",
+            "rejectedAlternative": "Review after every small chunk is explicitly no longer required.",
+            "unresolvedReturn": "Retain complete audit fixes, chunked progress and appropriate review outside that exception; proceed to the chosen live slice.",
+            "refs": [
+              "s0:46f05f8d",
+              "s0:0c94469e",
+              "s0:3c3e3700",
+              "s0:46984f5c"
+            ]
+          }
+        },
+        {
+          "validatorId": "sol",
+          "value": {
+            "unsupportedCurrentPurpose": false,
+            "rejectedAlternative": true,
+            "unresolvedReturn": false,
+            "refs": [
+              "s0:0c94469e",
+              "s0:3c3e3700"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

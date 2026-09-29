@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "phase": "independent labels preserved; adjudication pending; no production Mom/Luna scoring",
+  "phase": "independent labels preserved; adjudication complete; final gold sealed; no production Mom/Luna scoring",
   "inputs": {
     "packet": {
       "path": "/private/tmp/todo-008-trajectory/validator-packet.json",
@@ -10,7 +10,9 @@
     "solOriginalSha256": "be31dc20df76c827a89e56dc6d28b20f87704b508a6775cce1743da9df88e009",
     "astraPreservedSha256": "1ecd06d7f24813718801c44e5df44a435e6e1c842df6dfcc766bb1317e827d6a",
     "solPreservedSha256": "be31dc20df76c827a89e56dc6d28b20f87704b508a6775cce1743da9df88e009",
-    "sanitization": "No credential-pattern matches; copies preserve all validator fields byte-for-byte."
+    "sanitization": "No credential-pattern matches; copies preserve all validator fields byte-for-byte.",
+    "adjudicatorOriginalSha256": "bfdefa64e4883c79461deb6cbb0cce01f4a2f0fd53c64dd324f890daa8126104",
+    "adjudicatorPreservedSha256": "bfdefa64e4883c79461deb6cbb0cce01f4a2f0fd53c64dd324f890daa8126104"
   },
   "schemaValidation": {
     "status": "pass",
@@ -20,7 +22,12 @@
     "labelsAllowed": true,
     "confidenceRange": "0..1",
     "allCitedRefsInCaseContext": true,
-    "packetShaMatches": true
+    "packetShaMatches": true,
+    "adjudicatorStatus": "pass",
+    "adjudicatorCaseCount": 2,
+    "adjudicatorCaseIdsMatchDisputes": true,
+    "adjudicatorRefsInBlindContext": true,
+    "adjudicatorPacketShaMatches": true
   },
   "labelAgreement": {
     "exactCount": 13,
@@ -239,7 +246,7 @@
   "preregisteredAdjudicationRule": "On disagreement, a third independent model receives the same blind case de novo, without identities, prior rationales, vote counts, rubrics, maps, results, or Luna output; a matching pair is final. If all three labels differ, all three re-read only that case and must document a unanimous consensus before any Luna run.",
   "adjudication": {
     "required": true,
-    "status": "not run",
+    "status": "complete",
     "caseIds": [
       "ssmp-pivot-01",
       "ssmp-assent-01"
@@ -253,7 +260,58 @@
       "not production Luna scorer",
       "no labels, rationales, identities, confidence, or vote counts",
       "one movement per case with supplied-ref citations"
+    ],
+    "validator": {
+      "id": "mimo",
+      "identity": "blind-third-adjudicator",
+      "model": "xiaomi-token-plan-sgp/mimo-v2.6-flash",
+      "source": "adjudicator.json",
+      "sha256": "bfdefa64e4883c79461deb6cbb0cce01f4a2f0fd53c64dd324f890daa8126104"
+    },
+    "outcomes": [
+      {
+        "caseId": "ssmp-pivot-01",
+        "votes": {
+          "astra": "redirect",
+          "sol": "reorganize",
+          "mimo": "reorganize"
+        },
+        "matchingPair": [
+          "sol",
+          "mimo"
+        ],
+        "finalLabel": "reorganize"
+      },
+      {
+        "caseId": "ssmp-assent-01",
+        "votes": {
+          "astra": "accept",
+          "sol": "expand",
+          "mimo": "accept"
+        },
+        "matchingPair": [
+          "astra",
+          "mimo"
+        ],
+        "finalLabel": "accept"
+      }
     ]
   },
-  "productionScoringRun": false
+  "productionScoringRun": false,
+  "finalGold": {
+    "path": "pi-tether/experiments/trajectory-acceptance/labels/final-gold.json",
+    "sha256": "6252416134a3467bb71c64f845e3722127b069b01c88b67b20793951abd408c8",
+    "matchingPairCoverage": {
+      "count": 15,
+      "total": 15,
+      "rate": 1
+    },
+    "classCounts": {
+      "accept": 5,
+      "expand": 1,
+      "contract": 4,
+      "redirect": 3,
+      "reorganize": 2
+    }
+  }
 }

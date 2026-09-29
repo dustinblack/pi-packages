@@ -1,0 +1,45 @@
+{
+  "validator": "blind-third-adjudicator",
+  "model": "xiaomi-token-plan-sgp/mimo-v2.6-flash",
+  "packetSha": "e96b7e8dbb562e6d914e55d8cf5aa02ab60558b1cbd479c11e6d3e56c8f62fc1",
+  "cases": [
+    {
+      "caseId": "ssmp-pivot-01",
+      "label": "reorganize",
+      "confidence": 0.72,
+      "rationale": "The boundary turn imposes a wrap-up timeline and proposes drafting 'our suggested fixes completely before we forget our audit results.' The governing purpose (convert audit results into suggested fixes for this session) and the scope (the fixes already surfaced by the audit) are unchanged; what changes is sequencing, focus, and the route to the wrap-up point. The immediately following turns reinforce a process/sequencing delta only ('a chunk at a time'; per-chunk reviewer unnecessary when small) rather than added or removed durable scope. It is not redirect because drafting the audit's suggested fixes is the session's own deliverable, not materially different work; it is not expand or contract because no scope, permission, or alternative is added or removed.",
+      "decisiveRefs": [
+        "s0:46f05f8d",
+        "s0:5b2a18b4",
+        "s0:7ac45e2b",
+        "s0:0c94469e",
+        "s0:3c3e3700"
+      ],
+      "criticalObligations": [
+        "Draft the suggested fixes to completeness before the session is wrapped up, so audit results are not lost.",
+        "Preserve the session's audit purpose and the full set of identified fixes (no scope added or dropped).",
+        "Work through the drafting a chunk at a time.",
+        "A reviewer pass is not required after every chunk when a chunk is small."
+      ]
+    },
+    {
+      "caseId": "ssmp-assent-01",
+      "label": "accept",
+      "confidence": 0.78,
+      "rationale": "The boundary is explicit assent: 'Implement the full roadmap,' given immediately after 'Ok, go forward with updates.' It adopts the previously proposed direction (the roadmap arising from the review request for gaps and improvements) in full, without otherwise changing its scope. Downstream turns ('Start with fresh scratch (recommended)'; implementing canonical reliability fixes and all six production capabilities) are execution choices inside the adopted roadmap, not evidence of scope beyond it. It is not expand because nothing beyond the previously proposed roadmap is evidenced; not redirect because purpose and course are unchanged; not contract or reorganize because no scope is narrowed and no structural or sequencing change is introduced by this turn.",
+      "decisiveRefs": [
+        "s0:542649d5",
+        "s0:2f67af54",
+        "s0:6df05718",
+        "s0:a512d158",
+        "s0:f6c169b9"
+      ],
+      "criticalObligations": [
+        "Implement the full roadmap as previously proposed; do not narrow or extend it.",
+        "Start from fresh scratch per the chosen recommendation.",
+        "Deliver the canonical reliability fixes and all six production capabilities covered by the roadmap.",
+        "Continue the 3 open todo items to completion or explicitly mark them complete/finished."
+      ]
+    }
+  ]
+}
