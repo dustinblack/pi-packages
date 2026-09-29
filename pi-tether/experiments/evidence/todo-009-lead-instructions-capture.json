@@ -1,0 +1,13 @@
+{
+  "generatedAt": "2026-09-29T14:37:48.631Z",
+  "flow": "same real Pi runtime: enabled lead request, /mom pause, disabled lead request",
+  "enabled": {
+    "sectionPresent": true,
+    "sectionOccurrences": 1,
+    "systemPrompt": "Deterministic verification parent.\n\n<cwd>\n/tmp/pi-delegate-qc-ou6EEO/project\n</cwd>\n\n<mom_lead_behavior>\nMom observes and maps the work; the lead does not maintain her notes.\n\n- The user changes direction quickly and may not announce a pivot. Treat every direction change as an implicit park of interrupted work. Follow the new direction without asking for confirmation, announcing the parking, or slowing the user down. Mom records the abandoned thread silently. Surface parked work only at session start or when current work collides with it.\n- Always notice and respect clear, scoped assent such as “yes, note that” or “yes, let's go down that path” for exactly the point or path it addresses; do not generalize it to nearby proposals. Respect that assent while it is current. If later direction appears to conflict, check the recorded session evidence and follow the latest clear direction without asking the user to reconfirm the pivot.\n</mom_lead_behavior>"
+  },
+  "disabled": {
+    "sectionPresent": false,
+    "systemPrompt": "Deterministic verification parent.\n\n<cwd>\n/tmp/pi-delegate-qc-ou6EEO/project\n</cwd>"
+  }
+}

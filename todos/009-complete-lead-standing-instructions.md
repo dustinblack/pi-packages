@@ -1,5 +1,5 @@
 ---
-status: ready
+status: complete
 issue_id: "009"
 tags: [mom, pi-tether]
 dependencies: ["002"]
@@ -19,6 +19,14 @@ Whenever Mom is enabled, the lead agent's standing instructions include the user
 
 ## Acceptance criteria
 
-- [ ] With Mom enabled, the instruction text is present in the lead's system prompt in a live session (captured)
-- [ ] With Mom disabled, it is absent
-- [ ] A test covers both
+- [x] With Mom enabled, the instruction text is present in the lead's system prompt in a live session (captured)
+- [x] With Mom disabled, it is absent
+- [x] A test covers both
+
+## Evidence
+
+- Substantive commit `be537b426c8e4ab11b3a3fa4fbdf494eac3764fa`; non-fast-forward merge `45a85e6254c153c48e2ec4813f12841476121fef`.
+- Safe live capture: `pi-tether/experiments/evidence/todo-009-lead-instructions-capture.json` (SHA-256 `7ebb37a07004877c0e320706e5587fa3fdb5cbff931082e52e5033178cfaeab9`). Secret-pattern inspection found no credentials, authorization headers, passwords, or API keys.
+- Capture outcome: enabled prompt contains `<mom_lead_behavior>` exactly once; after `/mom pause`, the disabled prompt contains no section.
+- `npx tsx --test test/lead-instructions.test.ts`: 1/1 passed.
+- `cd pi-tether && npm run check`: typecheck and 95/95 tests passed. `git diff --check`: passed.
