@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "status": "pending",
+  "blind": true,
+  "privateRoot": "/private/tmp/todo-008-trajectory/private-v2",
+  "limits": {
+    "maxCalls": 30,
+    "maxElapsedMs": 720000
+  }
+}

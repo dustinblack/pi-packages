@@ -4,115 +4,318 @@
   "title": "Blind semantic trajectory scorer packet v2",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "scorerCaseId", "movementDefinitions", "statusQuoRule", "evidence", "horizon", "before", "after"],
+  "required": [
+    "schemaVersion",
+    "blind",
+    "movementDefinitions",
+    "statusQuoRule",
+    "cases"
+  ],
   "properties": {
-    "schemaVersion": { "const": 2 },
-    "scorerCaseId": { "type": "string", "pattern": "^case-[0-9]{3}$" },
+    "schemaVersion": {
+      "const": 2
+    },
+    "blind": {
+      "const": true
+    },
     "movementDefinitions": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["accept", "expand", "contract", "redirect", "reorganize"],
+      "required": [
+        "accept",
+        "expand",
+        "contract",
+        "redirect",
+        "reorganize"
+      ],
       "properties": {
-        "accept": { "const": "explicit assent adopts a previously proposed direction without otherwise changing its scope" },
-        "expand": { "const": "add compatible durable scope while preserving the governing purpose and existing scope" },
-        "contract": { "const": "narrow or remove scope, permission, or an alternative while preserving the governing purpose" },
-        "redirect": { "const": "replace or park the current course in favor of materially different work; the original session purpose remains grounded" },
-        "reorganize": { "const": "preserve purpose and scope but change structure, sequencing, focus, or the route/point of return" }
+        "accept": {
+          "const": "explicit assent adopts a previously proposed direction without otherwise changing its scope"
+        },
+        "expand": {
+          "const": "add compatible durable scope while preserving the governing purpose and existing scope"
+        },
+        "contract": {
+          "const": "narrow or remove scope, permission, or an alternative while preserving the governing purpose"
+        },
+        "redirect": {
+          "const": "replace or park the current course in favor of materially different work; the original session purpose remains grounded"
+        },
+        "reorganize": {
+          "const": "preserve purpose and scope but change structure, sequencing, focus, or the route/point of return"
+        }
       }
     },
-    "statusQuoRule": { "const": "preserve all unaffected purpose, scope, obligations, alternatives, and unresolved return points" },
-    "evidence": {
-      "type": "array",
-      "minItems": 1,
-      "items": { "$ref": "#/$defs/evidenceEvent" }
+    "statusQuoRule": {
+      "const": "preserve all unaffected purpose, scope, obligations, alternatives, and unresolved return points"
     },
-    "horizon": { "$ref": "#/$defs/eventPointer" },
-    "before": { "$ref": "#/$defs/snapshot" },
-    "after": { "$ref": "#/$defs/snapshot" }
+    "cases": {
+      "type": "array",
+      "minItems": 15,
+      "maxItems": 15,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
   },
   "$defs": {
-    "ref": { "type": "string", "pattern": "^[A-Za-z0-9_-]+:[A-Fa-f0-9]{8}$" },
-    "id": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$" },
-    "nullableId": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] },
+    "ref": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+:[A-Fa-f0-9]{8}$"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+    },
+    "nullableId": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/id"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "eventPointer": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["event", "ref"],
+      "required": [
+        "event",
+        "ref"
+      ],
       "properties": {
-        "event": { "type": "integer", "minimum": 1 },
-        "ref": { "$ref": "#/$defs/ref" }
+        "event": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "ref": {
+          "$ref": "#/$defs/ref"
+        }
       }
     },
     "evidenceEvent": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["event", "ref", "actor", "kind", "text"],
+      "required": [
+        "event",
+        "ref",
+        "actor",
+        "kind",
+        "text"
+      ],
       "properties": {
-        "event": { "type": "integer", "minimum": 1 },
-        "ref": { "$ref": "#/$defs/ref" },
-        "actor": { "type": "string", "minLength": 1 },
-        "kind": { "enum": ["user", "user_answer"] },
-        "text": { "type": "string", "minLength": 1 }
+        "event": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "actor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "user",
+            "user_answer"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "snapshot": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["snapshotId", "mapSha256", "consumedThroughRef", "map"],
+      "required": [
+        "snapshotId",
+        "mapSha256",
+        "consumedThroughRef",
+        "map"
+      ],
       "properties": {
-        "snapshotId": { "type": "string", "minLength": 1 },
-        "mapSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-        "consumedThroughRef": { "$ref": "#/$defs/ref" },
-        "map": { "$ref": "#/$defs/map" }
+        "snapshotId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mapSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "consumedThroughRef": {
+          "$ref": "#/$defs/ref"
+        },
+        "map": {
+          "$ref": "#/$defs/map"
+        }
       }
     },
     "map": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["revision", "motherThread", "purpose", "focus", "nodes", "edges"],
+      "required": [
+        "revision",
+        "motherThread",
+        "purpose",
+        "focus",
+        "nodes",
+        "edges"
+      ],
       "properties": {
-        "revision": { "type": "integer", "minimum": 0 },
-        "motherThread": { "$ref": "#/$defs/nullableId" },
-        "purpose": { "$ref": "#/$defs/nullableId" },
-        "focus": { "$ref": "#/$defs/nullableId" },
-        "nodes": { "type": "array", "items": { "$ref": "#/$defs/node" } },
-        "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" } }
+        "revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "motherThread": {
+          "$ref": "#/$defs/nullableId"
+        },
+        "purpose": {
+          "$ref": "#/$defs/nullableId"
+        },
+        "focus": {
+          "$ref": "#/$defs/nullableId"
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/node"
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/edge"
+          }
+        }
       }
     },
     "node": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "kind", "parent", "state", "label", "intent", "observed", "actor", "sources"],
+      "required": [
+        "id",
+        "kind",
+        "parent",
+        "state",
+        "label",
+        "intent",
+        "observed",
+        "actor",
+        "sources"
+      ],
       "properties": {
-        "id": { "$ref": "#/$defs/id" },
-        "kind": { "enum": ["feature", "theory", "postulate", "try", "rule", "choice", "observation"] },
-        "parent": { "$ref": "#/$defs/nullableId" },
-        "state": { "enum": ["proposed", "active", "parked", "settled", "unknown"] },
-        "label": { "type": "string", "minLength": 1, "maxLength": 160 },
-        "intent": { "type": "string", "maxLength": 1200 },
-        "observed": { "type": "string", "maxLength": 2400 },
-        "actor": { "type": "string", "maxLength": 200 },
-        "sources": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/ref" } },
-        "purposeSource": { "$ref": "#/$defs/ref" },
-        "history": { "$ref": "#/$defs/history" }
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "enum": [
+            "feature",
+            "theory",
+            "postulate",
+            "try",
+            "rule",
+            "choice",
+            "observation"
+          ]
+        },
+        "parent": {
+          "$ref": "#/$defs/nullableId"
+        },
+        "state": {
+          "enum": [
+            "proposed",
+            "active",
+            "parked",
+            "settled",
+            "unknown"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "intent": {
+          "type": "string",
+          "maxLength": 1200
+        },
+        "observed": {
+          "type": "string",
+          "maxLength": 2400
+        },
+        "actor": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/ref"
+          }
+        },
+        "purposeSource": {
+          "$ref": "#/$defs/ref"
+        },
+        "history": {
+          "$ref": "#/$defs/history"
+        }
       }
     },
     "history": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["checkpoint", "nodes", "reason", "sources", "returns"],
+      "required": [
+        "checkpoint",
+        "nodes",
+        "reason",
+        "sources",
+        "returns"
+      ],
       "properties": {
-        "checkpoint": { "type": "string", "minLength": 1 },
-        "nodes": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/id" } },
-        "reason": { "type": "string", "minLength": 1 },
-        "sources": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/ref" } },
+        "checkpoint": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nodes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/ref"
+          }
+        },
         "returns": {
           "type": "array",
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["from", "to"],
-            "properties": { "from": { "$ref": "#/$defs/id" }, "to": { "$ref": "#/$defs/id" } }
+            "required": [
+              "from",
+              "to"
+            ],
+            "properties": {
+              "from": {
+                "$ref": "#/$defs/id"
+              },
+              "to": {
+                "$ref": "#/$defs/id"
+              }
+            }
           }
         }
       }
@@ -120,12 +323,151 @@
     "edge": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["from", "relation", "to", "sources"],
+      "required": [
+        "from",
+        "relation",
+        "to",
+        "sources"
+      ],
       "properties": {
-        "from": { "$ref": "#/$defs/id" },
-        "relation": { "enum": ["returns_to", "informs", "governs", "depends_on", "alternative_to"] },
-        "to": { "$ref": "#/$defs/id" },
-        "sources": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/ref" } }
+        "from": {
+          "$ref": "#/$defs/id"
+        },
+        "relation": {
+          "enum": [
+            "returns_to",
+            "informs",
+            "governs",
+            "depends_on",
+            "alternative_to"
+          ]
+        },
+        "to": {
+          "$ref": "#/$defs/id"
+        },
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/ref"
+          }
+        }
+      }
+    },
+    "obligation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "rule",
+        "evidenceRefs"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "unsupported_current_purpose",
+            "revived_rejected_alternative",
+            "lost_unresolved_return"
+          ]
+        },
+        "rule": {
+          "enum": [
+            "preserve a current purpose only when supported by evidence available through the aligned horizon",
+            "do not revive an explicitly rejected or superseded alternative",
+            "preserve every unresolved return point unless the evidence resolves or replaces it"
+          ]
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/ref"
+          }
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "scorerCaseId",
+        "evidence",
+        "horizon",
+        "before",
+        "after",
+        "criticalObligations"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "scorerCaseId": {
+          "type": "string",
+          "pattern": "^case-[0-9]{3}$"
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/evidenceEvent"
+          }
+        },
+        "horizon": {
+          "$ref": "#/$defs/eventPointer"
+        },
+        "before": {
+          "$ref": "#/$defs/snapshot"
+        },
+        "after": {
+          "$ref": "#/$defs/snapshot"
+        },
+        "criticalObligations": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/obligation"
+          },
+          "allOf": [
+            {
+              "contains": {
+                "properties": {
+                  "type": {
+                    "const": "unsupported_current_purpose"
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            },
+            {
+              "contains": {
+                "properties": {
+                  "type": {
+                    "const": "revived_rejected_alternative"
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            },
+            {
+              "contains": {
+                "properties": {
+                  "type": {
+                    "const": "lost_unresolved_return"
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            }
+          ]
+        }
       }
     }
   }
