@@ -29,7 +29,8 @@ export function graphChange(before: { nodes: readonly { id: string; label: strin
 		created: after.nodes.filter(n => !oldIds.has(n.id)).map(record),
 		retired: (before?.nodes ?? []).filter(n => !newIds.has(n.id)).map(record) };
 }
-export interface Checkpoint { version: 4; sessionId: string; graph: WorkGraph; note: Notice | null; unfinished?: UnfinishedItems; advisor?: AdvisorRecord; cut: Cut; at: number; model: string; usage: Usage; change?: GraphChange }
+/** One materialized map. Usage is a separate sidecar concern. */
+export interface Checkpoint { sessionId: string; graph: WorkGraph; note: Notice | null; unfinished?: UnfinishedItems; advisor?: AdvisorRecord; cut: Cut; at: number; model: string; change?: GraphChange }
 
 const record = (x: unknown): x is Record<string, any> => !!x && typeof x === "object" && !Array.isArray(x);
 const integer = (x: unknown) => typeof x === "number" && Number.isSafeInteger(x) && x >= 0;
@@ -47,8 +48,7 @@ const cutLike = (x: unknown): x is Cut => {
 };
 
 export function isCheckpoint(x: unknown): x is Checkpoint {
-	if (!record(x) || x.version !== 4 || typeof x.sessionId !== "string" ||
-		!Number.isFinite(x.at) || typeof x.model !== "string" || !record(x.cut) || !record(x.usage)) return false;
+	if (!record(x) || "version" in x || "usage" in x || typeof x.sessionId !== "string" || !Number.isFinite(x.at) || typeof x.model !== "string" || !record(x.cut)) return false;
 	try { checkGraph(x.graph); } catch { return false; }
 	if (x.unfinished !== undefined && !Check(Unfinished, x.unfinished)) return false;
 	if (x.advisor !== undefined && !isAdvisorRecord(x.advisor)) return false;
@@ -59,77 +59,88 @@ export function isCheckpoint(x: unknown): x is Checkpoint {
 		if (c.before !== null && c.after !== c.before + c.created.length - c.retired.length) return false;
 	}
 	if (!cutLike(x.cut)) return false;
-	if (x.note !== null && (!record(x.note) || !["text", "obligationRef", "triggerRef"].every((k) => typeof x.note[k] === "string"))) return false;
-	return usageLike(x.usage);
+	return x.note === null || (record(x.note) && ["text", "obligationRef", "triggerRef"].every((k) => typeof x.note[k] === "string"));
 }
 
 export interface CursorFailure { key: string; from: Cut; through: Cut; refs: string[]; error: string; failures: number }
 export interface SkippedGap extends CursorFailure { id: string }
-export interface MomState { checkpoint?: Checkpoint; checkpointId?: string; coverageCut?: Cut; enabled: boolean; delivered?: string; usage?: Usage; failure?: CursorFailure; gaps: SkippedGap[] }
+export interface MomState { checkpoint?: Checkpoint; checkpointId?: string; coverageCut?: Cut; enabled: boolean; delivered?: string; usage?: Usage; error?: string; failure?: CursorFailure; gaps: SkippedGap[] }
 
-/** Sidecar checkpoint records valid for the selected branch. */
+const failureLike = (x: unknown): x is CursorFailure => record(x) && typeof x.key === "string" && cutLike(x.from) && cutLike(x.through) &&
+	Array.isArray(x.refs) && x.refs.every((ref: unknown) => typeof ref === "string") && typeof x.error === "string" && integer(x.failures);
+const mapKeys = new Set(["snapshot", "base", "cut", "enabled", "failure", "gap"]);
+
+/** Full map snapshots valid for the selected branch; map patches never become history handles. */
 export function branchCheckpoints(records: readonly SidecarRecord[], branch: ReadonlySet<string>): { id: string; data: Checkpoint }[] {
 	const checkpoints: { id: string; data: Checkpoint }[] = [];
 	for (const item of records) {
-		if (item.type !== "checkpoint") continue;
-		if (!isCheckpoint(item.data)) throw new Error("Invalid Mom checkpoint in her sidecar; refusing to silently replace it.");
-		if (item.data.cut.parent !== null && !branch.has(item.data.cut.parent)) continue; // an abandoned branch stays invisible
-		checkpoints.push({ id: item.id, data: item.data });
+		if (item.type !== "map" || item.data.snapshot === undefined) continue;
+		if (!isCheckpoint(item.data.snapshot)) throw new Error("Invalid Mom map snapshot in her sidecar; refusing to silently replace it.");
+		if (item.data.snapshot.cut.parent !== null && !branch.has(item.data.snapshot.cut.parent)) continue;
+		checkpoints.push({ id: item.id, data: item.data.snapshot });
 	}
 	return checkpoints;
 }
 
-function foldAttemptUsage(records: readonly SidecarRecord[], at: number): Usage | undefined {
-	let usage: Usage | undefined;
-	for (const item of records) if (item.type === "attempt" && usageLike(item.data.usage) && item.at >= at) usage = item.data.usage;
-	return usage;
-}
-
-/** Mom state comes only from her sidecar. The session transcript is evidence, never state storage. */
+/** Mom state comes only from map/notice/usage records in her sidecar. */
 export async function loadState(store: MomStore, manager: SessionReader): Promise<MomState> {
 	const state: MomState = { enabled: true, gaps: [] };
-	const records = await store.load();
-	const branch = new Set(manager.getBranch().map(e => e.id));
-	for (const { id, data } of branchCheckpoints(records, branch)) { state.checkpoint = data; state.checkpointId = id; state.coverageCut = data.cut; }
+	const records = await store.load(), branch = new Set(manager.getBranch().map(e => e.id));
 	const gaps = new Map<string, SkippedGap>();
-	let coverageAt = state.checkpoint?.at ?? 0;
+	let coverageAt = 0;
 	for (const item of records) {
-		if (item.type === "progress") {
-			if (typeof item.data.checkpoint !== "string" || !cutLike(item.data.cut)) throw new Error("Invalid Mom progress in her sidecar; refusing to outrun an accepted update.");
-			if (item.data.checkpoint === state.checkpointId && state.checkpoint && item.at >= coverageAt &&
-				(item.data.cut.parent === null || branch.has(item.data.cut.parent))) {
-				state.checkpoint = { ...state.checkpoint, cut: item.data.cut, at: item.at };
-				state.coverageCut = item.data.cut; coverageAt = item.at; state.failure = undefined;
+		if (item.type === "notice") {
+			if (typeof item.data.key !== "string") throw new Error("Invalid Mom notice state in her sidecar.");
+			state.delivered = item.data.key;
+			continue;
+		}
+		if (item.type === "usage") {
+			if (!usageLike(item.data.usage) || (item.data.error !== undefined && item.data.error !== null && typeof item.data.error !== "string")) {
+				throw new Error("Invalid Mom usage state in her sidecar.");
 			}
-		} else if (item.type === "failure") {
-			if (!record(item.data) || typeof item.data.key !== "string" || !cutLike(item.data.from) || !cutLike(item.data.through) ||
-				!Array.isArray(item.data.refs) || !item.data.refs.every((ref: unknown) => typeof ref === "string") ||
-				typeof item.data.error !== "string" || !integer(item.data.failures)) throw new Error("Invalid Mom failure state in her sidecar.");
-			if (item.at >= coverageAt && (item.data.through.parent === null || branch.has(item.data.through.parent))) state.failure = item.data as CursorFailure;
-		} else if (item.type === "gap") {
-			if (item.data.action === "resolved" && typeof item.data.id === "string") gaps.delete(item.data.id);
+			state.usage = item.data.usage;
+			state.error = typeof item.data.error === "string" ? item.data.error : undefined;
+			continue;
+		}
+		if (Object.keys(item.data).some(key => !mapKeys.has(key)) || !Object.keys(item.data).length) throw new Error("Invalid Mom map state in her sidecar.");
+		if (item.data.snapshot !== undefined) {
+			if (!isCheckpoint(item.data.snapshot)) throw new Error("Invalid Mom map snapshot in her sidecar; refusing to silently replace it.");
+			if (item.data.snapshot.cut.parent === null || branch.has(item.data.snapshot.cut.parent)) {
+				state.checkpoint = item.data.snapshot; state.checkpointId = item.id; state.coverageCut = item.data.snapshot.cut;
+				coverageAt = item.at; delete state.failure;
+			}
+		}
+		if (item.data.enabled !== undefined) {
+			if (typeof item.data.enabled !== "boolean") throw new Error("Invalid Mom enabled state in her sidecar.");
+			state.enabled = item.data.enabled;
+		}
+		if (item.data.cut !== undefined) {
+			if ((item.data.base !== null && typeof item.data.base !== "string") || !cutLike(item.data.cut)) throw new Error("Invalid Mom map cursor in her sidecar.");
+			const sameMap = item.data.base === state.checkpointId || (!state.checkpointId && item.data.base === null);
+			if (sameMap && item.at >= coverageAt && (item.data.cut.parent === null || branch.has(item.data.cut.parent))) {
+				state.coverageCut = item.data.cut; coverageAt = item.at; delete state.failure;
+				if (state.checkpoint) state.checkpoint = { ...state.checkpoint, cut: item.data.cut, at: item.at };
+			}
+		}
+		if (item.data.failure !== undefined) {
+			if (item.data.failure === null) delete state.failure;
 			else {
-				if (item.data.action !== "open" || typeof item.data.id !== "string" || typeof item.data.key !== "string" ||
-					!cutLike(item.data.from) || !cutLike(item.data.cut) || !Array.isArray(item.data.refs) ||
-					!item.data.refs.every((ref: unknown) => typeof ref === "string") || typeof item.data.error !== "string" || !integer(item.data.failures)) {
-					throw new Error("Invalid Mom skipped-gap state in her sidecar.");
-				}
-				if (item.data.cut.parent === null || branch.has(item.data.cut.parent)) {
-					const gap: SkippedGap = { id: item.data.id, key: item.data.key, from: item.data.from, through: item.data.cut,
-						refs: item.data.refs, error: item.data.error, failures: item.data.failures };
-					gaps.set(gap.id, gap);
-					if (item.at >= coverageAt && ((state.checkpointId && item.data.checkpoint === state.checkpointId) || (!state.checkpointId && item.data.checkpoint === null))) {
-						state.coverageCut = gap.through; coverageAt = item.at; state.failure = undefined;
-						if (state.checkpoint) state.checkpoint = { ...state.checkpoint, cut: gap.through, at: item.at };
-					}
-				}
+				if (!failureLike(item.data.failure)) throw new Error("Invalid Mom failure state in her sidecar.");
+				if (item.at >= coverageAt && (item.data.failure.through.parent === null || branch.has(item.data.failure.through.parent))) state.failure = item.data.failure;
 			}
-		} else if (item.type === "control" && typeof item.data.enabled === "boolean") state.enabled = item.data.enabled;
-		else if (item.type === "notice" && typeof item.data.key === "string") state.delivered = item.data.key;
+		}
+		if (item.data.gap !== undefined) {
+			const gapData = item.data.gap;
+			if (!record(gapData) || typeof gapData.id !== "string" || !["open", "resolved"].includes(gapData.action)) throw new Error("Invalid Mom skipped-gap state in her sidecar.");
+			if (gapData.action === "resolved") gaps.delete(gapData.id);
+			else {
+				const id = gapData.id;
+				if (!failureLike(gapData)) throw new Error("Invalid Mom skipped-gap state in her sidecar.");
+				if (gapData.through.parent === null || branch.has(gapData.through.parent)) gaps.set(id, { ...gapData, id });
+			}
+		}
 	}
 	state.gaps = [...gaps.values()];
-	const usage = foldAttemptUsage(records, state.checkpoint?.at ?? 0);
-	if (usage) state.usage = usage;
 	return state;
 }
 

@@ -8,7 +8,7 @@ const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 test("agents read current neighborhoods, folded history and original sources without inference; cold restore preserves the compacted graph", { timeout: 15000 }, async () => {
 	const h = await setup(true);
-	const checkpoints = async () => (await readSidecar(h)).filter(r => r.type === "checkpoint");
+	const checkpoints = async () => (await readSidecar(h)).filter(r => r.type === "map" && r.data.snapshot);
 	const read = async (args: unknown) => {
 		const result = await h.tools.get("mom").execute("read", args, undefined);
 		assert.match(result.content[0].text, /main|Original recorded evidence/);
@@ -79,7 +79,7 @@ test("agents read current neighborhoods, folded history and original sources wit
 		assert.equal(h.api.requests.length, calls, "graph/source/history reads and reload are inference-free");
 		const cold = h.sdk.SessionManager.open(h.parent);
 		const state = await loadState(new SidecarStore(() => h.parent, cold.getSessionId()), cold);
-		assert(state.checkpoint?.version === 4);
+		assert(state.checkpoint);
 		assert.deepEqual(state.checkpoint.graph.nodes, current.nodes);
 		assert.deepEqual(state.checkpoint.unfinished, current.unfinished);
 		assert.equal(current.unfinished[0].node, "pending");

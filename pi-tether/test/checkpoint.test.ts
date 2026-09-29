@@ -5,85 +5,84 @@ import { emptyUsage, loadState, isCheckpoint } from "../src/checkpoint.ts";
 import type { FeedEvent } from "../src/feed.ts";
 import { acceptGraph } from "../src/contract.ts";
 import { emptyGraph } from "../src/graph.ts";
-import { SidecarStore, type MomStore, type SidecarRecord } from "../src/sidecar.ts";
+import { SidecarStore, type MomStore, type SidecarRecord, type SidecarWriteType } from "../src/sidecar.ts";
 
-const checkpoint = (sessionId: string) => ({ version: 4, sessionId, graph: emptyGraph(), note: null,
-	cut: { parent: null, workers: [] }, at: Date.now(), model: "fixture/fixture", usage: emptyUsage() });
+const checkpoint = (sessionId: string) => ({ sessionId, graph: emptyGraph(), note: null,
+	cut: { parent: null, workers: [] }, at: Date.now(), model: "fixture/fixture" });
 const memoryStore = (sessionId: string, records: SidecarRecord[] = []): MomStore => ({
 	load: async () => records.filter(r => r.sessionId === sessionId),
-	append: async (type, data) => { const record = { v: 1 as const, id: `r${records.length + 1}`, sessionId, type, at: Date.now(), data }; records.push(record); return record; },
+	append: async (type: SidecarWriteType, data) => {
+		const persisted = type === "control" ? { type: "map" as const, data: { enabled: data.enabled } } : { type, data };
+		const record: SidecarRecord = { id: `r${records.length + 1}`, sessionId, ...persisted, at: Date.now() };
+		records.push(record); return record;
+	},
 });
-
-const asRecord = (id: string, sessionId: string, data: unknown, at = Date.now()): SidecarRecord =>
-	({ v: 1, id, sessionId, type: "checkpoint", at, data: data as Record<string, unknown> });
+const mapSnapshot = (id: string, sessionId: string, data: unknown, at = Date.now()): SidecarRecord =>
+	({ id, sessionId, type: "map", at, data: { snapshot: data } });
 
 test("a session without a persisted transcript has no accidental sidecar path", async () => {
 	assert.deepEqual(await new SidecarStore(() => undefined, "memory-only").load(), []);
 });
 
-test("sidecar records restore checkpoint, control, delivery, and usage; abandoned branches stay invisible", async () => {
+test("map, notice, and usage records restore state; abandoned branches stay invisible", async () => {
 	const manager = SessionManager.inMemory("/tmp");
-	const sessionId = manager.getSessionId();
-	const current = checkpoint(sessionId);
+	const sessionId = manager.getSessionId(), current = checkpoint(sessionId);
 	const store = memoryStore(sessionId, [
-		asRecord("abandoned", sessionId, { ...checkpoint(sessionId), at: 1, cut: { parent: "not-on-branch", workers: [] } }, 1),
-		asRecord("keep", sessionId, current),
+		mapSnapshot("abandoned", sessionId, { ...checkpoint(sessionId), at: 1, cut: { parent: "not-on-branch", workers: [] } }, 1),
+		mapSnapshot("keep", sessionId, current),
 	]);
 	await store.append("control", { enabled: false });
 	await store.append("notice", { key: "obligation|trigger" });
-	await store.append("attempt", { usage: { ...emptyUsage(), calls: 9 } });
+	await store.append("usage", { usage: { ...emptyUsage(), calls: 9 }, error: "last failure" });
 	assert.deepEqual(await loadState(store, manager), { checkpoint: current, checkpointId: "keep", coverageCut: current.cut, enabled: false, gaps: [],
-		delivered: "obligation|trigger", usage: { ...emptyUsage(), calls: 9 } });
-	// A checkpoint whose cursor is not on the selected branch never applies, even as the only record.
-	const gone = memoryStore(sessionId, [asRecord("gone", sessionId, { ...current, cut: { parent: "missing", workers: [] } })]);
+		delivered: "obligation|trigger", usage: { ...emptyUsage(), calls: 9 }, error: "last failure" });
+	const gone = memoryStore(sessionId, [mapSnapshot("gone", sessionId, { ...current, cut: { parent: "missing", workers: [] } })]);
 	assert.equal((await loadState(gone, manager)).checkpoint, undefined);
 });
 
-test("progress cursors apply only to their checkpoint and selected branch", async () => {
+test("map cursor patches apply only to their base snapshot and selected branch", async () => {
 	const manager = SessionManager.inMemory("/tmp"), sessionId = manager.getSessionId();
 	const root = manager.appendMessage({ role: "user", content: "root", timestamp: Date.now() });
 	const leaf = manager.appendMessage({ role: "user", content: "leaf", timestamp: Date.now() });
 	const current = { ...checkpoint(sessionId), cut: { parent: root, workers: [] } };
-	const records = [asRecord("keep", sessionId, current)];
-	const store = memoryStore(sessionId, records);
-	await store.append("progress", { checkpoint: "other", cut: { parent: leaf, workers: [] } });
-	await store.append("progress", { checkpoint: "keep", cut: { parent: "abandoned", workers: [] } });
+	const records = [mapSnapshot("keep", sessionId, current)], store = memoryStore(sessionId, records);
+	await store.append("map", { base: "other", cut: { parent: leaf, workers: [] } });
+	await store.append("map", { base: "keep", cut: { parent: "abandoned", workers: [] } });
 	assert.equal((await loadState(store, manager)).checkpoint?.cut.parent, root);
-	await store.append("progress", { checkpoint: "keep", cut: { parent: leaf, workers: [] } });
+	await store.append("map", { base: "keep", cut: { parent: leaf, workers: [] } });
 	assert.equal((await loadState(store, manager)).checkpoint?.cut.parent, leaf);
-	const invalid = memoryStore(sessionId);
-	await invalid.append("progress", { checkpoint: "keep", cut: { parent: leaf } });
-	await assert.rejects(() => loadState(invalid, manager), /Invalid Mom progress/);
+	const invalid = memoryStore(sessionId); await invalid.append("map", { base: "keep", cut: { parent: leaf } });
+	await assert.rejects(() => loadState(invalid, manager), /Invalid Mom map cursor/);
 });
 
-test("deterministic failure and skipped-gap cursors restore without using the transcript as state", async () => {
+test("failure and skipped-gap state share the map stream and restore without transcript state", async () => {
 	const manager = SessionManager.inMemory("/tmp"), sessionId = manager.getSessionId();
 	const root = manager.appendMessage({ role: "user", content: "root", timestamp: Date.now() });
 	const leaf = manager.appendMessage({ role: "user", content: "leaf", timestamp: Date.now() });
 	const current = { ...checkpoint(sessionId), cut: { parent: root, workers: [] } };
-	const store = memoryStore(sessionId, [asRecord("keep", sessionId, current, 1)]);
+	const store = memoryStore(sessionId, [mapSnapshot("keep", sessionId, current, 1)]);
 	const from = current.cut, through = { parent: leaf, workers: [] };
-	await store.append("failure", { key: "range", from, through, refs: [], error: "rejected", failures: 1 });
+	await store.append("map", { failure: { key: "range", from, through, refs: [], error: "rejected", failures: 1 } });
 	assert.equal((await loadState(store, manager)).failure?.failures, 1);
-	await store.append("gap", { action: "open", id: "gap-one", key: "range", checkpoint: "keep", from, cut: through, refs: [], error: "rejected", failures: 2 });
+	await store.append("map", { base: "keep", cut: through, failure: null,
+		gap: { action: "open", id: "gap-one", key: "range", from, through, refs: [], error: "rejected", failures: 2 } });
 	const skipped = await loadState(store, manager);
 	assert.equal(skipped.failure, undefined); assert.equal(skipped.coverageCut?.parent, leaf); assert.equal(skipped.gaps[0]?.id, "gap-one");
-	await store.append("gap", { action: "resolved", id: "gap-one" });
+	await store.append("map", { gap: { action: "resolved", id: "gap-one" } });
 	assert.deepEqual((await loadState(store, manager)).gaps, []);
 });
 
-test("the session transcript is never a Mom state source; only sidecar records load", async () => {
-	const manager = SessionManager.inMemory("/tmp");
-	const store = memoryStore(manager.getSessionId());
+test("the session transcript is never a Mom state source; only sidecar map records load", async () => {
+	const manager = SessionManager.inMemory("/tmp"), store = memoryStore(manager.getSessionId());
 	const current = checkpoint(manager.getSessionId());
 	manager.appendCustomEntry("pi-tether.mom.v4", current);
 	manager.appendCustomEntry("pi-tether.mom-control", { sessionId: manager.getSessionId(), enabled: false });
 	assert.deepEqual(await loadState(store, manager), { enabled: true, gaps: [] });
-	await store.append("checkpoint", current);
-	assert.equal((await loadState(store, manager)).checkpoint, current);
-	assert(isCheckpoint(current));
-	const bad = memoryStore(manager.getSessionId(), [asRecord("bad", manager.getSessionId(), { ...current, version: 3 })]);
-	await assert.rejects(() => loadState(bad, manager), /Invalid Mom checkpoint/);
+	await store.append("map", { snapshot: current });
+	assert.equal((await loadState(store, manager)).checkpoint, current); assert(isCheckpoint(current));
+	assert.equal(isCheckpoint({ ...current, version: 4, usage: emptyUsage() }), false, "legacy versioned snapshot layouts are not accepted");
+	const bad = memoryStore(manager.getSessionId(), [mapSnapshot("bad", manager.getSessionId(), { ...current, graph: null })]);
+	await assert.rejects(() => loadState(bad, manager), /Invalid Mom map snapshot/);
 });
 
 test("source validator rejects invented citations and user-as-violation notices", () => {

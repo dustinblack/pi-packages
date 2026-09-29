@@ -56,7 +56,8 @@ export class Mom {
 		this.checkpointId = state.checkpointId;
 		this.enabled = state.enabled;
 		this.delivered = state.delivered;
-		this.usage = state.usage ?? state.checkpoint?.usage ?? emptyUsage();
+		this.usage = state.usage ?? emptyUsage();
+		this.error = state.error;
 		this.failure = state.failure; this.gaps = state.gaps;
 		await this.feed.restore(state.failure?.through ?? state.coverageCut ?? this.checkpoint?.cut);
 		if (this.checkpoint) for (const item of [...this.checkpoint.graph.nodes, ...this.checkpoint.graph.edges]) for (const ref of item.sources) {
@@ -86,7 +87,7 @@ export class Mom {
 		const previous = index > 0 ? all[index - 1] : undefined;
 		const original = this.feed.events.find(e => e.actor === "lead" && e.kind === "user");
 		const historical = Boolean(options.checkpoint && options.checkpoint !== this.checkpointId);
-		return { initialized: Boolean(checkpoint), format: "endeavors-v4",
+		return { initialized: Boolean(checkpoint), format: "endeavors",
 			checkpoint: checkpointId, previousCheckpoint: previous?.id, at: checkpoint?.at,
 			change: checkpoint ? checkpoint.change ?? graphChange(previous?.data.graph ?? null, checkpoint.graph) : undefined,
 			unfinished: checkpoint?.unfinished, historical,
@@ -250,26 +251,26 @@ export class Mom {
 						|| JSON.stringify(next.note) !== JSON.stringify(this.checkpoint.note ?? null)
 						|| JSON.stringify(next.unfinished) !== JSON.stringify(this.checkpoint.unfinished ?? []);
 					if (material) {
-						const checkpoint: Checkpoint = { version: 4, sessionId: this.host.ctx.sessionManager.getSessionId(),
+						const checkpoint: Checkpoint = { sessionId: this.host.ctx.sessionManager.getSessionId(),
 							graph: next.graph, change: graphChange(this.checkpoint?.graph ?? this.initialGraph, next.graph),
 							note: next.note, unfinished: next.unfinished, cut: batch.cut, at: acceptedAt, model: this.host.model,
-							usage: acceptedUsage, ...(advisor ? { advisor } : {}) };
+							...(advisor ? { advisor } : {}) };
 						let record;
-						try { record = await this.host.store.append("checkpoint", checkpoint); }
+						try { record = await this.host.store.append("map", { snapshot: checkpoint, failure: null }); }
 						catch (error) { throw new Error(`Mom could not write her state beside the session: ${String(error)}`); }
 						this.checkpoint = checkpoint; this.checkpointId = record.id;
 						this.checkpoints.push({ id: record.id, data: checkpoint });
 					} else {
 						if (!this.checkpointId) throw new Error("Mom cannot advance evidence coverage without a saved sidecar checkpoint.");
-						try { await this.host.store.append("progress", { checkpoint: this.checkpointId, cut: batch.cut }); }
+						try { await this.host.store.append("map", { base: this.checkpointId, cut: batch.cut, failure: null }); }
 						catch (error) { throw new Error(`Mom could not advance her state beside the session: ${String(error)}`); }
-						this.checkpoint = { ...this.checkpoint!, cut: batch.cut, at: acceptedAt, usage: acceptedUsage };
+						this.checkpoint = { ...this.checkpoint!, cut: batch.cut, at: acceptedAt };
 					}
 					this.usage = acceptedUsage;
-					// Usage is recorded every update, material or not; a failed write never publishes a checkpoint.
-					try { await this.host.store.append("attempt", { usage: this.usage }); } catch { /* usage bookkeeping is best-effort */ }
+					// Usage is its own compact stream; a failed write never invalidates an accepted map.
+					try { await this.host.store.append("usage", { usage: this.usage, error: null }); } catch { /* usage bookkeeping is best-effort */ }
 					if (batch.retryGapId) {
-						try { await this.host.store.append("gap", { action: "resolved", id: batch.retryGapId });
+						try { await this.host.store.append("map", { gap: { action: "resolved", id: batch.retryGapId } });
 							this.gaps = this.gaps.filter(gap => gap.id !== batch.retryGapId); }
 						catch { /* Accepted coverage remains durable; the visible gap can be retried/resolved later. */ }
 					}
@@ -325,13 +326,13 @@ export class Mom {
 			const failures = this.failure?.key === key ? this.failure.failures + 1 : 1;
 			const failure: CursorFailure = { key, from: batch.from, through: batch.cut, refs, error: String(failureError), failures };
 			if (failures < 2) {
-				await this.host.store.append("failure", failure);
+				await this.host.store.append("map", { failure });
 				this.failure = failure;
 			} else {
 				const gap: SkippedGap = { ...failure, id: randomUUID() };
-				// One durable record both exposes the gap and advances coverage. A failed append skips nothing.
-				await this.host.store.append("gap", { action: "open", id: gap.id, key, checkpoint: this.checkpointId ?? null,
-					from: gap.from, cut: gap.through, refs: gap.refs, error: gap.error, failures: gap.failures });
+				// One map record both exposes the gap and advances coverage. A failed append skips nothing.
+				await this.host.store.append("map", { base: this.checkpointId ?? null, cut: gap.through, failure: null,
+					gap: { action: "open", ...gap } });
 				this.gaps.push(gap); this.failure = undefined;
 				if (this.checkpoint) this.checkpoint = { ...this.checkpoint, cut: batch.cut, at: Date.now() };
 				this.committed = batch.endIndex; this.staged = newer; this.queued = undefined;
@@ -343,8 +344,8 @@ export class Mom {
 				if (attempt.calls) {
 					attempt.elapsedMs = Math.round(performance.now() - started);
 					this.usage = sumUsage(this.usage, attempt);
-					try { await this.host.store.append("attempt", { usage: this.usage, error: this.error }); }
-					catch { /* The original failure remains visible; no checkpoint was published. */ }
+					try { await this.host.store.append("usage", { usage: this.usage, error: this.error }); }
+					catch { /* The original failure remains visible; no map was published. */ }
 				}
 			}
 			throw error;

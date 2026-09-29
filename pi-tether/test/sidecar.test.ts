@@ -11,7 +11,7 @@ test("a torn UTF-8 final line is truncated before append and cold reopen stays r
 	try {
 		await writeFile(session, "{}\n");
 		const initial = new SidecarStore(() => session, sessionId);
-		await initial.append("attempt", { marker: "durable" });
+		await initial.append("usage", { marker: "durable" });
 		const file = sidecarFile(session);
 		await appendFile(file, Buffer.concat([Buffer.from('{"v":1,"id":"torn","text":"'), Buffer.from([0xe2, 0x82])]));
 
@@ -22,7 +22,7 @@ test("a torn UTF-8 final line is truncated before append and cold reopen stays r
 		const raw = await readFile(file);
 		assert.equal(raw.at(-1), 0x0a); assert(!raw.includes(Buffer.from('"id":"torn"')));
 		const cold = await new SidecarStore(() => session, sessionId).load();
-		assert.deepEqual(cold.map(record => record.type), ["attempt", "control"]);
+		assert.deepEqual(cold.map(record => record.type), ["usage", "map"]);
 		assert.equal(cold[0].data.marker, "durable"); assert.equal(cold[1].data.enabled, false);
 	} finally { await rm(dir, { recursive: true, force: true }); }
 });
@@ -32,7 +32,7 @@ test("a failed partial append invalidates same-instance caches before the next a
 	const session = join(dir, "session.jsonl"), sessionId = "session-partial";
 	try {
 		await writeFile(session, "{}\n");
-		await new SidecarStore(() => session, sessionId).append("attempt", { marker: "existing" });
+		await new SidecarStore(() => session, sessionId).append("usage", { marker: "existing" });
 		let fail = true;
 		const io: SidecarIO = {
 			read: (file) => readFile(file),
@@ -45,12 +45,38 @@ test("a failed partial append invalidates same-instance caches before the next a
 			},
 		};
 		const store = new SidecarStore(() => session, sessionId, io);
-		await assert.rejects(() => store.append("checkpoint", { marker: "must-not-survive" }), /injected partial append/);
-		await store.append("attempt", { marker: "recovered" });
+		await assert.rejects(() => store.append("map", { marker: "must-not-survive" }), /injected partial append/);
+		await store.append("usage", { marker: "recovered" });
 
 		const cold = await new SidecarStore(() => session, sessionId).load();
 		assert.deepEqual(cold.map(record => record.data.marker), ["existing", "recovered"]);
-		assert.deepEqual(cold.map(record => record.type), ["attempt", "attempt"]);
+		assert.deepEqual(cold.map(record => record.type), ["usage", "usage"]);
+	} finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test("only map, notice, and usage are persisted; control is a map patch", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "mom-sidecar-types-"));
+	const session = join(dir, "session.jsonl"), sessionId = "session-types";
+	try {
+		await writeFile(session, "{}\n");
+		const store = new SidecarStore(() => session, sessionId);
+		await store.append("map", { enabled: true });
+		await store.append("notice", { key: "obligation|trigger" });
+		await store.append("usage", { marker: "usage" });
+		await store.append("control", { enabled: false });
+		const records = await new SidecarStore(() => session, sessionId).load();
+		assert.deepEqual(records.map(record => record.type), ["map", "notice", "usage", "map"]);
+		assert(records.every(record => !("v" in record)));
+	} finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test("old record shapes are rejected instead of migrated", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "mom-sidecar-old-"));
+	const session = join(dir, "session.jsonl"), sessionId = "session-old";
+	try {
+		await writeFile(session, "{}\n");
+		await writeFile(sidecarFile(session), JSON.stringify({ v: 1, id: "old", sessionId, type: "checkpoint", at: Date.now(), data: {} }) + "\n");
+		await assert.rejects(() => new SidecarStore(() => session, sessionId).load(), /Corrupt Mom state line/);
 	} finally { await rm(dir, { recursive: true, force: true }); }
 });
 
@@ -60,7 +86,7 @@ test("corruption in a complete line remains a loud sidecar failure", async () =>
 	try {
 		await writeFile(session, "{}\n");
 		const store = new SidecarStore(() => session, sessionId);
-		await store.append("attempt", { marker: "durable" });
+		await store.append("usage", { marker: "durable" });
 		await appendFile(sidecarFile(session), "{not-json}\n{\"torn\":");
 		await assert.rejects(() => new SidecarStore(() => session, sessionId).load(), /JSON/);
 	} finally { await rm(dir, { recursive: true, force: true }); }
