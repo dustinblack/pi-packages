@@ -9,15 +9,15 @@ dependencies: []
 
 ## Where we are
 
-trunk:    003 — make routine updates one call without retry storms
+trunk:    004 — fix retrieval ranking against preserved artifact inputs
 tangents: none open
 
 ## Findings
 
 - Design of record: `AwesomeNotes/Coding Agents AI stuff/Mom - complete design map 2026-09-29.md` (every rule with its session line pointer) plus `MOM-HANDOFF.md`. Pointers `[n]` below are raw line indices in `~/.pi/agent/sessions/--Users-ssweens-src-pi-packages--/2026-09-26T23-49-53-444Z_01a0e020-12a4-7474-819f-ad784bb5febd.jsonl`.
-- Mom's sidecar-only state, settled-boundary waking, advisor, presentation, and tests landed at `65856a8`. 91 Tether + 38 delegate tests pass.
+- Mom's sidecar-only state, settled-boundary waking, advisor, presentation, and tests landed at `65856a8`. Todo 003's bounded background update and durable gap recovery landed at `17e508b`; 94 Tether + 38 delegate tests pass.
 - Live: the `mom` tool and widget show "could not update this account; last saved view only", with stale nodes marked current.
-- Update budget: up to 5 serial full-context calls per update, with no round reserved for any purpose. A failed update keeps its cursor, so the same growing batch is retried at every wake → 003.
+- Update budget: background updates now use one proposal plus at most one aggregated repair, with `commit_graph` as their only tool. Explicit questions retain five calls, two searches, and two reads. A failed exact range waits for newer settled material or explicit refresh; two deterministic failures create an atomic visible gap so newer evidence proceeds, while provider/source/invalidation/storage failures never skip. `/mom refresh` retries the oldest gap → 003 complete at `17e508b`.
 - Compaction does not wake Mom, and the option-B note is not implemented. This conflicts with the user's direction [5753][5840] → 005.
 - Waking on every event cost 787 calls and $2.02 in one session [6766]. That is fixed in the working tree but not yet measured → 015.
 - Dead end: per-message and per-fragment classification. Removed at the user's direction [5315][5325]. Do not reintroduce it.
@@ -25,7 +25,7 @@ tangents: none open
 ## Children
 
 - 002 — complete — `65856a8` + closure commit — working tree landed and pushed
-- 003 — ready — making-mom, delegates
+- 003 — complete — `17e508b` + closure commit — one-call routine updates, bounded repair, durable visible gap and refresh recovery
 - 004 — ready — making-mom, delegates
 - 005 — ready — making-mom, delegates
 - 006 — ready — making-mom, delegates
