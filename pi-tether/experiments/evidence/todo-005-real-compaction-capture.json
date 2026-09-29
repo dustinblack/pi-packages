@@ -1,0 +1,33 @@
+{
+  "capturedAt": "2026-09-29T15:13:07.726Z",
+  "runtime": "real Pi SDK AgentSession.compact with loopback scripted provider",
+  "compaction": {
+    "id": "51bcee72",
+    "firstKeptEntryId": "d22622c6",
+    "summary": "Compact summary: authentication migration remains current. Return to formatter wording afterward."
+  },
+  "review": {
+    "rawEntryCount": 13,
+    "rawEventCount": 10,
+    "omittedRawEventCount": 1,
+    "rawContainsHold": true,
+    "summary": "Compact summary: authentication migration remains current. Return to formatter wording afterward.",
+    "triggerRef": "01a0edba-01c8-71ae-a64b-4b54b3867c07:51bcee72"
+  },
+  "calls": {
+    "momTotal": 7,
+    "compactionReviewRequests": 1,
+    "leadBeforeDelivery": 2,
+    "leadAfterUserRequest": 3
+  },
+  "notice": {
+    "present": true,
+    "deliveredOnNextInput": true,
+    "triggerTurn": false,
+    "text": "Mom (advisory, not verification): Still in force — keep KEEP.txt unchanged.\nObligation [src:01a0edba-01c8-71ae-a64b-4b54b3867c07:a030cf2a]; action [src:01a0edba-01c8-71ae-a64b-4b54b3867c07:51bcee72]."
+  },
+  "storage": {
+    "sessionMomStateEntries": 0,
+    "sidecarOnly": true
+  }
+}

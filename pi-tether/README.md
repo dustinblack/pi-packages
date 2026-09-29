@@ -22,7 +22,7 @@ Mom uses **`openai-codex/gpt-5.6-luna`, low reasoning**, through Pi's configured
 pi -e ./pi-tether/src/index.ts --mom-model openai-codex/gpt-5.6-luna --mom-interval-ms 15000
 ```
 
-Mom updates after a lead turn settles or a linked delegate settles, with at least 15 seconds between automatic updates by default. Message completion, individual tool results, delegate start/note events, compaction, and idleness do not wake her. She never starts automatic inference while the lead or a linked delegate is still working. A settled update reads the complete pending user, lead, tool-metadata, and worker slice without blocking the working agent.
+Mom updates after a lead turn settles or a linked delegate settles, with at least 15 seconds between automatic updates by default. Message completion, individual tool results, delegate start/note events, and idleness do not wake her. A successful compaction is one additional settled boundary: it triggers exactly one bounded background review. She never starts routine inference while the lead or a linked delegate is still working. A settled update reads the complete pending user, lead, tool-metadata, and worker slice without blocking the working agent.
 
 ### Optional session-level Kev/JEV review
 
@@ -87,6 +87,8 @@ For example, **formatDuration behavior** is the endeavor. **No edits or commits*
 ## Observation and limits
 
 Mom reads recorded user, lead, and linked worker narrative, plus lightweight tool metadata. Dialog answers from `ask_user` and `gather_input` count as user direction. Original tool arguments and outputs are read only on demand; they are not replayed in every update.
+
+Before Pi compacts context, Mom captures the exact selected-branch entries that Pi is about to replace. After success, one background update compares the provider summary with the current source-backed map and a bounded rendering of that raw segment; active map sources are selected first, so empty and provider-placeholder summaries remain reviewable. If active purpose, work, rules, holds, or return points were dropped or distorted, one short advisory is retained in the sidecar and appended without triggering a turn when the user next submits input. Fully retained compactions produce no advisory, and delivery is deduplicated.
 
 Worker history must match a delegate invocation on the current parent branch and its owner record. Forked parent history is not treated as new worker work. Missing or changed sources stop the update rather than becoming an empty success.
 

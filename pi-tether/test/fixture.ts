@@ -33,13 +33,14 @@ export async function setup(automatic = false) {
 	// Core tests need only Mom; load the UI extension for automatic lifecycle tests.
 	const extension = automatic ? (await import("../src/index.ts")).default : undefined;
 	const api = await provider(), box = sandbox(api.url);
-	const commands = new Map<string, any>(), tools = new Map<string, any>();
+	const commands = new Map<string, any>(), tools = new Map<string, any>(), handlers = new Map<string, any[]>();
 	let context: any, activePi: any;
 	api.onUnscripted((request) => isMomRequest(request) ? replacement(request) : { text: "Lead continued." });
 	const h = await harness(box, undefined, { register: (pi: any) => {
 		activePi = pi;
 		pi.on("session_start", (_event: any, ctx: any) => { context = ctx; });
 		if (extension) extension(new Proxy(pi, { get(target, key) {
+			if (key === "on") return (name: string, value: any) => { handlers.set(name, [...(handlers.get(name) ?? []), value]); return target.on(name, value); };
 			if (key === "getFlag") return (name: string) => name === "mom-model" ? "fixture/fixture" : name === "mom-interval-ms" ? "0" : target.getFlag(name);
 			if (key === "registerCommand") return (name: string, value: any) => { commands.set(name, value); target.registerCommand(name, value); };
 			if (key === "registerTool") return (value: any) => { tools.set(value.name, value); target.registerTool(value); };
@@ -51,6 +52,7 @@ export async function setup(automatic = false) {
 		createMom(overrides: Partial<ConstructorParameters<typeof Mom>[0]> = {}) { return new Mom({ ctx: context, model: "fixture/fixture",
 			store: new SidecarStore(() => h.parent, context.sessionManager.getSessionId()), current: () => true, changed() {}, ...overrides }); },
 		command: (args: string, ctx = context) => commands.get("mom").handler(args, ctx),
+		emitExtension: async (name: string, event: any, ctx = context) => { for (const handler of handlers.get(name) ?? []) await handler(event, ctx); },
 		requests: () => api.requests.filter(isMomRequest),
 		async close() { await h.runtime.dispose(); await api.close(); rmSync(box.root, { recursive: true, force: true }); },
 	};

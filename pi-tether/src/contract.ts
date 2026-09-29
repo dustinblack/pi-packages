@@ -4,7 +4,7 @@ import type { Tool } from "@earendil-works/pi-ai";
 import type { FeedEvent } from "./feed.ts";
 import { Edge, NodeInput, Unfinished, checkUnfinished, unfinishedPreflightErrors, editGraph, shapeError, sourceSuggestion, type GraphEdit, type WorkGraph } from "./graph.ts";
 
-export interface Notice { text: string; obligationRef: string; triggerRef: string }
+export interface Notice { text: string; obligationRef: string; triggerRef: string; nextRequest?: boolean }
 const ref = Type.String({ minLength: 1, description: "Bare SOURCE_ID from [src:SOURCE_ID], without src: or brackets." });
 const pointer = Type.Union([Type.String(), Type.Null()]);
 const object = { additionalProperties: false } as const;
@@ -43,7 +43,9 @@ Merge centers with merges: name the existing source endeavor as thread and survi
 
 Do not silently widen a scoped constraint while contracting. If a governs connection would change endpoint, explicitly remove it and, only when the evidence supports it, replace it with the correct scoped relationship. Update the constraint's account as needed. The host rejects implicit governing-endpoint redirection. Other external links redirect to the surviving center; return links that would become self-edges remain recorded as historical landings. Do not copy old exploration into outcome prose or retain every obsolete claim. Do not reconstruct retired subjects from historical sources as parked or active work. Add a center to organize current work, not to resurrect an old task. A prohibition is an attached rule, not an unfinished assignment. Only new direction or evidence can reopen work. Keep consumed activity historical, not new launches.
 
-Default note=null. A notice requires a still-governing obligation and a distinct NEW observed agent action/claim that conflicts with it. Evaluate against latest user direction. User messages/dialog answers may establish obligations but never be offending actions. Trigger sources must be new assistant narrative or inspected tool calls/results. Pending work, unknown verification, waiting, a missing summary, or a consult answer are not triggers. Stay silent if already addressed. Never authorize deletion. Notice text <=350 characters.
+When compactionReview is present, review the provider summary against BOTH the current source-backed graph and rawReplacedEvents captured before compaction. An empty or provider-placeholder summary is still reviewable. If the summary dropped or distorted any still-active purpose, rule, permission hold, return point, or current work, set one short plain-English note naming what remains in force; cite its governing source as obligationRef and the new compaction event as triggerRef. Do not change the map merely because summary prose omitted material. If all active material was retained, set note=null.
+
+Default note=null. Outside a compaction review, a notice requires a still-governing obligation and a distinct NEW observed agent action/claim that conflicts with it. Evaluate against latest user direction. User messages/dialog answers may establish obligations but never be offending actions. Trigger sources must be new assistant narrative or inspected tool calls/results, except that a compaction review uses the new compaction event. Pending work, unknown verification, waiting, a missing summary, or a consult answer are not triggers. Stay silent if already addressed. Never authorize deletion. Notice text <=350 characters.
 
 For explicit questions, answer with precise [src:SOURCE_ID] citations without inventing work. Historical findings are not current blockers. In tool arguments and structured sources pass bare SOURCE_ID, without src: or brackets. Search matches narrative, metadata and original argument/output text; payload matches disclose only references/metadata until inspected. Search queries must be short literal phrases copied from likely evidence, never the user's full natural-language question. You have at most two metadata searches and separately at most two original-source reads. A zero-result first search must be followed by one shorter literal search; do not inspect or answer between them. Read original command evidence, not merely a narrative quoting it. Report actual lookup errors and truncation honestly. Either side of a tool pair includes its counterpart within one 4000-character read. A successful question search requires inspection next. No speculative browsing.
 
@@ -74,7 +76,7 @@ export function momTools(readsRemaining: number, searchesRemaining = 2, mustInsp
 }
 
 /** Validate shape, provenance identity and notice eligibility, not semantic truth. */
-export function acceptGraph(value: unknown, previous: WorkGraph, checkpoint: string | undefined, known: ReadonlyMap<string, FeedEvent>, newRefs: ReadonlySet<string>, inspected: ReadonlySet<string>, question?: string) {
+export function acceptGraph(value: unknown, previous: WorkGraph, checkpoint: string | undefined, known: ReadonlyMap<string, FeedEvent>, newRefs: ReadonlySet<string>, inspected: ReadonlySet<string>, question?: string, compactionReview = false) {
 	if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid graph transaction shape.");
 	// Strict provider transport represents optional properties as null; internal data omits them.
 	const { note: rawNote, answer: rawAnswer, ...rest } = value as Record<string, unknown>;
@@ -86,7 +88,8 @@ export function acceptGraph(value: unknown, previous: WorkGraph, checkpoint: str
 		const n = v.note, obligation = known.get(n.obligationRef), trigger = known.get(n.triggerRef);
 		const visible = obligation && (["user", "user_answer", "assistant"].includes(obligation.kind) || inspected.has(obligation.ref));
 		const action = trigger && (trigger.kind === "assistant" || (["tool_call", "tool_result"].includes(trigger.kind) && inspected.has(trigger.ref)));
-		if (!n.text.trim() || !visible || !action || !newRefs.has(trigger!.ref) || obligation!.ref === trigger!.ref) throw new Error("Note needs a visible obligation and a distinct new agent action/claim. User direction is not an offending action.");
+		const compactionLoss = compactionReview && trigger?.kind === "compaction";
+		if (!n.text.trim() || !visible || (!action && !compactionLoss) || !newRefs.has(trigger!.ref) || obligation!.ref === trigger!.ref) throw new Error("Note needs a visible obligation and a distinct new agent action/claim, or the current compaction while reviewing dropped active material. User direction is not an offending action.");
 		note = n;
 	}
 	const defects: string[] = [];

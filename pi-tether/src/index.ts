@@ -5,6 +5,7 @@ import { Type } from "typebox";
 import { SystemOneAdvisor } from "./advisor.ts";
 import { NOTICE, noticeKey } from "./checkpoint.ts";
 import { CORRECTION } from "./feed.ts";
+import { finishCompactionReview, prepareCompactionReview, type PendingCompactionReview } from "./compaction.ts";
 import { DEFAULT_MODEL, Mom } from "./mother.ts";
 import { SidecarStore } from "./sidecar.ts";
 import { FOCUS_KEY, MomPanel, widgetLines, type PanelView } from "./panel.ts";
@@ -41,6 +42,7 @@ export default function piTether(pi: ExtensionAPI) {
 	let flight: Promise<string | undefined> | undefined;
 	let lastStarted = 0;
 	let leadTool: string | undefined;
+	let pendingCompaction: PendingCompactionReview | undefined;
 	let unsubscribe: (() => void) | undefined;
 	const interval = () => {
 		const n = Number(pi.getFlag("mom-interval-ms") ?? 15000);
@@ -75,10 +77,12 @@ export default function piTether(pi: ExtensionAPI) {
 		const u = mom?.usage;
 		return `${v.summary || "Mom has not saved a view of this work yet."}\n\n${v.status}${v.error ? `\n${v.error}` : ""}${v.note ? `\n\nNotice: ${v.note}` : ""}${u ? `\n\nMom (session): ${u.calls} model calls · ${u.input + u.cacheRead + u.cacheWrite} input tokens · ${u.output} output tokens · $${u.nominalCost.toFixed(5)} nominal · ${(u.elapsedMs / 1000).toFixed(1)}s cumulative model/update time` : ""}`;
 	}
-	function deliver() {
+	function deliver(onNextRequest = false) {
 		const m = mom, note = m?.checkpoint?.note;
-		if (!m || !note || !ctx || !m.enabled || m.busy || m.error || m.failure || m.gaps.length || openingError || dirty || m.more || m.feed.gaps.size ||
-			!ctx.isIdle() || ctx.hasPendingMessages() || coveredRevision !== revision) return;
+		const nextRequestNotice = Boolean(onNextRequest && note?.nextRequest);
+		if ((onNextRequest && !note?.nextRequest) || (note?.nextRequest && !onNextRequest)) return;
+		if (!m || !note || !ctx || !m.enabled || m.busy || m.error || m.failure || m.gaps.length || openingError || m.feed.gaps.size ||
+			(!nextRequestNotice && (dirty || m.more || !ctx.isIdle() || ctx.hasPendingMessages() || coveredRevision !== revision))) return;
 		const key = noticeKey(note);
 		if (key === m.delivered) return;
 		// No steering, follow-up request, or extra lead turn. This is advisory context at a verified pause.
@@ -88,7 +92,7 @@ export default function piTether(pi: ExtensionAPI) {
 		// Delivery state is sidecar state; the message itself is normal conversation output.
 		void store?.append("notice", { key }).catch(() => undefined);
 	}
-	async function run(question?: string, signal?: AbortSignal, refresh = false): Promise<string | undefined> {
+	async function run(question?: string, signal?: AbortSignal, refresh = false, compactionReview?: ReturnType<typeof finishCompactionReview>): Promise<string | undefined> {
 		const requestedEpoch = epoch;
 		await ready;
 		if (requestedEpoch !== epoch) throw new Error("Mom request superseded by a session/branch change.");
@@ -96,20 +100,20 @@ export default function piTether(pi: ExtensionAPI) {
 		while (flight) {
 			await flight.catch(() => undefined);
 			if (requestedEpoch !== epoch) throw new Error("Mom request superseded by a session/branch change.");
-			if (!question) return undefined;
+			if (!question && !compactionReview) return undefined;
 		}
 		const mine = mom, token = epoch, observed = revision;
 		if (!mine) throw new Error("Mom session is unavailable.");
 		if (!mine.enabled) throw new Error("Mom is paused. Use /mom resume.");
 		dirty = false; lastStarted = Date.now();
-		const work = mine.update(question, signal, observed, refresh);
+		const work = mine.update(question, signal, observed, refresh, compactionReview);
 		flight = work;
 		try {
 			const answer = await work;
 			if (token === epoch && mine === mom) {
 				if (!mine.more) coveredRevision = mine.coveredRevision;
 				if (coveredRevision !== revision) dirty = true;
-				deliver();
+				if (!compactionReview) deliver();
 			}
 			return answer && (dirty || mine.more || coveredRevision !== revision)
 				? `Mom is still catching up. This answer covers only the activity she has read so far.\n\n${answer}` : answer;
@@ -145,7 +149,7 @@ export default function piTether(pi: ExtensionAPI) {
 			if (e.version === 1 && typeof e.runId === "string" && e.kind === "settled") wake();
 		});
 		ctx = context; openingError = undefined; readError = undefined; savedView = undefined; lastStarted = 0;
-		revision = 0; coveredRevision = -1; dirty = true; leadTool = undefined;
+		revision = 0; coveredRevision = -1; dirty = true; leadTool = undefined; pendingCompaction = undefined;
 		const token = epoch;
 		const advisorUrl = String(pi.getFlag("mom-advisor-url") ?? "").trim();
 		const instance: Mom = new Mom({ ctx: context, model: String(pi.getFlag("mom-model") ?? DEFAULT_MODEL),
@@ -178,9 +182,25 @@ export default function piTether(pi: ExtensionAPI) {
 	pi.on("session_start", (_event, context) => { reset(context); });
 	pi.on("session_tree", (_event, context) => { reset(context); });
 	pi.on("session_shutdown", () => { close(); });
+	pi.on("session_before_compact", (event, context) => {
+		pendingCompaction = prepareCompactionReview(event, context.sessionManager.getSessionId());
+	});
+	pi.on("session_compact_failed", () => { pendingCompaction = undefined; });
+	pi.on("session_compact", async (event, context) => {
+		ctx = context;
+		const pending = pendingCompaction;
+		pendingCompaction = undefined;
+		if (!pending || !mom?.enabled || openingError) return;
+		if (timer) clearTimeout(timer);
+		timer = undefined; dirty = true; revision++; sync();
+		const activeRefs = new Set(mom.graph.nodes.filter(node => node.state === "active" || node.state === "parked").flatMap(node => node.sources));
+		try { await run(undefined, undefined, false, finishCompactionReview(pending, event, activeRefs)); }
+		catch { sync(); }
+	});
 	pi.on("before_agent_start", async (event) => {
 		const token = epoch;
 		await ready.catch(() => undefined);
+		if (token === epoch) deliver(true);
 		if (token === epoch && mom?.enabled) event.systemPromptOptions.sections[LEAD_BEHAVIOR_SECTION_KEY] = LEAD_BEHAVIOR_SECTION;
 		else delete event.systemPromptOptions.sections[LEAD_BEHAVIOR_SECTION_KEY];
 	});
@@ -189,6 +209,7 @@ export default function piTether(pi: ExtensionAPI) {
 	pi.on("tool_execution_start", (event) => { leadTool = event.toolName; sync(); });
 	pi.on("tool_execution_end", () => { leadTool = undefined; sync(); });
 	pi.on("input", (event, context) => {
+		if (event.source !== "extension") deliver(true);
 		if (event.source === "extension" || !isStatusPing(event.text)) return { action: "continue" as const };
 		if (!context.hasUI) return { action: "continue" as const };
 		context.ui.notify(cached(), "info");

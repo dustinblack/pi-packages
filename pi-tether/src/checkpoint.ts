@@ -59,7 +59,8 @@ export function isCheckpoint(x: unknown): x is Checkpoint {
 		if (c.before !== null && c.after !== c.before + c.created.length - c.retired.length) return false;
 	}
 	if (!cutLike(x.cut)) return false;
-	return x.note === null || (record(x.note) && ["text", "obligationRef", "triggerRef"].every((k) => typeof x.note[k] === "string"));
+	return x.note === null || (record(x.note) && ["text", "obligationRef", "triggerRef"].every((k) => typeof x.note[k] === "string") &&
+		(x.note.nextRequest === undefined || typeof x.note.nextRequest === "boolean"));
 }
 
 export interface CursorFailure { key: string; from: Cut; through: Cut; refs: string[]; error: string; failures: number }

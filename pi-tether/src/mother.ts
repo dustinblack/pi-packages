@@ -3,8 +3,9 @@ import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { Message, Model } from "@earendil-works/pi-ai";
 import type { MomStore } from "./sidecar.ts";
 import type { AdvisorRecord, SessionAdvisor } from "./advisor.ts";
-import { branchCheckpoints, emptyUsage, graphChange, loadState, sumUsage, type Checkpoint, type CursorFailure, type SkippedGap, type Usage } from "./checkpoint.ts";
+import { branchCheckpoints, emptyUsage, graphChange, loadState, noticeKey, sumUsage, type Checkpoint, type CursorFailure, type SkippedGap, type Usage } from "./checkpoint.ts";
 import { LiveFeed, renderEvent, renderEvents, suffix, type Cut } from "./feed.ts";
+import type { CompactionReview } from "./compaction.ts";
 import { acceptGraph, MOM_PROMPT, momTools, validateSearchQuery } from "./contract.ts";
 import { emptyGraph, graphSlice } from "./graph.ts";
 
@@ -100,7 +101,7 @@ export class Mom {
 		suffix(this.host.ctx.sessionManager, this.host.ctx.sessionManager.getLeafId(), cut.parent);
 	}
 
-	async update(question?: string, signal?: AbortSignal, revision = 0, refresh = false): Promise<string | undefined> {
+	async update(question?: string, signal?: AbortSignal, revision = 0, refresh = false, compactionReview?: CompactionReview): Promise<string | undefined> {
 		if (this.busy) throw new Error("Mom already has an update in flight.");
 		if (this.disposed) throw new Error("Mom session is closed.");
 		this.busy = true;
@@ -149,12 +150,14 @@ export class Mom {
 				return undefined;
 			}
 			this.waitingForWorkers = false;
-			if (!batch.events.length && !question) { this.coveredRevision = batch.revision; this.staged = undefined; return undefined; }
+			if (!batch.events.length && !question && !compactionReview) { this.coveredRevision = batch.revision; this.staged = undefined; return undefined; }
 			this.error = undefined;
 			const [provider, ...id] = this.host.model.split("/");
 			const model = this.host.ctx.modelRegistry.find(provider, id.join("/"));
 			if (!model) throw new Error(`Mom model unavailable: ${this.host.model}. No fallback selected.`);
 			const newRefs = new Set(batch.events.map((e) => e.ref));
+			const known = compactionReview ? new Map(this.feed.byRef).set(compactionReview.triggerRef, compactionReview.triggerEvent) : this.feed.byRef;
+			if (compactionReview) newRefs.add(compactionReview.triggerRef);
 			const inspected = new Set<string>();
 			let readPages = question ? 2 : 0, searches = question ? 2 : 0;
 			let emptySearch: string | undefined;
@@ -167,6 +170,7 @@ export class Mom {
 				original: original ? { ref: original.ref, text: original.text } : null,
 				graph: this.graph, contextBeforeBatch: prior ? renderEvent(prior) : null,
 				newEvents: renderEvents(batch.events), gaps: batch.gaps, pendingMore: batch.more,
+				compactionReview: compactionReview ?? null,
 				question: question ?? null, evidencePagesRemaining: readPages, metadataSearchesRemaining: searches,
 			}) }];
 			let mustInspect = false;
@@ -210,7 +214,7 @@ export class Mom {
 					if (searchRetryOnly) throw new Error("Retry the zero-result search with a shorter literal phrase before any other operation.");
 					if (mustInspect) throw new Error("Inspect an original source from the search before answering.");
 					let next;
-					try { next = acceptGraph(args, this.graph, this.checkpointId, this.feed.byRef, newRefs, inspected, question); }
+					try { next = acceptGraph(args, this.graph, this.checkpointId, known, newRefs, inspected, question, Boolean(compactionReview)); }
 					catch (error) {
 						if (callsRemaining === 0) {
 							if (question) throw error;
@@ -246,15 +250,18 @@ export class Mom {
 					const acceptedAt = Date.now(), acceptedUsage = sumUsage(this.usage, attempt);
 					// A graph-identical acceptance still advances durable evidence coverage. Keep
 					// that compact by layering a cursor record over the latest full checkpoint.
+					const pendingNotice = this.checkpoint?.note?.nextRequest && noticeKey(this.checkpoint.note) !== this.delivered ? this.checkpoint.note : null;
+					const proposedNotice = next.note && compactionReview ? { ...next.note, nextRequest: true } : next.note;
+					const effectiveNote = proposedNotice ?? pendingNotice;
 					const material = !this.checkpoint
 						|| JSON.stringify(next.graph) !== JSON.stringify(this.graph)
-						|| JSON.stringify(next.note) !== JSON.stringify(this.checkpoint.note ?? null)
+						|| JSON.stringify(effectiveNote) !== JSON.stringify(this.checkpoint.note ?? null)
 						|| JSON.stringify(next.unfinished) !== JSON.stringify(this.checkpoint.unfinished ?? []);
 					const resolvedGap = batch.retryGapId ? { gap: { action: "resolved", id: batch.retryGapId } } : {};
 					if (material) {
 						const checkpoint: Checkpoint = { sessionId: this.host.ctx.sessionManager.getSessionId(),
 							graph: next.graph, change: graphChange(this.checkpoint?.graph ?? this.initialGraph, next.graph),
-							note: next.note, unfinished: next.unfinished, cut: batch.cut, at: acceptedAt, model: this.host.model,
+							note: effectiveNote, unfinished: next.unfinished, cut: batch.cut, at: acceptedAt, model: this.host.model,
 							...(advisor ? { advisor } : {}) };
 						let record;
 						try { record = await this.host.store.append("map", { snapshot: checkpoint, failure: null, ...resolvedGap }); }
