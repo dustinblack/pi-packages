@@ -2,9 +2,11 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
-import { CONTROL, NOTICE, noticeKey } from "./checkpoint.ts";
-import { CORRECTION, isMomEntry } from "./feed.ts";
+import { SystemOneAdvisor } from "./advisor.ts";
+import { NOTICE, noticeKey } from "./checkpoint.ts";
+import { CORRECTION } from "./feed.ts";
 import { DEFAULT_MODEL, Mom } from "./mother.ts";
+import { SidecarStore } from "./sidecar.ts";
 import { FOCUS_KEY, MomPanel, widgetLines, type PanelView } from "./panel.ts";
 import { formatElapsed, isStatusPing } from "./status.ts";
 import { presentGraph, readText, summaryText, type WorkView } from "./presentation.ts";
@@ -15,16 +17,21 @@ const WIDGET = "pi-tether";
 export default function piTether(pi: ExtensionAPI) {
 	pi.registerFlag("mom-model", { description: "Exact provider/model for Mom; never inherits or silently substitutes the lead model", type: "string", default: DEFAULT_MODEL });
 	pi.registerFlag("mom-interval-ms", { description: "Minimum spacing between background Mom updates (milliseconds)", type: "string", default: "15000" });
+	pi.registerFlag("mom-advisor-url", { description: "Optional LAN System One endpoint for session-level review; empty disables it", type: "string", default: "" });
+	pi.registerFlag("mom-advisor-model", { description: "System One model used to review Mom's proposed account", type: "string", default: "kev-latest" });
+	pi.registerFlag("mom-advisor-threshold", { description: "Probability that triggers one deeper Mom reconsideration", type: "string", default: "0.70" });
+	pi.registerFlag("mom-advisor-timeout-ms", { description: "Session-level advisor timeout in milliseconds", type: "string", default: "1500" });
 	let ctx: ExtensionContext | undefined;
 	let mom: Mom | undefined;
 	let ready: Promise<void> = Promise.resolve();
 	let openingError: string | undefined;
 	let readError: string | undefined;
-	let savedView: { owner: Mom; checkpoint: Mom["checkpoint"]; work: WorkView; summary: string } | undefined;
+	let savedView: { owner: Mom; checkpoint: Mom["checkpoint"]; complete: boolean; work: WorkView; summary: string } | undefined;
 	let epoch = 0;
 	let revision = 0;
 	let coveredRevision = -1;
 	let dirty = false;
+	let store: SidecarStore | undefined;
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	let flight: Promise<string | undefined> | undefined;
 	let lastStarted = 0;
@@ -35,11 +42,11 @@ export default function piTether(pi: ExtensionAPI) {
 		return Number.isFinite(n) && n >= 0 ? n : 15000;
 	};
 
-	function savedWork() {
+	function savedWork(complete: boolean) {
 		if (!mom || openingError) return savedView?.owner === mom ? savedView : undefined;
-		if (!savedView || savedView.owner !== mom || savedView.checkpoint !== mom.checkpoint) {
-			const work = presentGraph(mom.readGraph());
-			savedView = { owner: mom, checkpoint: mom.checkpoint, work, summary: summaryText(work) };
+		if (!savedView || savedView.owner !== mom || savedView.checkpoint !== mom.checkpoint || savedView.complete !== complete) {
+			const work = presentGraph({ ...mom.readGraph(), coverageComplete: complete });
+			savedView = { owner: mom, checkpoint: mom.checkpoint, complete, work, summary: summaryText(work) };
 		}
 		return savedView;
 	}
@@ -47,11 +54,12 @@ export default function piTether(pi: ExtensionAPI) {
 		const m = mom;
 		const blocked = Boolean(openingError || m?.error || m?.feed.gaps.size);
 		const error = blocked ? "Mom couldn't update her notes. Showing the last saved view; /mom detail has the reason." : undefined;
-		const freshness = m?.busy ? "updating" : blocked ? "update stopped" : dirty || m?.more || coveredRevision !== revision ? "catching up" : "up to date";
+		const complete = Boolean(m) && !m!.busy && !blocked && !dirty && !m!.more && coveredRevision === revision;
+		const freshness = m?.busy ? "updating" : blocked ? "update stopped" : !complete ? "catching up" : "up to date";
 		const checked = m?.checkpoint ? `last saved ${formatElapsed(Date.now() - m.checkpoint.at)} ago` : "nothing saved yet";
 		const status = `${m?.enabled === false ? "paused" : freshness} · ${checked}${ctx && !ctx.isIdle() ? ` · agent ${leadTool ? `using ${leadTool}` : "working"}` : ""}`;
-		const saved = savedWork();
-		return { status, work: saved?.work, summary: saved?.summary ?? "", note: !blocked && coveredRevision === revision ? m?.checkpoint?.note?.text : undefined, error };
+		const saved = savedWork(complete);
+		return { status, complete, work: saved?.work, summary: saved?.summary ?? "", note: complete ? m?.checkpoint?.note?.text : undefined, error };
 	}
 	function sync() {
 		if (!ctx?.hasUI) return;
@@ -72,6 +80,8 @@ export default function piTether(pi: ExtensionAPI) {
 		pi.sendMessage({ customType: NOTICE, content: `Mom (advisory, not verification): ${note.text}\nObligation [src:${note.obligationRef}]; action [src:${note.triggerRef}].`,
 			display: false, details: { key } }, { triggerTurn: false });
 		m.delivered = key;
+		// Delivery state is sidecar state; the message itself is normal conversation output.
+		void store?.append("notice", { key }).catch(() => undefined);
 	}
 	async function run(question?: string, signal?: AbortSignal): Promise<string | undefined> {
 		const requestedEpoch = epoch;
@@ -103,7 +113,7 @@ export default function piTether(pi: ExtensionAPI) {
 			if (token === epoch && mine === mom && flight === work) {
 				flight = undefined;
 				sync();
-				if (!mine.error && (dirty || mine.more)) schedule();
+				if (!mine.error && !mine.waitingForWorkers && (dirty || mine.more)) schedule();
 			}
 		}
 	}
@@ -113,7 +123,7 @@ export default function piTether(pi: ExtensionAPI) {
 		// This timer only batches recorded activity/backlog. Idleness alone never wakes Mom.
 		timer = setTimeout(() => {
 			timer = undefined;
-			if (token !== epoch) return;
+			if (token !== epoch || (ctx && !ctx.isIdle())) return;
 			void run().catch(() => sync());
 		}, Math.max(150, interval() - (Date.now() - lastStarted)));
 	}
@@ -127,13 +137,17 @@ export default function piTether(pi: ExtensionAPI) {
 		unsubscribe = pi.events.on(DELEGATE_MILESTONE_EVENT, (data: unknown) => {
 			if (!data || typeof data !== "object") return;
 			const e = data as Record<string, unknown>;
-			if (e.version === 1 && typeof e.runId === "string" && ["started", "note", "settled"].includes(String(e.kind))) wake();
+			if (e.version === 1 && typeof e.runId === "string" && e.kind === "settled") wake();
 		});
 		ctx = context; openingError = undefined; readError = undefined; savedView = undefined; lastStarted = 0;
 		revision = 0; coveredRevision = -1; dirty = true; leadTool = undefined;
 		const token = epoch;
+		const advisorUrl = String(pi.getFlag("mom-advisor-url") ?? "").trim();
 		const instance: Mom = new Mom({ ctx: context, model: String(pi.getFlag("mom-model") ?? DEFAULT_MODEL),
-			append: (type, data) => pi.appendEntry(type, data),
+			...(advisorUrl ? { advisor: new SystemOneAdvisor({ url: advisorUrl, model: String(pi.getFlag("mom-advisor-model") ?? "kev-latest"),
+				threshold: Number(pi.getFlag("mom-advisor-threshold") ?? 0.7), timeoutMs: Number(pi.getFlag("mom-advisor-timeout-ms") ?? 1500) }) } : {}),
+			// Durable state lives beside the session transcript, never inside it.
+			store: store = new SidecarStore(() => context.sessionManager.getSessionFile(), context.sessionManager.getSessionId()),
 			current: () => token === epoch && mom === instance && context.sessionManager.getSessionId() === ctx?.sessionManager.getSessionId(),
 			changed: () => { if (token === epoch) sync(); },
 		});
@@ -141,7 +155,9 @@ export default function piTether(pi: ExtensionAPI) {
 		ready = instance.open().then(() => {
 			if (token !== epoch) return;
 			savedView = undefined;
-			sync(); schedule();
+			// Opening or changing branches only restores and renders durable state. New
+			// inference waits for agent_settled, delegate settled, or an explicit request.
+			sync();
 		}).catch((error) => { if (token === epoch) { openingError = String(error); sync(); } });
 		sync();
 	}
@@ -151,22 +167,16 @@ export default function piTether(pi: ExtensionAPI) {
 		timer = undefined; mom?.close(); flight = undefined;
 		unsubscribe?.(); unsubscribe = undefined;
 		ctx?.ui.setWidget(WIDGET, undefined);
-		mom = undefined; ctx = undefined; savedView = undefined;
+		mom = undefined; ctx = undefined; savedView = undefined; store = undefined;
 	}
 
 	pi.on("session_start", (_event, context) => { reset(context); });
 	pi.on("session_tree", (_event, context) => { reset(context); });
 	pi.on("session_shutdown", () => { close(); });
-	pi.on("message_end", (event) => {
-		if (isMomEntry({ message: event.message })) return;
-		// message_end precedes persistence. The scheduled callback runs after this hook returns.
-		wake();
-	});
 	pi.on("agent_start", () => { sync(); });
 	pi.on("agent_settled", (_event, context) => { ctx = context; leadTool = undefined; wake(); deliver(); });
 	pi.on("tool_execution_start", (event) => { leadTool = event.toolName; sync(); });
 	pi.on("tool_execution_end", () => { leadTool = undefined; sync(); });
-	pi.on("session_compact", () => { wake(); });
 	pi.on("input", (event, context) => {
 		if (event.source === "extension" || !isStatusPing(event.text)) return { action: "continue" as const };
 		if (!context.hasUI) return { action: "continue" as const };
@@ -208,10 +218,10 @@ export default function piTether(pi: ExtensionAPI) {
 				const reader = mom, state = view();
 				if (args.graph || args.source) {
 					const data = args.source ? { ...await reader.feed.lookup(args.source.ref, args.source.offset ?? 0), pairedRef: reader.feed.pairedSource(args.source.ref) }
-						: { status: state.status, error: state.error, ...reader.readGraph(args.graph) };
+						: { status: state.status, error: state.error, ...reader.readGraph(args.graph), coverageComplete: state.complete };
 					if (token !== epoch || reader !== mom) throw new Error("The session changed while Mom was reading.");
 					const work = args.source ? state.work! : presentGraph(data);
-					const selected = Boolean(args.graph?.nodes?.length || (args.graph?.checkpoint && work.legacySummary !== undefined));
+					const selected = Boolean(args.graph?.nodes?.length || args.graph?.checkpoint);
 					const overview = args.source ? "Original recorded evidence, not new work or permission to act."
 						: summaryText(work);
 					const text = args.source ? `${overview}\n\n${JSON.stringify(data, null, 2)}` : readText(work, selected);
@@ -242,8 +252,11 @@ export default function piTether(pi: ExtensionAPI) {
 						missingSources: mom ? [...mom.feed.gaps.values()] : [], usage: mom?.usage, saved: mom?.readGraph() }, null, 2), "info"); return;
 				}
 				if (command === "pause" || command === "resume") {
-					pi.appendEntry(CONTROL, { sessionId: context.sessionManager.getSessionId(), enabled: command === "resume" });
-					reset(context); context.ui.notify(`Mom ${command === "pause" ? "paused" : "resumed"}.`, "info"); return;
+					if (!store) throw new Error("Mom session is unavailable.");
+					await store.append("control", { enabled: command === "resume" });
+					reset(context);
+					if (command === "resume") { await ready; wake(); }
+					context.ui.notify(`Mom ${command === "pause" ? "paused" : "resumed"}.`, "info"); return;
 				}
 				if (command === "correct") {
 					if (!text) throw new Error("Use /mom correct <your correction>.");

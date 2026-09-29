@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checkGraph, editGraph, emptyGraph, graphSlice, isEndeavor, type ThreadGraph } from "../src/graph.ts";
+import { checkGraph, editGraph, emptyGraph, graphSlice, isEndeavor } from "../src/graph.ts";
 
 const refs = new Set(["s:request", "s:return"]);
 const node = (id: string, parent: string | null, state = "settled", kind = "try") => ({
@@ -85,10 +85,7 @@ test("depth-zero boundary context includes exact ancestor purpose and attached a
 		put(node("unrelated_rule", "unrelated", "active", "rule")),
 	], "main", "pending", refs);
 	const before = structuredClone(graph);
-	const legacy: ThreadGraph = { ...graph, nodes: graph.nodes.map(n => ({ ...n,
-		kind: isEndeavor(n) ? "thread" : n.kind === "observation" ? "finding" : "decision",
-	})) };
-	for (const source of [graph, legacy]) {
+	for (const source of [graph]) {
 		const slice = graphSlice(source, ["pending"], 0);
 		assert.deepEqual(slice.nodes.map(n => n.id), ["pending"]);
 		assert.equal(slice.totalNodes, source.nodes.length);

@@ -15,8 +15,6 @@ export interface AnnotationView {
 export interface EndeavorView extends AnnotationView {
 	parent: string | null;
 	annotations: AnnotationView[];
-	/** False for old flat maps: null parent must not imply a known root. */
-	parentKnown?: boolean;
 }
 export interface ConnectionView {
 	from: string;
@@ -41,17 +39,15 @@ export interface WorkView {
 	/** Old flat records with no recorded parent remain explicitly unattached. */
 	unattachedAnnotations: AnnotationView[];
 	selected: string[];
-	hierarchyKnown: boolean;
 	historical: boolean;
 	original: { ref: string; text: string } | null;
 	format?: string;
-	savedFormat?: string;
-	legacySummary?: string;
 	checkpoint?: string;
 	previousCheckpoint?: string;
 	revision?: number;
 	at?: number;
 	initialized?: boolean;
+	coverageComplete?: boolean;
 	status?: string;
 	change?: unknown;
 	unfinished?: unknown;
@@ -62,14 +58,14 @@ export interface WorkView {
 }
 
 type RecordData = Record<string, any>;
-const endeavorKinds = new Set(["feature", "theory", "postulate", "try", "thread", "work"]);
+const endeavorKinds = new Set(["feature", "theory", "postulate", "try"]);
 const text = (value: unknown): string => typeof value === "string" ? value : "";
 const strings = (value: unknown): string[] => Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
 const records = (value: unknown): RecordData[] => Array.isArray(value) ? value.filter(v => v && typeof v === "object" && typeof v.id === "string") : [];
 const copy = <T>(value: T): T => structuredClone(value);
 const name = (item: Pick<AnnotationView, "label" | "id">): string => item.label || item.id;
 const stateName = (state: string): string => ({ active: "in progress", parked: "waiting", settled: "finished", proposed: "proposed", unknown: "not yet known" })[state] ?? "not yet known";
-const annotationName = (kind: string): string => ({ rule: "Rule", choice: "Open choice", observation: "Observation", decision: "Earlier decision", finding: "Earlier observation" })[kind] ?? "Attached note";
+const annotationName = (kind: string): string => ({ rule: "Rule", choice: "Open choice", observation: "Observation" })[kind] ?? "Attached note";
 const sentence = (value: string): string => /[.!?]$/.test(value.trim()) ? value.trim() : `${value.trim()}.`;
 const excerpt = (value: string, limit = 280): string => {
 	const single = value.replace(/\s+/g, " ").trim();
@@ -91,19 +87,16 @@ export function presentGraph(raw: any): WorkView {
 	const selectedIds = new Set(selected.map(n => n.id));
 	const all = new Map<string, RecordData>();
 	for (const node of [...boundary, ...selected]) all.set(node.id, node);
-	const flat = input.format === "flat-v2" || [...all.values()].some(n => n.kind === "work" && !("parent" in n));
-	const hierarchyKnown = !flat && [...all.values()].every(n => "parent" in n);
 	const endeavors: EndeavorView[] = [], unattachedAnnotations: AnnotationView[] = [];
 	const owners = new Map<string, string>();
 	for (const node of all.values()) if (endeavorKinds.has(node.kind)) {
-		endeavors.push({ ...annotation(node, !selectedIds.has(node.id) && !("intent" in node)), parent: typeof node.parent === "string" ? node.parent : null,
-			parentKnown: hierarchyKnown && "parent" in node, annotations: [] });
+		endeavors.push({ ...annotation(node, !selectedIds.has(node.id) && !("intent" in node)), parent: typeof node.parent === "string" ? node.parent : null, annotations: [] });
 		owners.set(node.id, node.id);
 	}
 	const centers = new Map(endeavors.map(e => [e.id, e]));
 	for (const node of all.values()) if (!endeavorKinds.has(node.kind)) {
 		const item = annotation(node, !selectedIds.has(node.id) && !("intent" in node));
-		const parent = hierarchyKnown && typeof node.parent === "string" ? centers.get(node.parent) : undefined;
+		const parent = typeof node.parent === "string" ? centers.get(node.parent) : undefined;
 		if (parent) { parent.annotations.push(item); owners.set(node.id, parent.id); }
 		else unattachedAnnotations.push(item);
 	}
@@ -111,14 +104,14 @@ export function presentGraph(raw: any): WorkView {
 	const focus = typeof input.focus === "string" ? input.focus : null;
 	const focusEndeavor = focus ? owners.get(focus) ?? null : null;
 	const path: string[] = [];
-	if (hierarchyKnown && focusEndeavor) {
+	if (focusEndeavor) {
 		const visited = new Set<string>();
 		let cursor: string | null = focusEndeavor;
 		while (cursor && !visited.has(cursor)) {
 			visited.add(cursor); path.unshift(cursor); cursor = centers.get(cursor)?.parent ?? null;
 		}
 	}
-	const roots = hierarchyKnown ? endeavors.filter(e => e.parent === null).map(e => e.id) : [];
+	const roots = endeavors.filter(e => e.parent === null).map(e => e.id);
 	const connections: ConnectionView[] = (Array.isArray(input.edges) ? input.edges : []).filter((e: any) => e && typeof e.from === "string" && typeof e.to === "string").map((e: any) => ({
 		from: owners.get(e.from) ?? e.from, to: owners.get(e.to) ?? e.to, relation: text(e.relation), sources: strings(e.sources),
 		...(owners.get(e.from) && owners.get(e.from) !== e.from ? { fromAnnotation: e.from } : {}),
@@ -132,13 +125,12 @@ export function presentGraph(raw: any): WorkView {
 	const boundaryNotes = [...all.values()].filter(n => !selectedIds.has(n.id) && !("intent" in n) && !endeavorKinds.has(n.kind));
 	if (boundaryNotes.length) outside.push(`${boundaryNotes.length} attached ${boundaryNotes.length === 1 ? "note is" : "notes are"} shown by name and state only.`);
 	if (omittedRecords) outside.push(`${omittedRecords} of ${totalRecords} recorded items are outside the selection; ${all.size - selectedIds.size} are included as surrounding context and ${Math.max(0, totalRecords - all.size)} are not loaded.`);
-	if (unattachedAnnotations.length) outside.push(`${unattachedAnnotations.length} ${flat ? "earlier" : "selected"} ${unattachedAnnotations.length === 1 ? "note has" : "notes have"} no recorded endeavor parent in this view; no attachment has been guessed.`);
-	if (!hierarchyKnown && all.size) outside.push("This earlier flat map did not record parent membership. Its connections do not establish a hierarchy.");
+	if (unattachedAnnotations.length) outside.push(`${unattachedAnnotations.length} selected ${unattachedAnnotations.length === 1 ? "note has" : "notes have"} no recorded endeavor parent in this view; no attachment has been guessed.`);
 	const original = input.original && typeof input.original.text === "string" ? { ref: text(input.original.ref), text: input.original.text } : null;
 	const view: WorkView = { orientation: "", purpose, focus, focusEndeavor, focusPath: path, roots, endeavors, outside, connections,
-		unattachedAnnotations, selected: [...selectedIds], hierarchyKnown, historical: Boolean(input.historical), original,
+		unattachedAnnotations, selected: [...selectedIds], historical: Boolean(input.historical), original,
 		totalRecords, omittedRecords };
-	for (const key of ["format", "savedFormat", "legacySummary", "checkpoint", "previousCheckpoint", "revision", "at", "initialized", "status", "change", "unfinished", "error"] as const) {
+	for (const key of ["format", "checkpoint", "previousCheckpoint", "revision", "at", "initialized", "coverageComplete", "status", "change", "unfinished", "error"] as const) {
 		if (input[key] !== undefined) (view as unknown as RecordData)[key] = copy(input[key]);
 	}
 	view.orientation = orientation(view, all);
@@ -149,11 +141,10 @@ function orientation(view: WorkView, raw: Map<string, RecordData>): string {
 	const byId = new Map(view.endeavors.map(e => [e.id, e]));
 	const purpose = view.purpose ? byId.get(view.purpose) : undefined;
 	const pieces: string[] = [];
+	const coverageComplete = view.coverageComplete !== false && !view.error;
 	if (view.historical) pieces.push("You are reading an earlier saved account, not current work.");
-	if (view.legacySummary !== undefined) {
-		pieces.push("Mom is showing an earlier text-only account. It did not record a work hierarchy.");
-		pieces.push(`Earlier account: ${excerpt(view.legacySummary)}`);
-	} else if (!view.endeavors.length && !view.unattachedAnnotations.length) {
+	else if (!coverageComplete) pieces.push("Mom is still catching up. This is a partial last-saved snapshot, not current orientation.");
+	if (!view.endeavors.length && !view.unattachedAnnotations.length) {
 		pieces.push("Mom has not saved an account of this work yet.");
 	} else if (purpose) {
 		pieces.push(`The main endeavor ${view.historical ? "was" : "is"} “${name(purpose)}”.`);
@@ -163,41 +154,34 @@ function orientation(view: WorkView, raw: Map<string, RecordData>): string {
 	else pieces.push("The original user request is not available in this read.");
 	if (view.omittedRecords && view.selected.length) {
 		pieces.push(`This read selects: ${list(view.selected.map(id => text(raw.get(id)?.label) || id))}.`);
-		if (view.hierarchyKnown) {
-			const paths = new Set<string>();
-			for (const id of view.selected) {
-				let item = byId.get(id) ?? view.endeavors.find(e => e.annotations.some(a => a.id === id));
-				const labels: string[] = [], seen = new Set<string>();
-				while (item && !seen.has(item.id)) {
-					seen.add(item.id); labels.unshift(name(item)); item = item.parent ? byId.get(item.parent) : undefined;
-				}
-				if (labels.length) paths.add(labels.join(" → "));
+		const paths = new Set<string>();
+		for (const id of view.selected) {
+			let item = byId.get(id) ?? view.endeavors.find(e => e.annotations.some(a => a.id === id));
+			const labels: string[] = [], seen = new Set<string>();
+			while (item && !seen.has(item.id)) {
+				seen.add(item.id); labels.unshift(name(item)); item = item.parent ? byId.get(item.parent) : undefined;
 			}
-			if (paths.size) pieces.push(`That work belongs here: ${list([...paths])}.`);
+			if (labels.length) paths.add(labels.join(" → "));
 		}
+		if (paths.size) pieces.push(`That work belongs here: ${list([...paths])}.`);
 	}
-	if (view.hierarchyKnown && view.focusPath.length) {
-		pieces.push(`Where ${view.historical ? "work was" : "you are"}: ${view.focusPath.map(id => byId.get(id)?.label || id).join(" → ")}.`);
+	if (view.focusPath.length) {
+		pieces.push(`${view.historical ? "Where work was" : coverageComplete ? "Where you are" : "Last saved focus"}: ${view.focusPath.map(id => byId.get(id)?.label || id).join(" → ")}.`);
 		const focused = view.focus ? raw.get(view.focus) : undefined;
-		if (focused && view.focus !== view.focusEndeavor) pieces.push(`The ${view.historical ? "recorded" : "current"} point of attention in that endeavor is the attached ${annotationName(text(focused.kind)).toLowerCase()} “${text(focused.label) || focused.id}” (${focused.kind === "rule" && focused.state === "active" ? "in force" : stateName(text(focused.state))}), not a separate endeavor.`);
+		if (focused && view.focus !== view.focusEndeavor) pieces.push(`The ${view.historical ? "recorded" : coverageComplete ? "current" : "last saved"} point of attention in that endeavor is the attached ${annotationName(text(focused.kind)).toLowerCase()} “${text(focused.label) || focused.id}” (${focused.kind === "rule" && focused.state === "active" ? "in force" : stateName(text(focused.state))}), not a separate endeavor.`);
 		else if (focused) pieces.push(`That endeavor is ${stateName(text(focused.state))}.`);
-	} else if (!view.hierarchyKnown && raw.size) {
-		pieces.push("This is an older flat account: where one endeavor belonged within another was not recorded.");
-		const focused = view.focus ? raw.get(view.focus) : undefined;
-		if (focused) pieces.push(`Its recorded point of attention was “${text(focused.label) || focused.id}”; no parent relationship has been inferred.`);
-	}
-	else if (view.focus) pieces.push("The current point of attention is outside the loaded hierarchy.");
+	} else if (view.focus) pieces.push("The current point of attention is outside the loaded hierarchy.");
 	const selectedWork = view.endeavors.filter(e => !e.summaryOnly);
 	for (const [state, label] of [["active", "Work in progress"], ["parked", "Waiting work"], ["settled", "Finished work"], ["proposed", "Proposed work"]]) {
 		const matches = selectedWork.filter(e => e.state === state).map(name);
 		if (matches.length) pieces.push(`${label} shown: ${list(matches)}.`);
 	}
 	const notes = view.endeavors.flatMap(e => e.annotations.filter(a => !a.summaryOnly).map(a => ({ item: a, owner: name(e) })));
-	const rules = notes.filter(({ item }) => (item.kind === "rule" || item.kind === "decision") && item.state === "active");
+	const rules = notes.filter(({ item }) => item.kind === "rule" && item.state === "active");
 	if (rules.length) pieces.push(sentence(`Rules still in force: ${list(rules.map(({ item, owner }) => `${owner} — ${excerpt(item.intent || item.label, 220)}`))}`));
 	const waiting = notes.filter(({ item }) => item.state === "parked");
 	if (waiting.length) pieces.push(`Waiting within this work: ${list(waiting.map(({ item, owner }) => `${owner} — ${name(item)}`))}.`);
-	const outcomes = notes.filter(({ item }) => (item.kind === "observation" || item.kind === "finding") && item.state === "settled");
+	const outcomes = notes.filter(({ item }) => item.kind === "observation" && item.state === "settled");
 	if (outcomes.length) pieces.push(`Recorded outcomes: ${list(outcomes.map(({ item, owner }) => `${owner} — ${name(item)}`))}.`);
 	if (view.roots.length > 1) pieces.push(`Other top-level endeavors are also shown: ${list(view.roots.filter(id => id !== view.purpose).map(id => name(byId.get(id)!)))}.`);
 	if (view.outside.length) pieces.push(`Outside this view: ${view.outside.join(" ")}`);
@@ -234,8 +218,9 @@ export function summaryText(view: WorkView): string {
 	const byId = new Map(items.map(item => [item.id, item]));
 	const selected = new Set(view.omittedRecords ? view.selected : []);
 	const state = (item: AnnotationView) => item.kind === "rule" && item.state === "active" ? "in force" : stateName(item.state);
-	const current = view.historical ? "Recorded focus" : "Current";
-	const rule = (item: AnnotationView) => ["rule", "decision"].includes(item.kind) && item.state === "active";
+	const coverageComplete = view.coverageComplete !== false && !view.error;
+	const current = view.historical ? "Recorded focus" : coverageComplete ? "Current" : "Last saved focus";
+	const rule = (item: AnnotationView) => item.kind === "rule" && item.state === "active";
 	const history = (item: AnnotationView, indent: string) => {
 		if (!item.history) return;
 		const checkpoint = text((item.history as RecordData).checkpoint);
@@ -260,8 +245,8 @@ export function summaryText(view: WorkView): string {
 		const rest = notes.filter(item => item !== focus);
 		const groups: [string, AnnotationView[]][] = [
 			["Rules in force", rest.filter(rule)],
-			["Waiting on you", rest.filter(item => item.state === "parked" && ["choice", "decision"].includes(item.kind))],
-			["Waiting", rest.filter(item => item.state === "parked" && !["choice", "decision"].includes(item.kind))],
+			["Waiting on you", rest.filter(item => item.state === "parked" && item.kind === "choice")],
+			["Waiting", rest.filter(item => item.state === "parked" && item.kind !== "choice")],
 			["Recorded outcomes", rest.filter(item => item.state === "settled")],
 			["Other notes", rest.filter(item => !rule(item) && !["parked", "settled"].includes(item.state))],
 		];
@@ -276,9 +261,9 @@ export function summaryText(view: WorkView): string {
 	};
 
 	if (view.error) lines.push("Mom could not update this account; last saved view only, not confirmation of recent activity.");
+	else if (!view.historical && !coverageComplete) lines.push("Mom is still catching up; partial last-saved snapshot only, not current orientation.");
 	if (view.historical) lines.push(`History${view.checkpoint ? ` · checkpoint=${view.checkpoint}` : ""} — earlier saved account, not current work.`);
-	if (view.legacySummary !== undefined) lines.push(`Earlier text-only account (no recorded hierarchy): ${compact(view.legacySummary)}`);
-	else if (!items.length) lines.push(view.omittedRecords ? "No records loaded in this selection." : "Mom has not saved an account of this work yet.");
+	if (!items.length) lines.push(view.omittedRecords ? "No records loaded in this selection." : "Mom has not saved an account of this work yet.");
 	else if (!view.purpose || !endeavors.has(view.purpose)) lines.push(`Endeavor: account outside this view${view.purpose ? ` [${view.purpose}]` : ""}.`);
 
 	const important = new Set([view.focusEndeavor, view.purpose].filter((id): id is string => Boolean(id && endeavors.has(id))));
@@ -289,8 +274,8 @@ export function summaryText(view: WorkView): string {
 	const shown = [...important].map(id => endeavors.get(id)!).concat(rest.slice(0, GROUP_LIMIT));
 	for (const endeavor of shown) {
 		const focused = endeavor.id === view.focusEndeavor;
-		lines.push(`Endeavor: ${compact(name(endeavor), 70)} [${endeavor.id}] — ${state(endeavor)}${focused ? view.historical ? " · recorded focus" : " · current" : ""}${endeavor.summaryOnly ? " · name/state only" : ""}`);
-		if (endeavor.parentKnown && endeavor.parent) lines.push(`  Within: ${compact(endeavors.get(endeavor.parent)?.label || endeavor.parent)}`);
+		lines.push(`Endeavor: ${compact(name(endeavor), 70)} [${endeavor.id}] — ${state(endeavor)}${focused ? view.historical ? " · recorded focus" : coverageComplete ? " · current" : " · last saved focus" : ""}${endeavor.summaryOnly ? " · name/state only" : ""}`);
+		if (endeavor.parent) lines.push(`  Within: ${compact(endeavors.get(endeavor.parent)?.label || endeavor.parent)}`);
 		annotations(endeavor.annotations, endeavor.id);
 		if (endeavor.intent) lines.push(`  Purpose: ${compact(endeavor.intent)}`);
 		history(endeavor, "  ");
@@ -301,10 +286,9 @@ export function summaryText(view: WorkView): string {
 		annotations(view.unattachedAnnotations, null);
 	}
 	if (view.focus && !byId.has(view.focus)) lines.push(`Focus: [${view.focus}] — outside the loaded view.`);
-	if (!view.hierarchyKnown && items.length) lines.push("Earlier flat map: parent membership was not recorded; no hierarchy inferred.");
 	if (view.omittedRecords) lines.push(`Selection: ${view.selected.length} records; ${view.omittedRecords} of ${view.totalRecords} outside selection, ${Math.max(0, view.totalRecords - items.length)} not loaded.`);
 	const partial = items.filter(item => item.summaryOnly);
 	if (partial.length) lines.push(`Context (${partial.length}): name/state only.`);
-	if (items.length || view.legacySummary !== undefined) lines.push("Details: select an endeavor for full annotations and sources.");
+	if (items.length) lines.push("Details: select an endeavor for full annotations and sources.");
 	return lines.join("\n");
 }

@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { CHECKPOINT } from "../src/checkpoint.ts";
-import { setup, replacement, input, isMomRequest, deferred } from "./fixture.ts";
+import { setup, replacement, input, isMomRequest, deferred, readSidecar } from "./fixture.ts";
+import { SidecarStore } from "../src/sidecar.ts";
 
-const checkpoints = (h: Awaited<ReturnType<typeof setup>>) => h.runtime.session.sessionManager.getBranch().filter((e: any) => e.type === "custom" && e.customType === CHECKPOINT);
+const checkpoints = async (h: Awaited<ReturnType<typeof setup>>) => (await readSidecar(h)).filter(r => r.type === "checkpoint");
+const advisorReview = (needsReanalysis: number, action: "accept" | "expand" = "accept") => ({ status: "reviewed" as const, model: "kev-test",
+	needsReanalysis, signals: { expand: needsReanalysis, contract: 0.02, redirect: 0.03, reorganize: 0.03 },
+	action, probabilities: { accept: action === "accept" ? 0.9 : 0.02, expand: action === "expand" ? 0.9 : 0.02, contract: 0.02, redirect: 0.03, reorganize: 0.03 },
+	confidence: 0.9, usage: { input: 20, output: 2 }, latencyMs: 3 });
 
 test("fresh Mom contexts checkpoint automatically observed narrative and recover without replay calls", { timeout: 15000 }, async () => {
 	const h = await setup();
@@ -11,7 +15,7 @@ test("fresh Mom contexts checkpoint automatically observed narrative and recover
 	try {
 		await h.runtime.session.prompt("Preserve the original purpose. Do not delete user files.");
 		await mom.open(); await mom.update();
-		assert.equal(checkpoints(h).length, 1);
+		assert.equal((await checkpoints(h)).length, 1);
 		const first = mom.checkpoint!;
 		assert(mom.graph.nodes.every(node => node.sources.length > 0));
 		assert.equal(first.version, 4);
@@ -22,10 +26,11 @@ test("fresh Mom contexts checkpoint automatically observed narrative and recover
 		await mom.update();
 		assert.equal(h.requests().length, 2);
 		const body = input(h.requests()[1]);
-		assert.match(body.userHistory, /Do not delete user files/);
-		assert.match(body.userDirections[0].text, /Also investigate the failing route/);
-		assert.match(body.newEvents, new RegExp(`\\[src:${body.userDirections[0].ref.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\]`));
-		assert(!body.newEvents.includes("Also investigate the failing route"), "direction text appears once in the model payload");
+		assert.equal(body.userHistory, undefined, "the session log is not reconstructed into every update");
+		assert.match(body.contextBeforeBatch, /lead assistant/);
+		assert.match(body.newEvents, /\[src:[^\]]+\].*lead user/s);
+		assert.match(body.newEvents, /Also investigate the failing route/);
+		assert.equal(body.userDirections, undefined, "new narrative is evidence, not a message-accounting ledger");
 		assert.equal(h.requests()[1].messages.length, 2, "no growing Mom conversation");
 		assert(!h.requests()[1].tools.some((t: any) => ["bash", "edit", "write", "delegate", "tether"].includes(t.function.name)));
 		assert.equal(mom.usage.calls, 2);
@@ -33,23 +38,60 @@ test("fresh Mom contexts checkpoint automatically observed narrative and recover
 	} finally { mom.close(); await h.close(); }
 });
 
-test("one update can repair two rejected graph transactions before publishing", { timeout: 15000 }, async () => {
+test("a low session-level review accepts Mom's draft without extra analysis", { timeout: 15000 }, async () => {
+	const h = await setup(); let reviews = 0;
+	const mom = h.createMom({ advisor: { model: "kev-test", threshold: 0.7, async review(input) {
+		reviews++; assert.match(input.newEvidence, /Preserve this goal/); return advisorReview(0.12);
+	} } });
+	try {
+		await h.runtime.session.prompt("Preserve this goal."); await mom.open(); await mom.update();
+		assert.equal(reviews, 1); assert.equal(h.requests().length, 1);
+		assert.equal(mom.checkpoint?.version === 4 && mom.checkpoint.advisor?.status, "reviewed");
+		assert.equal(mom.checkpoint?.version === 4 && mom.checkpoint.advisor?.reexamined, false);
+	} finally { mom.close(); await h.close(); }
+});
+
+test("a non-accept session-level decision triggers exactly one deeper Mom reconsideration", { timeout: 15000 }, async () => {
+	const h = await setup(); let reviews = 0;
+	const mom = h.createMom({ advisor: { model: "kev-test", threshold: 0.7, async review() { reviews++; return advisorReview(0.31, "expand"); } } });
+	try {
+		await h.runtime.session.prompt("Preserve this goal."); await mom.open(); await mom.update();
+		assert.equal(reviews, 1); assert.equal(h.requests().length, 2, "advisor can add only one Mom call");
+		assert.match(JSON.stringify(h.requests()[1].messages), /probabilistic session-level advisor requested one deeper reconsideration/);
+		assert.equal(mom.checkpoint?.version === 4 && mom.checkpoint.advisor?.reexamined, true);
+		assert.equal(mom.usage.calls, 2);
+	} finally { mom.close(); await h.close(); }
+});
+
+test("advisor failure is recorded but cannot block an otherwise valid Mom update", { timeout: 15000 }, async () => {
+	const h = await setup();
+	const mom = h.createMom({ advisor: { model: "kev-test", threshold: 0.7, async review() { throw new Error("advisor offline"); } } });
+	try {
+		await h.runtime.session.prompt("Preserve this goal."); await mom.open(); await mom.update();
+		assert.equal(h.requests().length, 1);
+		assert.equal(mom.checkpoint?.version === 4 && mom.checkpoint.advisor?.status, "unavailable");
+		assert.match(mom.checkpoint?.version === 4 && mom.checkpoint.advisor?.status === "unavailable" ? mom.checkpoint.advisor.error : "", /advisor offline/);
+	} finally { mom.close(); await h.close(); }
+});
+
+test("one update can reject three graph transactions and still succeed within five total calls", { timeout: 15000 }, async () => {
 	const h = await setup(), mom = h.createMom(); let attempts = 0;
 	try {
 		await h.runtime.session.prompt("Preserve the original purpose.");
 		h.api.onUnscripted((request) => {
 			if (!isMomRequest(request)) return { text: "Lead continued." };
-			if (attempts++ < 2) {
+			if (attempts++ < 3) {
 				const ref = input(request).original.ref;
 				return replacement(request, { unfinished: [{ node: "main", label: "Main purpose", disposition: "carried", target: "main", sources: [ref] }] });
 			}
 			return replacement(request);
 		});
 		await mom.open(); await mom.update();
-		assert.equal(h.requests().length, 3);
-		assert.match(JSON.stringify(h.requests()[1].messages), /transaction closes no endeavor.*1\/2 repairs used/);
-		assert.match(JSON.stringify(h.requests()[2].messages), /transaction closes no endeavor.*2\/2 repairs used/);
-		assert.equal(checkpoints(h).length, 1); assert.equal(mom.error, undefined);
+		assert.equal(h.requests().length, 4);
+		assert.match(JSON.stringify(h.requests()[1].messages), /transaction closes no endeavor.*4 model calls remain/);
+		assert.match(JSON.stringify(h.requests()[2].messages), /transaction closes no endeavor.*3 model calls remain/);
+		assert.match(JSON.stringify(h.requests()[3].messages), /transaction closes no endeavor.*2 model calls remain/);
+		assert.equal((await checkpoints(h)).length, 1); assert.equal(mom.error, undefined);
 		assert.deepEqual(h.errors, []); assert.deepEqual(h.api.errors, []);
 	} finally { mom.close(); await h.close(); }
 });
@@ -69,23 +111,53 @@ test("fresh contexts keep cache affinity within one branch instance and reset wi
 	} finally { mom.close(); await h.close(); }
 });
 
+test("an accepted graph-identical update advances a compact durable cursor and cold reopen does not replay it", { timeout: 15000 }, async () => {
+	const h = await setup(); let mom = h.createMom();
+	try {
+		await h.runtime.session.prompt("Preserve this goal."); await mom.open(); await mom.update();
+		const firstId = mom.checkpointId;
+		h.api.onUnscripted((request) => {
+			if (!isMomRequest(request)) return { text: "Lead produced evidence that does not change the map." };
+			const body = input(request);
+			return { tool: { name: "commit_graph", arguments: { revision: body.graph.revision,
+				purpose: body.graph.purpose, focus: body.graph.focus, note: null, unfinished: [],
+				upsertNodes: [], upsertEdges: [], removeEdges: [], merges: [], folds: [], removeNodes: [], supersessions: [] } } };
+		});
+		await h.runtime.session.prompt("Record this routine continuation without changing the map.");
+		await mom.update();
+		const records = await readSidecar(h);
+		assert.equal(records.filter(r => r.type === "checkpoint").length, 1, "the graph is not duplicated");
+		const progress = records.filter(r => r.type === "progress");
+		assert.equal(progress.length, 1); assert.equal(progress[0].data.checkpoint, firstId);
+		const acceptedCut = structuredClone(mom.checkpoint!.cut);
+		mom.close(); await h.runtime.session.reload(); mom = h.createMom(); await mom.open();
+		assert.deepEqual(mom.checkpoint?.cut, acceptedCut);
+		const calls = h.requests().length;
+		await mom.update();
+		assert.equal(h.requests().length, calls, "cold reopen has no accepted evidence to replay");
+	} finally { mom.close(); await h.close(); }
+});
+
 test("checkpoint append failure retains the old snapshot/cursor and retries the same unconsumed batch", { timeout: 15000 }, async () => {
 	const h = await setup(); let fail = false;
-	const mom = h.createMom({ append(type, data) {
-		if (fail && type === CHECKPOINT) throw new Error("Injected append failure");
-		h.runtime.session.sessionManager.appendCustomEntry(type, data);
+	const durable = () => new SidecarStore(() => h.parent, h.runtime.session.sessionManager.getSessionId());
+	const mom = h.createMom({ store: {
+		load: async () => durable().load(),
+		append: async (type, data) => {
+			if (fail && type === "checkpoint") throw new Error("Injected append failure");
+			return durable().append(type, data);
+		},
 	} });
 	try {
 		await h.runtime.session.prompt("Preserve this goal."); await mom.open(); await mom.update();
 		const before = mom.checkpoint;
 		await h.runtime.session.prompt("Keep the worker result attached to that goal."); fail = true;
 		await assert.rejects(() => mom.update(), /Injected append failure/);
-		assert.equal(mom.checkpoint, before); assert.equal(checkpoints(h).length, 1);
+		assert.equal(mom.checkpoint, before); assert.equal((await checkpoints(h)).length, 1);
 		assert.equal(h.requests().length, 2, "storage failure does not cause a model repair call");
 		fail = false; await mom.update();
-		assert.equal(checkpoints(h).length, 2);
+		assert.equal((await checkpoints(h)).length, 2);
 		assert.equal(input(h.requests()[1]).newEvents, input(h.requests()[2]).newEvents);
-		assert.deepEqual(input(h.requests()[1]).userDirections, input(h.requests()[2]).userDirections);
 		assert.equal(mom.usage.calls, 3, "failed attempt usage is retained");
 	} finally { mom.close(); await h.close(); }
 });
@@ -98,14 +170,13 @@ test("provider failure survives reload without losing the last checkpoint or new
 		await h.runtime.session.prompt("The new constraint is no deletion.");
 		h.api.onUnscripted((request) => isMomRequest(request) ? { error: 400 } : { text: "Lead continued." });
 		await assert.rejects(() => mom.update(), /Fixture provider failure/);
-		assert.equal(mom.checkpoint, before); assert.equal(checkpoints(h).length, 1);
+		assert.equal(mom.checkpoint, before); assert.equal((await checkpoints(h)).length, 1);
 		mom.close(); await h.runtime.session.reload(); mom = h.createMom(); await mom.open();
 		assert.deepEqual(mom.checkpoint, before); assert.equal(mom.usage.calls, 2);
 		h.api.onUnscripted((request) => replacement(request));
 		await mom.update();
-		assert.match(input(h.requests().at(-1)).userDirections[0].text, /The new constraint is no deletion/);
-		assert(!input(h.requests().at(-1)).newEvents.includes("The new constraint is no deletion"));
-		assert.equal(checkpoints(h).length, 2); assert.equal(mom.usage.calls, 3);
+		assert.match(input(h.requests().at(-1)).newEvents, /The new constraint is no deletion/);
+		assert.equal((await checkpoints(h)).length, 2); assert.equal(mom.usage.calls, 3);
 	} finally { mom.close(); await h.close(); }
 });
 
@@ -131,6 +202,74 @@ test("explicit history questions use bounded search and answer without filesyste
 	} finally { mom.close(); await h.close(); }
 });
 
+test("zero-result search keeps retry-only state through an invalid retry and still answers within five calls", { timeout: 15000 }, async () => {
+	const h = await setup(), mom = h.createMom();
+	try {
+		await h.runtime.session.prompt("Preserve the exact marker branches rejoin."); await mom.open(); await mom.update();
+		let round = 0;
+		h.api.onUnscripted((request) => {
+			const body = input(request), step = round++;
+			if (step === 0) return { tool: { name: "search_history", arguments: { query: "definitely absent marker" } } };
+			if (step === 1) {
+				assert.deepEqual(request.tools.map((t: any) => t.function.name), ["search_history"]);
+				return { tool: { name: "search_history", arguments: { query: "another equally long marker" } } };
+			}
+			if (step === 2) {
+				assert.deepEqual(request.tools.map((t: any) => t.function.name), ["search_history"]);
+				assert.match(JSON.stringify(request.messages), /No metadata search was consumed; 1 remain/);
+				assert.match(JSON.stringify(request.messages), /3 model calls remain/);
+				return { tool: { name: "search_history", arguments: { query: "branches rejoin" } } };
+			}
+			if (step === 3) {
+				assert.deepEqual(request.tools.map((t: any) => t.function.name), ["inspect_evidence"]);
+				return { tool: { name: "inspect_evidence", arguments: { ref: body.original.ref, offset: 0, limit: 4000 } } };
+			}
+			return replacement(request, { answer: `The exact marker was preserved. [src:${body.original.ref}]` });
+		});
+		assert.match((await mom.update("What exact marker was preserved?"))!, /exact marker/);
+		assert.equal(round, 5); assert.equal(h.requests().length, 6);
+	} finally { mom.close(); await h.close(); }
+});
+
+test("metadata search and source reads enforce independent two-operation budgets", { timeout: 15000 }, async () => {
+	for (const mode of ["search", "read"] as const) {
+		const h = await setup(), mom = h.createMom();
+		try {
+			await h.runtime.session.prompt("Keep the budget marker."); await mom.open(); await mom.update();
+			let round = 0;
+			h.api.onUnscripted((request) => {
+				const ref = input(request).original.ref;
+				round++;
+				if (mode === "search") return { tool: { name: "search_history", arguments: { query: round === 1 ? "zzzzmissingone" : round === 2 ? "☃" : "x" } } };
+				return { tool: { name: "inspect_evidence", arguments: { ref, offset: 0, limit: 100 } } };
+			});
+			await assert.rejects(() => mom.update("zzzzquery"), /Unavailable Mom operation/);
+			assert.equal(round, 3);
+		} finally { mom.close(); await h.close(); }
+	}
+});
+
+test("an invalid long search is repairable and consumes a model call but no search", { timeout: 15000 }, async () => {
+	const h = await setup(), mom = h.createMom();
+	try {
+		await h.runtime.session.prompt("Keep this marker."); await mom.open(); await mom.update();
+		let round = 0;
+		h.api.onUnscripted((request) => {
+			const body = input(request), step = round++;
+			if (step === 0) return { tool: { name: "search_history", arguments: { query: "x".repeat(81) } } };
+			if (step === 1) {
+				assert.match(JSON.stringify(request.messages), /No metadata search was consumed; 2 remain/);
+				assert.match(JSON.stringify(request.messages), /4 model calls remain/);
+				return { tool: { name: "search_history", arguments: { query: "Keep this marker" } } };
+			}
+			if (step === 2) return { tool: { name: "inspect_evidence", arguments: { ref: body.original.ref, offset: 0, limit: 4000 } } };
+			return replacement(request, { answer: `The marker is recorded. [src:${body.original.ref}]` });
+		});
+		assert.match((await mom.update("Where is the marker?"))!, /marker is recorded/);
+		assert.equal(round, 4);
+	} finally { mom.close(); await h.close(); }
+});
+
 for (const entryPoint of ["tool_result", "tool_call"]) test(`metadata search from ${entryPoint} recovers both sides inside the two-page budget`, { timeout: 15000 }, async () => {
 	const h = await setup(), mom = h.createMom();
 	try {
@@ -150,13 +289,13 @@ for (const entryPoint of ["tool_result", "tool_call"]) test(`metadata search fro
 			const content = request.messages.findLast((m: any) => m.role === "tool").content;
 			const data = JSON.parse(typeof content === "string" ? content : content.map((b: any) => b.text).join("\n"));
 			if (round === 2) {
-				const ref = entryPoint === "tool_result" ? resultRef : callRef;
-				assert.equal(data.matches[0].ref, ref);
-				assert.equal(data.matches[0].kind, entryPoint);
+				assert.equal(data.matches[0].ref, resultRef, "tool pairs deduplicate toward the observed result");
+				assert.equal(data.matches[0].pairedRef, callRef);
+				assert.equal(data.matches[0].kind, "tool_result");
 				assert(!JSON.stringify(data).includes("7 assertions passed"), "search must not expose raw output");
-				return { tool: { name: "inspect_evidence", arguments: { ref, offset: 0, limit: 4000 } } };
+				return { tool: { name: "inspect_evidence", arguments: { ref: resultRef, offset: 0, limit: 4000 } } };
 			}
-			assert.equal(data.evidencePagesRemaining, 0);
+			assert.equal(data.evidencePagesRemaining, 1, "metadata search does not consume source-read pages");
 			assert.equal(data.results.length, 2);
 			assert.match(data.results.find((r: any) => r.ref === callRef).text, /node verify.mjs; git status/);
 			assert.match(data.results.find((r: any) => r.ref === resultRef).text, /7 assertions passed/);
@@ -177,6 +316,6 @@ test("a result completing after session invalidation cannot publish a checkpoint
 		h.api.onUnscripted((request) => { arrived.resolve(); return { ...replacement(request), gate }; });
 		const work = mom.update(); await arrived.promise; current = false; gate.resolve();
 		await assert.rejects(() => work, /superseded/);
-		assert.equal(checkpoints(h).length, 0); assert.equal(mom.checkpoint, undefined);
+		assert.equal((await checkpoints(h)).length, 0); assert.equal(mom.checkpoint, undefined);
 	} finally { gate.resolve(); mom.close(); await h.close(); }
 });

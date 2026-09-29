@@ -3,10 +3,9 @@ import { matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi, type Compo
 import type { AnnotationView, EndeavorView, WorkView } from "./presentation.ts";
 
 export const FOCUS_KEY = "alt+t";
-export interface PanelView { status: string; summary: string; note?: string; error?: string; work?: WorkView }
+export interface PanelView { status: string; summary: string; complete?: boolean; note?: string; error?: string; work?: WorkView }
 
 const PREVIEW_NEIGHBORS = 6;
-const PREVIEW_ANNOTATIONS = 2;
 const finished = (state: string) => ["settled", "finished", "completed", "done"].includes(state);
 const waiting = (state: string) => ["parked", "waiting", "blocked"].includes(state);
 const clean = (text: string) => text.replace(/\[src:[^\]]+\]/g, "").replace(/\s+/g, " ").trim();
@@ -26,9 +25,17 @@ function annotationText(annotation: AnnotationView): string {
 	return `${label}${state}: ${text}`;
 }
 
-/** Labels and ancestry only: annotations never become peer branches or task checkboxes. */
+function stateName(state: string): string {
+	if (finished(state)) return "done";
+	if (state === "active") return "in progress";
+	if (state === "abandoned") return "dropped";
+	return state;
+}
+
+/** Work nodes and their current state. Rules, choices and observations appear only in the expanded panel. */
 function hierarchy(work: WorkView, theme: Theme, width: number, expanded: boolean): string[] {
 	const index = new Map(work.endeavors.map(node => [node.id, node]));
+	const coverageComplete = work.coverageComplete !== false;
 	const focused = index.has(work.focus ?? "") ? work.focus : work.endeavors.find(node => node.annotations.some(a => a.id === work.focus))?.id;
 	const path = new Set(work.focusPath.filter(id => index.has(id)));
 	for (let current = focused; current && !path.has(current); current = index.get(current)?.parent) path.add(current);
@@ -63,11 +70,11 @@ function hierarchy(work: WorkView, theme: Theme, width: number, expanded: boolea
 		return ` · ${counted.filter(n => finished(n.state)).length}/${counted.length} done`;
 	}
 	function row(node: EndeavorView, prefix: string, root: boolean): string {
-		const here = node.id === focused;
+		const here = coverageComplete && node.id === focused;
 		let marker = here ? " · you are here" : "";
 		const safePrefix = clip(prefix, Math.max(0, width - (here ? "you are here".length : 1)));
 		const budget = Math.max(0, width - visibleWidth(safePrefix));
-		let meta = here ? "" : node.state === "blocked" ? " · blocked" : waiting(node.state) ? " · waiting" : node.state === "proposed" ? " · proposed" : "";
+		let meta = here && node.state === "active" ? "" : ` · ${stateName(node.state)}`;
 		if (node.id === work.purpose && budget >= visibleWidth(marker + meta) + 28) meta += " · main line";
 		if (root && budget >= visibleWidth(marker + meta) + visibleWidth(progress(node)) + 18) meta += progress(node);
 		if (visibleWidth(marker + meta) >= budget) { marker = here ? "you are here" : ""; meta = here ? "" : meta.trim(); }
@@ -95,18 +102,20 @@ function hierarchy(work: WorkView, theme: Theme, width: number, expanded: boolea
 			const last = i === siblings.length - 1;
 			lines.push(row(node, `${prefix}${last ? "└─ " : "├─ "}`, parent === null));
 			const continuation = `${prefix}${last ? "   " : "│  "}`;
-			const annotations = [...node.annotations].sort((a, b) => Number(finished(a.state)) - Number(finished(b.state)));
-			const shown = expanded ? annotations : annotations.slice(0, PREVIEW_ANNOTATIONS);
-			for (const annotation of shown) {
-				detail(annotationText(annotation), `${continuation}  `, annotation.state === "blocked" ? "warning" : waiting(annotation.state) ? "dim" : "muted");
-				if (expanded && annotation.sources.length) detail(`Sources: ${annotation.sources.map(source => `[src:${source}]`).join(" ")}`, `${continuation}    `, "dim", true);
-			}
-			if (shown.length < annotations.length) detail(`… ${annotations.length - shown.length} more notes · alt+t to read`, `${continuation}  `, "dim");
-			if (expanded) {
+			if (!expanded) {
+				// Current state of unfinished work; finished nodes are already marked done.
+				const now = node.observed || node.intent;
+				if (now && !finished(node.state)) detail(now, `${continuation}  `, node.state === "blocked" ? "warning" : "muted");
+			} else {
 				if (node.intent) detail(`Purpose: ${node.intent}`, `${continuation}  `, "muted");
-				if (node.observed) detail(`Progress: ${node.observed}`, `${continuation}  `, "muted");
+				if (node.observed) detail(`State: ${node.observed}`, `${continuation}  `, "muted");
 				if (node.history) detail("Earlier work was folded away; its sources are still available.", `${continuation}  `, "dim");
 				if (node.sources.length) detail(`Sources: ${node.sources.map(source => `[src:${source}]`).join(" ")}`, `${continuation}  `, "dim", true);
+				const annotations = [...node.annotations].sort((a, b) => Number(finished(a.state)) - Number(finished(b.state)));
+				for (const annotation of annotations) {
+					detail(annotationText(annotation), `${continuation}  `, annotation.state === "blocked" ? "warning" : waiting(annotation.state) ? "dim" : "muted");
+					if (annotation.sources.length) detail(`Sources: ${annotation.sources.map(source => `[src:${source}]`).join(" ")}`, `${continuation}    `, "dim", true);
+				}
 			}
 			visit(node.id, continuation);
 		}

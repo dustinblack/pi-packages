@@ -4,7 +4,7 @@ Mom keeps track of your goal, what's unfinished, and where to return after a det
 
 The map follows what you're building or exploring: **features, theories, postulates, and things you're trying**. Rules, open choices, and observations are attached to that work. They are not separate projects.
 
-The widget shows the main line and the current branch as a tree, using the same colors and branch marks as pi-omp's todo panel. The current location is marked **you are here**. Finished work, waiting work, and attached rules remain distinguishable. `alt+t` opens the full saved view.
+The widget shows the main line and the current branch as a tree, using the same colors and branch marks as pi-omp's todo panel. When transcript coverage is complete, the current location is marked **you are here**. While Mom is busy, blocked, catching up, or has pending coverage, the panel and story reads label the map as a partial last-saved snapshot and suppress current-orientation markers. Each work node shows its state and current progress. Rules, choices and observations are left out of the widget; `alt+t` opens the full saved view.
 
 Default `mom` reads show a compact story map: the current endeavor, live rules, choices waiting on you, recorded outcomes, and handles for folded history. Rules appear as short sentences under their endeavor, not as `governs` arrows or record dumps. Select an endeavor or attached record when you need complete fields and sources. There is no separate graph viewer.
 
@@ -22,7 +22,25 @@ Mom uses **`openai-codex/gpt-5.6-luna`, low reasoning**, through Pi's configured
 pi -e ./pi-tether/src/index.ts --mom-model openai-codex/gpt-5.6-luna --mom-interval-ms 15000
 ```
 
-Recorded activity schedules background updates, with 15 seconds between updates by default. Idle time alone does not call a model. Background updates do not block the working agent.
+Mom updates after a lead turn settles or a linked delegate settles, with at least 15 seconds between automatic updates by default. Message completion, individual tool results, delegate start/note events, compaction, and idleness do not wake her. She never starts automatic inference while the lead or a linked delegate is still working. A settled update reads the complete pending user, lead, tool-metadata, and worker slice without blocking the working agent.
+
+### Optional session-level Kev/JEV review
+
+A System One advisor can cheaply review Mom's proposed account before it is saved:
+
+```bash
+pi -e ./pi-tether/src/index.ts \
+  --mom-advisor-url http://192.168.1.52:9999/v1/systemone \
+  --mom-advisor-model kev-latest \
+  --mom-advisor-threshold 0.70 \
+  --mom-advisor-timeout-ms 1500
+```
+
+The advisor compares the saved account, Mom's draft, and the complete new evidence batch. It returns probabilities for expansion, contraction, redirection, and reorganization plus one map-action decision. A non-`accept` decision, or any review signal at or above the configured threshold, triggers exactly one deeper Mom reconsideration. Mom remains the final authority and may keep her draft. This advisor is disabled by default. The normal Mom path has a five-call ceiling; explicitly enabling the advisor adds its separate review call outside that ceiling.
+
+This is not message classification. The advisor creates no fragments, intake declarations, graph records, or hard gate. One review covers the proposed session account; an unavailable or malformed response is recorded in `/mom detail` and does not block a valid update. The endpoint is disabled when `--mom-advisor-url` is empty. Configured endpoints must use HTTP on a loopback or private IPv4 address, end in `/v1/systemone`, and may not redirect. Responses are capped at 16 KiB.
+
+Measured on the frozen negative-zero case with `kev-latest`: each review took about 0.5 s and 1.0–1.5k input tokens. Across six reviewed drafts it requested zero reconsiderations, including one draft that lost the “do not answer yet” hold. A separate probe flagged an unchanged draft after an explicit goal change (`redirect`, p=0.51). Draft-versus-evidence comparison is therefore unproven as a safety check; treat the advisor as a cheap path-change signal, not an omission detector.
 
 ## Commands
 
@@ -48,7 +66,6 @@ mom({}) // Compact saved story map plus status.
 mom({ graph: {} }) // Compact current story map.
 mom({ graph: { nodes: ["work-id"], depth: 0 } }) // Complete selected records and sources.
 mom({ graph: { checkpoint: "saved-view-id", nodes: ["work-id"] } }) // Earlier selected records, read-only.
-mom({ graph: { checkpoint: "old-text-view-id" } }) // Complete historical v1 text, which has no node IDs.
 mom({ source: { ref: "source-id", offset: 0 } }) // Original recorded evidence.
 mom({ question: "Why did we change direction?" }) // Explicit reasoning and source lookup.
 ```
@@ -75,35 +92,37 @@ Worker history must match a delegate invocation on the current parent branch and
 
 **Mom cannot edit files, delete files, run project commands, or launch workers.** Advice is not execution permission. User direction remains authoritative.
 
-The model can still misunderstand a rule. One live run kept a separate “do not answer yet” hold through folding, restart, and source reads. A later passing cost run also retained the exact hold, but three sibling clean-prefix trials missed that semantic requirement; two also ended with fold or source errors. The host verifies declared quotes, sources, states, and governing links. It cannot prove that the model declared every constraint. General semantic reliability is not established.
+The model can still misunderstand a rule. Mom therefore keeps source references on material graph records so the original evidence remains inspectable. An existing node cannot silently drop a prior user/user-answer source: it must retain that authority or declare a transaction-local replacement by a later fresh user source kept on the node. This supersession proof is validated and discarded, not persisted as a second ledger. The host validates graph shape, source identity, hierarchy, carry, and fold effects; it cannot prove semantic completeness.
 
 ## Saved data and diagnostics
 
-Current accounts use `pi-tether.mom.v4`. Work kinds are `feature`, `theory`, `postulate`, and `try`; attached records use `rule`, `choice`, and `observation`. Internal record IDs remain addressable so existing carry, scope, and history checks still apply. Public reads group attached records beneath their endeavor.
+Work kinds are `feature`, `theory`, `postulate`, and `try`; attached records use `rule`, `choice`, and `observation`. Internal record IDs remain addressable so existing carry, scope, and history checks still apply. Public reads group attached records beneath their endeavor.
 
-Older v3 thread records convert without inference or replaying consumed activity. IDs, hierarchy, source references, and history remain intact. Earlier v1 snapshots and v2 flat maps stay readable; their interpretation must not resurrect folded-away work as a new assignment.
+Mom never writes her state into the session transcript. Checkpoints, pause/resume, notice delivery, and usage go to an append-only sidecar beside the session file: `<session>.mom` (deliberately not `.jsonl`, so Pi's session list ignores it). The session transcript is evidence only: embedded Mom checkpoints, controls, attempts, and historical maps are ignored. A Mom bug or failed write can only affect the sidecar, never the conversation. Deleting the sidecar resets Mom's map; the transcript is untouched. Checkpoints apply only when their cursor is on the selected branch, so abandoned branches stay invisible.
 
-Each accepted update saves the account and consumed source positions together. A failed update leaves the prior saved state intact. If Pi changes its in-memory session but fails to save it, Mom blocks further writes on that branch. Resolve the storage error, then reopen the session from disk.
+A material update saves the account and consumed source positions together. When an accepted update leaves the graph, notice, and unfinished list byte-identical, Mom appends only a small progress cursor tied to the latest checkpoint; cold reload therefore does not replay accepted evidence or duplicate the graph. A progress cursor applies only to its session, checkpoint, and selected branch. When configured, a material checkpoint also saves the session-level advisor decision. A failed state write leaves the prior durable cursor intact and retries the same unconsumed batch.
+
+On startup, reload, or tree navigation, Mom restores and renders saved state without scheduling inference; pending evidence waits for a settled boundary or explicit refresh. Restore checks that the cursor is still on the selected branch and that every saved citation resolves. Worker transcripts are verified byte-for-byte. Parent entries are checked for presence only: Pi legitimately rewrites its in-memory entries, so a re-serialization hash cannot be reproduced. A torn final sidecar line is truncated before the next append; corruption in any complete line remains a loud error.
 
 `change` records before/after counts and created/folded-away record identities with sources. These are recorded facts, not a judgment that Mom interpreted them correctly. `unfinished` records that update's declared carry, move, or resolution—not a second list of current work.
 
-New user direction is separated into authorized work and continuing rules within the same model call. Its exact text appears once in the model input; the event timeline retains the source reference without repeating the text. Rule quotations must match the source exactly and be attached to an active rule record. Each rule's scope is written once, in its `intent`. Intake checks run before graph edits so unrelated edit errors do not hide invalid rule bindings. If several new directions explicitly bind the same existing active governing rule, the host appends every validated quote and source without requiring duplicate node copies. Explicit invalid replacements still fail. The host checks references and record effects, not whether the model recognized every rule or interpreted it correctly.
+Mom treats recorded conversation as evidence for one synthesized session account. Each fresh model request contains the current graph, a bounded new event slice, and at most one preceding lead context event; it never reconstructs or replays the full user history. She updates the graph only when cumulative evidence materially changes a feature-level purpose, endeavor, durable rule, decision, unresolved choice, tangent, return point, outcome, or completion state. Many messages can support one graph change; an individual message can require none. Sources remain available for audit without becoming a message-coverage ledger.
 
 Folds and merges still require an explicit target update. The reducer adds validated operation sources to that target instead of requiring the model to copy them twice. References from retired work stay in history rather than accumulating on the live target.
 
-The account is limited to 24,000 serialized characters. Each update allows 24,000 characters of new events, 90,000 characters of model context, four model calls, and two evidence/search pages. Each evidence page holds at most 4,000 characters. Reading either side of a tool call includes its paired record within that limit. Limits stop an update; they do not silently discard the remaining work.
+The account is limited to 24,000 serialized characters. Each update allows 24,000 characters of new events, 90,000 characters of model context, and five total model calls across edits, repairs, searches, and reads. Transaction rejections may use any remaining call; feedback reports the actual calls left. Retrieval has separate limits of two metadata searches and two original-source reads. Each source read holds at most 4,000 characters; reading either side of a tool call includes its paired record within that limit. Limits stop an update; they do not silently discard remaining work.
 
-Source search reads original payloads on demand and returns references, not payload copies. A successful question search must be followed by an original-source read when lookup budget remains.
+Source search accepts only short literal phrases and scans original payloads ephemerally without persisting a second index. It ranks exact phrases and informative query/question-token intersections, deduplicates tool pairs toward the observed result, and returns only references plus safe match metadata—never payload excerpts. A malformed query returns repair feedback without consuming a search. A first zero-result search exposes only one shorter literal retry. A successful question search must be followed by an original-source read.
 
 ## Usage and checks
 
 `/mom status` reports accumulated calls, tokens, nominal cost, and update time. Subscription cost metadata is not an invoice. **Low overhead and cache causality are not established.** Mom keeps one requested cache key across fresh updates in one branch instance; it still starts each update with a fresh bounded conversation.
 
-On one passing clean-prefix case, Mom made two calls for one accepted update: 8,000 uncached input tokens, 4,736 cached input tokens, 1,719 output tokens, and $0.00375752 nominal cost. The input cache-hit share was 37.19%. One invalid rule binding required the second call. Compared with the earlier five-call debugging run, total nominal cost fell 65.97%; cost per accepted update fell 31.94%. The runs batched activity differently, and three sibling trials failed semantic acceptance, so these numbers are a measured case—not a steady-state or reliability claim. Paused restart and cached reads made no Mom model calls. See [the handoff](../MOM-HANDOFF.md) for the traces and caveats.
+A frozen live session-synthesis check passed 3/3 independent siblings. Each first update took one model call; close-out took one or two calls, with repair counts 1, 0, and 1. Acceptance checked the compact active account—not sentence reproduction: it retained user control of the answer, the unanswered negative-zero state, material user provenance, and no obsolete child endeavor. This is one bounded case, not a general semantic-reliability or low-overhead claim. Proof: `/tmp/pi-tether-session-live-proof.json` (prompt `bd97d3f7…`, tools `ca97732a…`, baseline `28310579…`). Paused restart and cached reads make no Mom model calls.
 
 ```bash
 cd pi-tether && npm run check
 cd ../pi-delegate && npm run check
 ```
 
-The suite covers hierarchy, carry, source lookup, migration, storage failure, worker history, reload, and quiet advice. Scripted model replies check mechanics, not arbitrary model judgment. See [the experiment record](experiments/README.md) for earlier work.
+The suite covers settled-boundary scheduling, hierarchy, carry, source lookup, sidecar-only state, storage failure, worker history, reload, and quiet advice. Scripted model replies check mechanics, not arbitrary model judgment. See [the experiment record](experiments/README.md) for earlier work.

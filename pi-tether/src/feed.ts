@@ -41,7 +41,6 @@ export interface WorkerCursor extends Stream {
 }
 export interface Cut {
 	parent: string | null;
-	parentHash: string;
 	workers: WorkerCursor[];
 }
 interface Source {
@@ -157,8 +156,8 @@ export class LiveFeed {
 	private readonly calls = new Map<string, string>();
 	private readonly runs = new Map<string, string | undefined>();
 	private readonly workers = new Map<string, Reader>();
+	private readonly runningWorkers = new Set<string>();
 	private parentCursor: string | null = null;
-	private parentHash = createHash("sha256");
 	private readonly sessionId: string;
 	private readonly parentStream: Stream;
 	private readonly invocations = new Map<string, string>();
@@ -177,7 +176,6 @@ export class LiveFeed {
 		suffix(this.manager, this.manager.getLeafId(), cut.parent);
 		for (const entry of suffix(this.manager, cut.parent, null)) this.addParent(entry);
 		this.parentCursor = cut.parent;
-		if (this.parentHash.copy().digest("hex") !== cut.parentHash) throw new Error("Parent history changed since Mom's checkpoint.");
 		for (const saved of cut.workers) {
 			if (!this.runs.has(saved.runId)) throw new Error(`Worker ${saved.runId} has no launch on the checkpoint's branch.`);
 			const reader = this.reader(saved);
@@ -198,9 +196,7 @@ export class LiveFeed {
 		if (isMomEntry(entry)) return true;
 		const events = extractEvents(this.parentStream, entry);
 		if (!this.fits(events)) return false;
-		const encoded = JSON.stringify(entry);
-		this.parentHash.update(encoded).update("\n");
-		this.add(this.parentStream, entry, { entryId: entry.id, hash: digest(encoded) }, events);
+		this.add(this.parentStream, entry, { entryId: entry.id, hash: digest(JSON.stringify(entry)) }, events);
 		const m = entry.type === "message" ? entry.message : undefined;
 		if (m?.role === "assistant" && Array.isArray(m.content)) {
 			for (const b of m.content) if (b.type === "toolCall") this.calls.set(b.id, b.name);
@@ -239,7 +235,6 @@ export class LiveFeed {
 	private async discover(): Promise<void> {
 		let owner: string | undefined;
 		for (const [id, announcedFile] of this.runs) {
-			if (this.workers.has(id)) continue;
 			try {
 				// Match pi-delegate's canonical storage root without calling its directory-creating helper.
 				owner ??= join(await realpath(this.manager.getCwd()), ".agents/pi/subsessions/owners", `${this.sessionId}.json`);
@@ -248,7 +243,9 @@ export class LiveFeed {
 				const run = JSON.parse(await readFile(pointer.recordPath, "utf8"));
 				if (run.version !== 1 || run.id !== id || resolve(run.ownerKey ?? "") !== resolve(owner) ||
 					typeof run.sessionId !== "string" || typeof run.sessionFile !== "string" || typeof run.cwd !== "string" || typeof run.role !== "string" ||
-					!["fresh", "fork"].includes(run.context)) throw new Error("Invalid delegate identity");
+					!["fresh", "fork"].includes(run.context) || typeof run.status !== "string") throw new Error("Invalid delegate identity");
+				if (run.status === "running") this.runningWorkers.add(id); else this.runningWorkers.delete(id);
+				if (this.workers.has(id)) { this.gaps.delete(id); continue; }
 				const file = resolve(run.sessionFile);
 				if (announcedFile && announcedFile !== file) throw new Error("Delegate transcript differs from its launch result");
 				const prefix = run.context === "fresh" ? 0 : run.forkedMessages;
@@ -259,9 +256,15 @@ export class LiveFeed {
 					offset: 0, messages: 0, lastId: null, hash: EMPTY_HASH, device: null, inode: null };
 				this.workers.set(id, this.reader(cursor));
 				this.gaps.delete(id);
-			} catch (error) { this.gaps.set(id, `${id}: ${String(error)}`); }
+			} catch (error) {
+				// Unknown status is not permission to inspect a possibly live worker mid-run.
+				this.runningWorkers.add(id);
+				this.gaps.set(id, `${id}: ${String(error)}`);
+			}
 		}
 	}
+
+	get hasRunningWorkers(): boolean { return this.runningWorkers.size > 0; }
 
 	private async readWorker(reader: Reader, through?: number): Promise<void> {
 		const c = reader.cursor;
@@ -291,9 +294,9 @@ export class LiveFeed {
 	}
 
 	/** Byte caches advance as observed; only the returned immutable cut may be committed with a snapshot. */
-	async capture(): Promise<{ events: FeedEvent[]; cut: Cut; gaps: string[]; more: boolean }> {
+	async capture(limit = 24000, deferRunningWorkers = false): Promise<{ events: FeedEvent[]; cut: Cut; gaps: string[]; more: boolean }> {
 		const start = this.events.length;
-		this.remaining = 24000; this.full = false;
+		this.remaining = Math.max(0, Math.min(24000, limit)); this.full = false;
 		const leaf = this.manager.getLeafId();
 		const entries = suffix(this.manager, leaf, this.parentCursor);
 		this.gaps.delete("parent");
@@ -305,7 +308,7 @@ export class LiveFeed {
 		}
 		await this.discover();
 		for (const [id, reader] of this.workers) {
-			if (this.full) break;
+			if (this.full || (deferRunningWorkers && this.runningWorkers.size)) break;
 			try {
 				await this.readWorker(reader);
 				if (!reader.headerSeen || reader.cursor.messages < reader.cursor.forkedMessages) this.gaps.set(id, `${id}: transcript has not reached its fork boundary`);
@@ -316,7 +319,7 @@ export class LiveFeed {
 	}
 
 	cut(): Cut {
-		return { parent: this.parentCursor, parentHash: this.parentHash.copy().digest("hex"), workers: [...this.workers.values()].map((r) => ({ ...r.cursor })) };
+		return { parent: this.parentCursor, workers: [...this.workers.values()].map((r) => ({ ...r.cursor })) };
 	}
 
 	pairedSource(ref: string): string | undefined {
@@ -327,27 +330,29 @@ export class LiveFeed {
 		return event.kind === "tool_call" ? this.returns.get(key) : this.invocations.get(key);
 	}
 
-	/** Search payload text on demand, without retaining another copy or sending it to the model. */
-	async search(phrase: string, signal?: AbortSignal) {
-		const query = phrase.toLocaleLowerCase(), payloadMatches = new Set<string>();
-		const gaps: string[] = [];
+	/** Ephemeral vectorless scan over original text. No payload copy or index survives this call. */
+	async search(phrase: string, signal?: AbortSignal, question = phrase) {
+		const documents = new Map<string, string>(), gaps: string[] = [];
 		let unreadable = 0;
 		for (const event of this.events) {
-			if (!["tool_call", "tool_result", "shell_result"].includes(event.kind) || renderEvent(event).toLocaleLowerCase().includes(query)) continue;
-			await scheduler.yield(); // A long explicit search must not monopolize the lead's event loop.
-			signal?.throwIfAborted();
-			try {
-				const entry = await this.sourceEntry(event.ref), m = entry.message ?? entry;
-				const block = /:[^:]+:b(\d+)$/.exec(event.ref);
-				const payload = block ? JSON.stringify(m.content[Number(block[1])].arguments)
-					: event.kind === "shell_result" ? String(m.output ?? "") : textBlocks(m.content);
-				if (payload.toLocaleLowerCase().includes(query)) payloadMatches.add(event.ref);
-			} catch (error) {
-				unreadable++;
-				if (gaps.length < 5) gaps.push(`${event.ref}: ${String(error)}`);
+			let text = renderEvent(event);
+			if (["tool_call", "tool_result", "shell_result"].includes(event.kind)) {
+				await scheduler.yield(); // A long explicit search must not monopolize the lead's event loop.
+				signal?.throwIfAborted();
+				try {
+					const entry = await this.sourceEntry(event.ref), m = entry.message ?? entry;
+					const block = /:[^:]+:b(\d+)$/.exec(event.ref);
+					const payload = block ? JSON.stringify(m.content[Number(block[1])].arguments)
+						: event.kind === "shell_result" ? String(m.output ?? "") : textBlocks(m.content);
+					text += `\n${payload}`;
+				} catch (error) {
+					unreadable++;
+					if (gaps.length < 5) gaps.push(`${event.ref}: ${String(error)}`);
+				}
 			}
+			documents.set(event.ref, text);
 		}
-		return { matches: searchHistory(this.events, phrase, payloadMatches), unreadable, gaps };
+		return { matches: rankSearchDocuments(this.events, documents, phrase, question, ref => this.pairedSource(ref)), unreadable, gaps };
 	}
 
 	private async sourceEntry(ref: string): Promise<Entry> {
@@ -368,8 +373,12 @@ export class LiveFeed {
 			if (digest(bytes) !== source.hash) throw new Error(`Source changed: ${ref}`);
 			entry = JSON.parse(bytes.toString("utf8"));
 		} else {
+			// Parent sources come from pi's own in-memory tree, which pi legitimately mutates
+			// (context edits, compaction). Presence on the branch is the durable check; a
+			// re-serialization comparison is unstable across those mutations. Worker files keep
+			// byte-exact verification below.
 			entry = this.manager.getEntry(source.entryId)!;
-			if (!entry || digest(JSON.stringify(entry)) !== source.hash) throw new Error(`Source changed or missing: ${ref}`);
+			if (!entry) throw new Error(`Source missing: ${ref}`);
 		}
 		return entry;
 	}
@@ -390,9 +399,93 @@ export function renderEvent(e: FeedEvent, includeText = true): string {
 	return `[src:${e.ref}] ${e.at} ${e.actor} ${e.kind}${e.name ? ` ${e.name}` : ""}${e.status ? ` status=${e.status}` : ""}${e.isError !== undefined ? ` isError=${e.isError}` : ""}${e.callId ? ` callId=${e.callId}` : ""}${includeText && e.text ? `\n${e.text}` : ""}`;
 }
 
-/** Model payloads can keep direction text solely in userDirections, retaining its place in this timeline. */
-export function renderEvents(events: readonly FeedEvent[], directionText = true): string {
-	return events.map(event => renderEvent(event, directionText || !isUserDirection(event))).join("\n");
+/** Render the bounded session evidence stream. */
+export function renderEvents(events: readonly FeedEvent[]): string {
+	return events.map(event => renderEvent(event)).join("\n");
+}
+
+const SEARCH_STOPWORDS = new Set(["a", "an", "and", "are", "as", "at", "be", "by", "did", "do", "does", "exact", "for", "from", "including", "in", "is", "it", "of", "on", "or", "recorded", "report", "reported", "that", "the", "this", "to", "was", "were", "what", "when", "where", "which", "with"]);
+const canonicalToken = (token: string) => token === "typescript" ? "ts" : token === "typecheck" ? "tsc" : token;
+export function searchTokens(value: string): string[] {
+	return value.toLocaleLowerCase().normalize("NFKC").split(/[^\p{L}\p{N}_]+/u)
+		.map(canonicalToken).filter(token => token.length > 1 && !SEARCH_STOPWORDS.has(token));
+}
+
+/**
+ * Rank ephemeral original-source documents without returning their text. Terms in results are
+ * copied only from the supplied query/question, so payload content never leaks through search.
+ */
+export function rankSearchDocuments(events: readonly FeedEvent[], documents: ReadonlyMap<string, string>, phrase: string, question: string,
+	pairedSource: (ref: string) => string | undefined = () => undefined) {
+	const query = phrase.toLocaleLowerCase(), queryTerms = [...new Set(searchTokens(phrase))];
+	const questionTerms = [...new Set(searchTokens(question))], suppliedTerms = [...new Set([...queryTerms, ...questionTerms])];
+	const eventByRef = new Map(events.map(event => [event.ref, event]));
+	const docs = events.map(event => {
+		const text = documents.get(event.ref) ?? renderEvent(event), lower = text.toLocaleLowerCase(), tokens = searchTokens(text);
+		const counts = new Map<string, number>();
+		for (const token of tokens) counts.set(token, (counts.get(token) ?? 0) + 1);
+		return { event, lower, counts };
+	});
+	const frequency = new Map<string, number>();
+	for (const term of questionTerms) for (const doc of docs) if (doc.counts.has(term)) frequency.set(term, (frequency.get(term) ?? 0) + 1);
+	const errorQuestion = questionTerms.some(term => ["broken", "error", "failed", "failing", "failure", "fatal"].includes(term));
+	const questionLower = question.toLocaleLowerCase();
+	const asksTypeScript = /\b(?:typescript|typecheck|tsc)\b/.test(questionLower);
+	const asksSyntax = /\b(?:parse|parser|syntax|token)\b/.test(questionLower);
+	// Private intent features disambiguate diagnostics that share generic words such as "error" and "expected".
+	// They influence ordering only; match metadata below remains derived solely from supplied query/question terms.
+	const intentScore = (text: string) => {
+		let score = 0;
+		if (asksTypeScript && /(?:\bts\d{3,5}\b|\.tsx?(?:\W|$)|\btsc\b)/i.test(text)) score += 6;
+		if (asksSyntax) {
+			if (/\b(?:parse|parser|syntax)\s+error\b/i.test(text)) score += 2;
+			if (/['"`][,;:{}()[\]]['"`]\s+(?:is\s+)?expected\b/i.test(text) ||
+				/\b(?:comma|semicolon|brace|bracket|parenthesis|token)\b.{0,20}\bexpected\b/i.test(text)) score += 8;
+			if (/\b(?:arguments?|arity|assignable|overload|parameters?|properties)\b/i.test(text)) score -= 4;
+		}
+		return score;
+	};
+	type Candidate = { event: FeedEvent; pairedRef?: string; exact: boolean; payloadMatched: boolean; matched: string[]; score: number; intent: number; coverage: number; time: number };
+	const candidates: Candidate[] = [];
+	for (const doc of docs) {
+		const exact = Boolean(query && doc.lower.includes(query));
+		const matched = suppliedTerms.filter(term => doc.counts.has(term));
+		if (!exact && new Set(matched).size < 2) continue;
+		let score = 0;
+		for (const term of questionTerms) {
+			const count = doc.counts.get(term) ?? 0;
+			if (count) score += (Math.log((docs.length + 1) / ((frequency.get(term) ?? 0) + 1)) + 1) * Math.log1p(count);
+		}
+		const queryMatched = queryTerms.filter(term => doc.counts.has(term)).length;
+		const metadata = renderEvent(doc.event).toLocaleLowerCase(), metadataTokens = new Set(searchTokens(metadata));
+		const metadataMatched = suppliedTerms.filter(term => metadataTokens.has(term));
+		const metadataQualifies = Boolean(query && metadata.includes(query)) || new Set(metadataMatched).size >= 2;
+		candidates.push({ event: doc.event, exact, payloadMatched: !metadataQualifies, matched, score, intent: intentScore(doc.lower),
+			coverage: queryTerms.length ? queryMatched / queryTerms.length : 0, time: Date.parse(doc.event.at) || 0 });
+	}
+	// A tool invocation and result are one evidence unit. Prefer returning the observed result;
+	// inspecting either ref still supplies both records within one source-read page.
+	const groups = new Map<string, Candidate[]>();
+	for (const candidate of candidates) {
+		const event = candidate.event, pair = pairedSource(event.ref), paired = pair ? eventByRef.get(pair) : undefined;
+		const selected = paired && event.kind === "tool_call" && ["tool_result", "shell_result"].includes(paired.kind)
+			? { ...candidate, event: paired, pairedRef: event.ref } : { ...candidate, ...(pair ? { pairedRef: pair } : {}) };
+		const base = selected.event.ref.replace(/(:[^:]+):b\d+$/, "$1"), stream = base.slice(0, base.lastIndexOf(":"));
+		const key = selected.event.callId ? `${stream}\0${selected.event.callId}` : selected.event.ref;
+		(groups.get(key) ?? groups.set(key, []).get(key)!).push(selected);
+	}
+	const preferred = [...groups.values()].map(group => group.sort((a, b) => {
+		const result = (item: Candidate) => ["tool_result", "shell_result"].includes(item.event.kind) ? 1 : 0;
+		return result(b) - result(a) || b.intent - a.intent || b.score - a.score || b.coverage - a.coverage || Number(b.exact) - Number(a.exact) || b.time - a.time || b.event.ref.localeCompare(a.event.ref);
+	})[0]);
+	preferred.sort((a, b) => {
+		const error = (item: Candidate) => errorQuestion && item.event.isError ? 1 : 0;
+		return error(b) - error(a) || b.intent - a.intent || b.score - a.score || b.coverage - a.coverage || Number(b.exact) - Number(a.exact) || b.time - a.time || b.event.ref.localeCompare(a.event.ref);
+	});
+	return preferred.slice(0, 5).map(item => ({ ref: item.event.ref, actor: item.event.actor, at: item.event.at,
+		kind: item.event.kind, name: item.event.name, isError: item.event.isError, pairedRef: item.pairedRef,
+		payloadMatched: item.payloadMatched, matchMode: item.exact ? "exact" : "tokens", matchedTerms: item.matched, matchedTermCount: item.matched.length,
+		queryCoverage: Number(item.coverage.toFixed(3)), score: Number(item.score.toFixed(3)) }));
 }
 
 /** Rank literal matches without exposing payload text in the search response. */
@@ -417,21 +510,3 @@ export function searchHistory(events: readonly FeedEvent[], phrase: string, payl
 }
 
 export const isUserDirection = (event: FeedEvent): boolean => event.actor === "lead" && (event.kind === "user" || event.kind === "user_answer");
-
-/** Exact user/dialog text only. No inference about which earlier instruction still governs. */
-export function userHistory(events: readonly FeedEvent[]): string {
-	const lines: string[] = [];
-	const questions = new Map<string, FeedEvent>();
-	let assistant: FeedEvent | undefined;
-	for (const event of events) {
-		if (event.actor !== "lead") continue;
-		if (event.kind === "assistant") assistant = event;
-		if (event.kind === "tool_call" && event.callId && event.text && dialogs.has(event.name ?? "")) questions.set(event.callId, event);
-		if (event.kind !== "user" && event.kind !== "user_answer") continue;
-		lines.push(`[src:${event.ref}] user${assistant ? ` (preceding assistant: [src:${assistant.ref}])` : ""}`);
-		const question = event.kind === "user_answer" && event.callId ? questions.get(event.callId) : undefined;
-		if (question) lines.push(`Question [src:${question.ref}]:\n${question.text}`);
-		lines.push(event.text ?? "");
-	}
-	return lines.join("\n\n");
-}

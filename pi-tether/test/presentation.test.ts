@@ -53,6 +53,19 @@ test("default carry story prioritizes the unresolved hold, not the finished work
 	assert.ok(result.length <= 900);
 });
 
+test("partial catch-up reads label the last-saved snapshot and suppress current orientation", () => {
+	const partial = presentGraph({ ...carriedGraph(), coverageComplete: false });
+	const story = readText(partial);
+	assert.match(story, /^Mom is still catching up; partial last-saved snapshot only/);
+	assert.match(story, /Last saved focus/);
+	assert.doesNotMatch(story, /\bCurrent\b|· current/);
+	assert.match(partial.orientation, /partial last-saved snapshot/);
+	assert.match(partial.orientation, /Last saved focus/);
+	assert.doesNotMatch(partial.orientation, /Where you are|current point of attention/);
+	const complete = readText(presentGraph({ ...carriedGraph(), coverageComplete: true }));
+	assert.match(complete, /Current · in force|· current/);
+});
+
 test("explicit details retain every projected field, exact wording, endpoints, sources, and original", () => {
 	const raw = carriedGraph(), before = structuredClone(raw);
 	freeze(raw);
@@ -163,23 +176,6 @@ test("current endeavor focus, missing purpose/focus, and boundary counts stay ho
 	assert.match(readText(presentGraph({ nodes: [], omittedNodes: 10, totalNodes: 10 })), /No records loaded in this selection/);
 });
 
-test("flat and v1 accounts preserve unknown membership and full historical text", () => {
-	const work = node("old-work", "work"), rule = node("old-rule", "decision");
-	const { parent: _w, ...flatWork } = work, { parent: _r, ...flatRule } = rule;
-	const flat = presentGraph({ format: "flat-v2", nodes: [flatWork, flatRule], purpose: "old-work", focus: "old-rule",
-		edges: [{ from: "old-rule", to: "old-work", relation: "governs", sources: ["old:source"] }] });
-	assert.equal(flat.hierarchyKnown, false);
-	assert.equal(flat.focusEndeavor, null);
-	assert.equal(flat.unattachedAnnotations.length, 1);
-	assert.match(readText(flat), /Notes — parent not recorded in this view:[\s\S]*Applies to: Label for old-work/);
-	assert.match(readText(flat), /Earlier flat map: parent membership was not recorded/);
-	const legacy = presentGraph({ format: "v1", historical: true, legacySummary: 'Earlier "quoted account". '.repeat(30), checkpoint: "v1-checkpoint" });
-	assert.match(readText(legacy), /Earlier text-only account \(no recorded hierarchy\): Earlier quoted account/);
-	assert.match(readText(legacy), /…/);
-	assert.doesNotMatch(readText(legacy), /["“”]/);
-	assert.equal(JSON.parse(readText(legacy, true).split("Recorded details:\n")[1]!).legacySummary, legacy.legacySummary);
-});
-
 test("quotation formatting is suppressed without rewriting intents or apostrophes", () => {
 	const raw = carriedGraph();
 	raw.nodes.find(n => n.id === "hold")!.intent = `Keep 'one' and ‘two’ unchanged; don't change the user's choice or the lead’s wording.`;
@@ -193,6 +189,6 @@ test("empty and failed reads do not claim success or leak technical details by d
 	assert.equal(readText(presentGraph(null)), "Mom has not saved an account of this work yet.");
 	const view = presentGraph({ ...carriedGraph(), error: { message: "technical failure", trace: ["raw trace"] } });
 	assert.match(readText(view), /^Mom could not update this account; last saved view only/);
-	assert.doesNotMatch(readText(view), /technical failure|raw trace/);
+	assert.doesNotMatch(readText(view), /\bCurrent\b|· current|technical failure|raw trace/);
 	assert.match(readText(view, true), /technical failure/);
 });

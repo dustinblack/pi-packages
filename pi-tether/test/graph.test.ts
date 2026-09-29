@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { editGraph, emptyGraph, graphSlice, type GraphEdit, type GraphNode } from "../src/graph.ts";
+import { checkGraph, editGraph, emptyGraph, graphSlice, sourceSuggestion, type GraphEdit, type GraphNode } from "../src/graph.ts";
 const refs = new Set(["s:user", "s:result"]);
 const node = (id: string, parent: string | null, state: GraphNode["state"] = "settled"): GraphNode => ({
 	id, kind: "try", parent, state, label: id, intent: `Intent of ${id}`, observed: `Recorded ${id}`, actor: "", sources: ["s:user"],
@@ -8,6 +8,18 @@ const node = (id: string, parent: string | null, state: GraphNode["state"] = "se
 const put = (node: GraphNode): GraphEdit => ({ op: "put_node", node });
 const initial = () => editGraph(emptyGraph(), 0, [put(node("main", null, "active")), put(node("research", "main")), put(node("second", "main")), put(node("pending", "research", "parked"))], "main", "pending", refs);
 const outcome = () => put({ ...node("main", null, "active"), observed: "Research outcomes incorporated; pending work remains.", sources: ["s:user", "s:result"] });
+
+test("wrong-stream source diagnostics suggest only a unique terminal entry identity", () => {
+	assert.equal(sourceSuggestion("wrong-stream:entry-42", ["lead-stream:entry-42"]), "lead-stream:entry-42");
+	assert.equal(sourceSuggestion("wrong-stream:entry-42:b9", ["worker-stream:entry-42:b1"]), "worker-stream:entry-42:b1");
+	assert.equal(sourceSuggestion("wrong-stream:b1234567", ["lead-stream:b1234567"]), "lead-stream:b1234567");
+	assert.equal(sourceSuggestion("wrong-stream:entry-42", ["lead-stream:entry-42", "worker-stream:entry-42"]), undefined);
+});
+
+test("invalid map diagnostics identify the failing node and field", () => {
+	const bad = { ...initial(), nodes: [{ ...node("bad", null, "active"), kind: "thread", extra: true }] };
+	assert.throws(() => checkGraph(bad), /Invalid endeavor map shape:.*nodes\[bad\].*(kind|extra)/);
+});
 
 test("invalid/stale transactions leave the prior hierarchy untouched; omitted nodes stay unchanged", () => {
 	const before = initial(), original = structuredClone(before);

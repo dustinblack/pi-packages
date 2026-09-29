@@ -2,6 +2,10 @@
 import { rmSync } from "node:fs";
 import { provider, sandbox, harness, deferred } from "../../pi-delegate/test/fixture.ts";
 import { Mom } from "../src/mother.ts";
+import { SidecarStore } from "../src/sidecar.ts";
+
+/** Fresh sidecar read for assertions; the extension keeps its own instance. */
+export const readSidecar = (h: any) => new SidecarStore(() => h.parent as string, h.runtime.session.sessionManager.getSessionId() as string).load();
 export { deferred };
 
 export const isMomRequest = (request: any) => request.tools?.some((t: any) => ["commit_graph", "inspect_evidence", "search_history"].includes(t.function?.name));
@@ -12,15 +16,15 @@ export function input(request: any) {
 export function replacement(request: any, extra: Record<string, unknown> = {}) {
 	const body = input(request);
 	const ref = /\[src:([^\]]+)\]/.exec(body.newEvents)?.[1] ?? body.original.ref;
+	const prior = body.graph.nodes?.find((node: any) => node.id === "main")?.sources ?? [];
 	return { tool: { name: "commit_graph", arguments: { revision: body.graph.revision, purpose: "main", focus: "main",
-		upsertNodes: [{ id: "main", kind: "try", parent: null, state: "active", label: "Main purpose", intent: "Keep the original purpose.", observed: "Lead continued.", actor: "lead", sources: [ref] }],
-		directions: body.userDirections.map((event: any) => ({ source: event.ref, authorizedWork: event.text, continuingConstraints: [] })),
-		unfinished: [], upsertEdges: [], removeEdges: [], merges: [], folds: [], removeNodes: [],
+		upsertNodes: [{ id: "main", kind: "try", parent: null, state: "active", label: "Main purpose", intent: "Keep the original purpose.", observed: "Lead continued.", actor: "lead", sources: [...new Set([...prior, ref])] }],
+		unfinished: [], upsertEdges: [], removeEdges: [], merges: [], folds: [], removeNodes: [], supersessions: [],
 		note: null, ...extra } } };
 }
 export async function until(predicate: () => unknown, message = "condition", ms = 8000) {
 	const end = Date.now() + ms;
-	while (!predicate()) {
+	while (!(await predicate())) {
 		if (Date.now() > end) throw new Error(`Timed out waiting for ${message}`);
 		await new Promise((resolve) => setTimeout(resolve, 15));
 	}
@@ -45,7 +49,7 @@ export async function setup(automatic = false) {
 	return { ...h, api, box, tools,
 		get context() { return context; },
 		createMom(overrides: Partial<ConstructorParameters<typeof Mom>[0]> = {}) { return new Mom({ ctx: context, model: "fixture/fixture",
-			append: (type, data) => activePi.appendEntry(type, data), current: () => true, changed() {}, ...overrides }); },
+			store: new SidecarStore(() => h.parent, context.sessionManager.getSessionId()), current: () => true, changed() {}, ...overrides }); },
 		command: (args: string, ctx = context) => commands.get("mom").handler(args, ctx),
 		requests: () => api.requests.filter(isMomRequest),
 		async close() { await h.runtime.dispose(); await api.close(); rmSync(box.root, { recursive: true, force: true }); },

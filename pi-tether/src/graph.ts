@@ -1,5 +1,5 @@
-import { Type, type Static } from "typebox";
-import { Check } from "typebox/value";
+import { Type, type Static, type TSchema } from "typebox";
+import { Check, Errors } from "typebox/value";
 
 const object = { additionalProperties: false } as const;
 const id = Type.String({ pattern: "^[A-Za-z][A-Za-z0-9_-]{0,63}$" });
@@ -24,8 +24,6 @@ const History = Type.Object({ checkpoint: Type.String({ minLength: 1 }), nodes: 
 	returns: Type.Array(Type.Object({ from: id, to: id }, object)),
 }, object);
 const Node = Type.Object({ ...nodeFields, history: Type.Optional(History) }, object);
-// v3 is historical input only; new transactions accept only endeavor/annotation kinds.
-const ThreadNode = Type.Object({ ...nodeFields, kind: Type.Union([Type.Literal("thread"), Type.Literal("decision"), Type.Literal("finding")]), history: Type.Optional(History) }, object);
 const edgeFields = { from: id, relation, to: id };
 export const Edge = Type.Object({ ...edgeFields, sources: refs }, object);
 const reason = { reason: Type.String({ minLength: 1 }), sources: refs };
@@ -45,31 +43,31 @@ export const Unfinished = Type.Array(Type.Object({ node: id,
 export type UnfinishedItems = Static<typeof Unfinished>;
 export const GraphSchema = Type.Object({ revision: Type.Integer({ minimum: 0 }), purpose: pointer,
 	focus: pointer, nodes: Type.Array(Node), edges: Type.Array(Edge) }, object);
-const ThreadGraphSchema = Type.Object({ revision: GraphSchema.properties.revision, purpose: pointer,
-	focus: pointer, nodes: Type.Array(ThreadNode), edges: Type.Array(Edge) }, object);
-export type ThreadGraph = Static<typeof ThreadGraphSchema>;
 export type WorkGraph = Static<typeof GraphSchema>;
 export type GraphNode = Static<typeof Node>;
 export type GraphEdge = Static<typeof Edge>;
 export type GraphEdit = Static<typeof Edit>;
 export const GRAPH_CHAR_LIMIT = 24000;
+
+/** Suggest a full observed source when a partial ref or wrong stream prefix still
+ * identifies exactly one source. Block suffixes do not change the entry identity. */
+export function sourceSuggestion(ref: string, known: Iterable<string>): string | undefined {
+	const candidates = [...known];
+	const prefix = candidates.filter(observed => observed.startsWith(ref));
+	if (prefix.length === 1) return prefix[0];
+	const base = ref.replace(/(:[^:]+):b\d+$/, "$1"), terminal = base.slice(base.lastIndexOf(":") + 1);
+	if (!terminal) return undefined;
+	const matches = candidates.filter(observed => {
+		const observedBase = observed.replace(/(:[^:]+):b\d+$/, "$1");
+		return observedBase.slice(observedBase.lastIndexOf(":") + 1) === terminal;
+	});
+	return matches.length === 1 ? matches[0] : undefined;
+}
 export const emptyGraph = (): WorkGraph => ({ revision: 0, purpose: null, focus: null, nodes: [], edges: [] });
 const edgeKey = (e: Pick<GraphEdge, "from" | "relation" | "to">) => `${e.from}/${e.relation}/${e.to}`;
 
 /** Annotations are attached records, never independent work centers. */
 export const isEndeavor = (node: { kind: string }): boolean => ["feature", "theory", "postulate", "try"].includes(node.kind);
-
-/** Preserve v3 identity and history; do not infer feature/theory semantics from old prose. */
-export function upgradeThreadGraph(graph: ThreadGraph): WorkGraph {
-	return { ...structuredClone(graph), nodes: graph.nodes.map(node => ({ ...structuredClone(node),
-		kind: node.kind === "thread" ? "try" : node.kind === "finding" ? "observation" : node.state === "active" ? "rule" : "choice",
-	})) };
-}
-export function checkThreadGraph(value: unknown): asserts value is ThreadGraph {
-	if (!Check(ThreadGraphSchema, value)) throw new Error("Invalid saved v3 thread map.");
-	checkGraphStructure(upgradeThreadGraph(value));
-	if (JSON.stringify(value).length > GRAPH_CHAR_LIMIT) throw new Error(`Saved v3 thread map exceeds ${GRAPH_CHAR_LIMIT} characters.`);
-}
 
 function checkForest(nodes: ReadonlyMap<string, GraphNode>) {
 	for (const node of nodes.values()) {
@@ -91,9 +89,23 @@ function subtree(nodes: ReadonlyMap<string, GraphNode>, root: string) {
 	return included;
 }
 
+/** Name the failing record and field so a repair can target it; never just "invalid". */
+export function shapeError(prefix: string, schema: TSchema, value: unknown, list = "nodes"): Error {
+	const items = (value as Record<string, unknown> | null)?.[list];
+	const pattern = new RegExp(`^/${list}/(\\d+)(/.*)?$`);
+	const details = Errors(schema, value).filter(e => e.keyword !== "boolean").slice(0, 4).map(e => {
+		const match = pattern.exec(e.instancePath);
+		const item = match && Array.isArray(items) ? items[Number(match[1])] as { id?: unknown } | undefined : undefined;
+		const where = match ? `${list}[${typeof item?.id === "string" ? item.id : match[1]}]${match[2] ?? ""}` : e.instancePath || "(root)";
+		const extra = (e.params as { additionalProperties?: string[] }).additionalProperties;
+		return `${where}: ${e.message}${Array.isArray(extra) ? ` (${extra.join(", ")})` : ""}`;
+	});
+	return new Error(`${prefix}${details.length ? ` ${details.join("; ")}.` : ""}`);
+}
+
 /** Parent links are a forest. Cross-links may cycle. Neither structural check certifies semantic truth. */
 export function checkGraph(value: unknown): asserts value is WorkGraph {
-	if (!Check(GraphSchema, value)) throw new Error("Invalid endeavor map shape.");
+	if (!Check(GraphSchema, value)) throw shapeError("Invalid endeavor map shape:", GraphSchema, value);
 	checkGraphStructure(value);
 	if (JSON.stringify(value).length > GRAPH_CHAR_LIMIT) throw new Error(`Graph exceeds ${GRAPH_CHAR_LIMIT} characters; compact it without dropping unresolved work.`);
 }
@@ -113,6 +125,46 @@ function checkGraphStructure(value: WorkGraph): void {
 		if (edge.from === edge.to || edges.has(edgeKey(edge))) throw new Error(`Self/duplicate graph connection: ${edgeKey(edge)}`);
 		edges.add(edgeKey(edge));
 	}
+}
+
+/** Errors provable from the declared closing scopes alone, before applying any edit. */
+export function unfinishedPreflightErrors(previous: WorkGraph, upserts: readonly GraphNode[], folds: readonly { thread: string }[], items: UnfinishedItems): string[] {
+	const old = new Map(previous.nodes.map(node => [node.id, node])), proposed = new Map(old);
+	for (const node of upserts) proposed.set(node.id, node);
+	// Only a prior endeavor and its prior descendants are safe to reason about before edits validate.
+	// Proposed moves/new nodes are checked later against the successfully edited graph.
+	const closing = new Set(folds.filter(fold => {
+		const node = old.get(fold.thread); return Boolean(node && isEndeavor(node));
+	}).map(fold => fold.thread));
+	for (const node of upserts) {
+		const before = old.get(node.id);
+		if (before && isEndeavor(before) && node.state === "settled" && before.state !== "settled") closing.add(node.id);
+	}
+	const required = new Set<string>();
+	for (const node of old.values()) {
+		if (node.state !== "active" && node.state !== "parked") continue;
+		const seen = new Set<string>();
+		let parent = node.parent;
+		while (parent && !seen.has(parent)) {
+			if (closing.has(parent)) required.add(node.id);
+			seen.add(parent); parent = old.get(parent)?.parent ?? null;
+		}
+	}
+	const errors: string[] = [];
+	if (!closing.size && items.length) errors.push("This transaction closes no endeavor. Set unfinished=[]; if completion was intended, settle or fold the endeavor in this transaction first.");
+	const declared = new Set<string>();
+	for (const item of items) {
+		if (declared.has(item.node)) errors.push(`Duplicate unfinished disposition: ${item.node}.`);
+		declared.add(item.node);
+		const prior = old.get(item.node), attempted = proposed.get(item.node);
+		if (!prior && !attempted) errors.push(`Unknown unfinished disposition node: ${item.node}. Use an active/parked descendant of a closing endeavor.`);
+		else if (prior === attempted && prior && prior.label !== item.label) {
+			errors.push(`Unfinished disposition label for ${item.node} must exactly match ${JSON.stringify(prior.label)}; received ${JSON.stringify(item.label)}.`);
+		}
+	}
+	const missing = [...required].filter(id => !declared.has(id));
+	if (missing.length) errors.push(`Missing unfinished disposition for ${missing.join(",")}: declare carried, reparented, or resolved with sources.`);
+	return errors;
 }
 
 /** Check declared close-out effects against nodes, not the meaning of conversation or intent prose. */
@@ -146,36 +198,39 @@ export function checkUnfinished(previous: WorkGraph, upserts: readonly GraphNode
 		}
 		if (target && result.has(target) && isEndeavor(result.get(target)!)) { parentTargets.add(target); landingByScope.set(key, target); }
 	}
-	if (!closing.size && items.length) throw new Error("This transaction closes no endeavor. Set unfinished=[]; if completion was intended, settle or fold the endeavor in this transaction first.");
+	const errors: string[] = [];
+	if (!closing.size && items.length) errors.push("This transaction closes no endeavor. Set unfinished=[]; if completion was intended, settle or fold the endeavor in this transaction first.");
 	const declared = new Set<string>();
 	for (const item of items) {
-		if (declared.has(item.node)) throw new Error(`Duplicate unfinished disposition: ${item.node}.`);
+		if (declared.has(item.node)) errors.push(`Duplicate unfinished disposition: ${item.node}.`);
 		declared.add(item.node);
 		const node = proposed.get(item.node) ?? old.get(item.node), live = result.get(item.node);
-		if (!node) throw new Error(`Unknown unfinished disposition node: ${item.node}. Use an active/parked descendant of a closing endeavor.`);
-		if (node.label !== item.label) throw new Error(`Unfinished disposition label for ${item.node} must exactly match ${JSON.stringify(node.label)}; received ${JSON.stringify(item.label)}.`);
-		if (!item.sources.length || new Set(item.sources).size !== item.sources.length) throw new Error(`Unfinished disposition needs distinct sources: ${item.node}.`);
+		if (!node) { errors.push(`Unknown unfinished disposition node: ${item.node}. Use an active/parked descendant of a closing endeavor.`); continue; }
+		if (node.label !== item.label) errors.push(`Unfinished disposition label for ${item.node} must exactly match ${JSON.stringify(node.label)}; received ${JSON.stringify(item.label)}.`);
+		if (!item.sources.length || new Set(item.sources).size !== item.sources.length) errors.push(`Unfinished disposition needs distinct sources: ${item.node}.`);
 		for (const ref of item.sources) if (!known.has(ref)) {
-			const matches = [...known].filter(observed => observed.startsWith(ref));
-			throw new Error(`Unknown unfinished disposition source for ${item.node}: ${ref}.${matches.length === 1 ? ` Use the exact observed source ${matches[0]}.` : ""}`);
+			const suggestion = sourceSuggestion(ref, known);
+			errors.push(`Unknown unfinished disposition source for ${item.node}: ${ref}.${suggestion ? ` Use the exact observed source ${suggestion}.` : ""}`);
 		}
 		if (item.disposition === "resolved") {
-			if (item.target !== null || (live && live.state !== "settled")) throw new Error(`Resolved disposition needs ${item.node} closed and target=null.`);
+			if (item.target !== null || (live && live.state !== "settled")) errors.push(`Resolved disposition needs ${item.node} closed and target=null.`);
 		} else {
 			if (!item.target || !result.has(item.target) || !isEndeavor(result.get(item.target)!) || !live || !["active", "parked"].includes(live.state)) {
-				throw new Error(`${item.disposition} disposition needs ${item.node} active/parked under surviving thread ${item.target}.`);
+				errors.push(`${item.disposition} disposition needs ${item.node} active/parked under surviving thread ${item.target}.`);
+				continue;
 			}
 			if (item.disposition === "carried") {
 				const scopes = scopesByNode.get(item.node);
-				if (scopes ? ![...scopes].some(scope => landingByScope.get(scope) === item.target) : !parentTargets.has(item.target)) throw new Error(`Carried disposition needs ${item.node} in the closing thread's surviving parent/root account, not ${item.target}.`);
+				if (scopes ? ![...scopes].some(scope => landingByScope.get(scope) === item.target) : !parentTargets.has(item.target)) errors.push(`Carried disposition needs ${item.node} in the closing thread's surviving parent/root account, not ${item.target}.`);
 				let ancestor = live.parent;
 				while (ancestor && ancestor !== item.target) ancestor = result.get(ancestor)?.parent ?? null;
-				if (!ancestor) throw new Error(`Carried disposition needs ${item.node} inside surviving thread ${item.target}, directly or in a retained cluster.`);
-			} else if (live.parent !== item.target || old.get(item.node)?.parent === item.target) throw new Error(`Reparented disposition needs ${item.node} moved to ${item.target}, not left in place.`);
+				if (!ancestor) errors.push(`Carried disposition needs ${item.node} inside surviving thread ${item.target}, directly or in a retained cluster.`);
+			} else if (live.parent !== item.target || old.get(item.node)?.parent === item.target) errors.push(`Reparented disposition needs ${item.node} moved to ${item.target}, not left in place.`);
 		}
 	}
 	const missing = [...required].filter(id => !declared.has(id));
-	if (missing.length) throw new Error(`Missing unfinished disposition for ${missing.join(",")}: declare carried, reparented, or resolved with sources.`);
+	if (missing.length) errors.push(`Missing unfinished disposition for ${missing.join(",")}: declare carried, reparented, or resolved with sources.`);
+	if (errors.length) throw new Error(`Unfinished disposition defects:\n- ${errors.join("\n- ")}`);
 }
 
 /** Private maps prevent failed transactions or later updates from mutating published history. */
@@ -189,8 +244,8 @@ export function editGraph(previous: WorkGraph, revision: number, edits: readonly
 	const checkSources = (sources: readonly string[]) => {
 		if (new Set(sources).size !== sources.length) throw new Error("Duplicate graph source reference.");
 		for (const ref of sources) if (!known.has(ref)) {
-			const matches = [...known].filter(observed => observed.startsWith(ref));
-			throw new Error(`Unknown or unobserved source: ${ref}.${matches.length === 1 ? ` Use the exact observed source ${matches[0]}.` : ""}`);
+			const suggestion = sourceSuggestion(ref, known);
+			throw new Error(`Unknown or unobserved source: ${ref}.${suggestion ? ` Use the exact observed source ${suggestion}.` : ""}`);
 		}
 	};
 	for (const edit of edits) {
@@ -269,9 +324,9 @@ export function editGraph(previous: WorkGraph, revision: number, edits: readonly
 }
 
 /** Neighborhoods retain the forest's orientation even at depth zero; cross-links remain separate. */
-export function graphSlice(graph: WorkGraph | ThreadGraph, selected?: readonly string[], depth = 1) {
+export function graphSlice(graph: WorkGraph, selected?: readonly string[], depth = 1) {
 	if (!Number.isSafeInteger(depth) || depth < 0 || depth > 3) throw new Error("Graph depth must be 0..3.");
-	const index = new Map<string, GraphNode | Static<typeof ThreadNode>>(graph.nodes.map(n => [n.id, n]));
+	const index = new Map<string, GraphNode>(graph.nodes.map(n => [n.id, n]));
 	if (selected?.some(key => !index.has(key))) throw new Error("Unknown graph node in selection.");
 	const path = (key: string | null) => {
 		const result: string[] = [];
@@ -300,9 +355,8 @@ export function graphSlice(graph: WorkGraph | ThreadGraph, selected?: readonly s
 	// Cross-link endpoints also need their ancestry, not orphaned labels.
 	for (const key of boundary) for (const ancestor of path(key)) boundary.add(ancestor);
 	// Ancestor context includes its attached rules, choices and observations, not just labels.
-	// v3 annotations remain readable here without changing their saved kinds.
 	const ancestorContext = new Set(boundary);
-	for (const node of graph.nodes) if (node.parent && ancestorContext.has(node.parent) && !isEndeavor(node) && node.kind !== "thread") boundary.add(node.id);
+	for (const node of graph.nodes) if (node.parent && ancestorContext.has(node.parent) && !isEndeavor(node)) boundary.add(node.id);
 	// Include direct children as boundaries so an endeavor doesn't look like a leaf.
 	for (const node of graph.nodes) if (node.parent && included.has(node.parent)) boundary.add(node.id);
 	for (const key of included) boundary.delete(key);
