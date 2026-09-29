@@ -16,6 +16,7 @@ const nodeFields = {
 	label: Type.String({ minLength: 1, maxLength: 160 }),
 	intent: Type.String({ maxLength: 1200 }), observed: Type.String({ maxLength: 2400 }),
 	actor: Type.String({ maxLength: 200, description: "Observed actor identity, or empty if unknown/not applicable." }), sources: refs,
+	purposeSource: Type.Optional(Type.String({ minLength: 1, description: "The one source in sources containing the complete intent at normalized token-sequence boundaries." })),
 };
 export const NodeInput = Type.Object(nodeFields, object);
 const History = Type.Object({ checkpoint: Type.String({ minLength: 1 }), nodes: Type.Array(id, { minItems: 1, uniqueItems: true }),
@@ -116,6 +117,9 @@ function checkGraphStructure(value: Static<typeof LegacyGraphSchema> & { motherT
 	for (const group of [value.nodes, value.edges]) for (const item of group) {
 		if (new Set(item.sources).size !== item.sources.length) throw new Error("Duplicate graph source reference.");
 	}
+	for (const node of value.nodes) if (node.purposeSource && !node.sources.includes(node.purposeSource)) {
+		throw new Error(`Purpose source must belong to node sources: ${node.id} -> ${node.purposeSource}`);
+	}
 	const nodes = new Map(value.nodes.map(n => [n.id, n]));
 	if (nodes.size !== value.nodes.length) throw new Error("Duplicate graph node ID.");
 	checkForest(nodes);
@@ -147,10 +151,10 @@ export function normalizeMotherRoot(value: unknown): { graph: WorkGraph; changed
 	if (Check(GraphSchema, value)) { checkGraph(value); return { graph: value, changed: false }; }
 	if (!Check(LegacyGraphSchema, value)) throw shapeError("Invalid endeavor map shape:", LegacyGraphSchema, value);
 	checkGraphStructure(value, false);
-	if (!value.nodes.length) return { graph: { ...value, motherThread: null }, changed: true };
+	if (!value.nodes.length) return { graph: { revision: value.revision, motherThread: null, purpose: value.purpose, focus: value.focus, nodes: value.nodes, edges: value.edges }, changed: true };
 	if (!value.purpose) throw new Error("A nonempty legacy graph has no purpose root for the mother-thread cutover.");
-	const graph: WorkGraph = { ...value, revision: value.revision + 1, motherThread: value.purpose,
-		nodes: value.nodes.map(node => node.parent === null && node.id !== value.purpose ? { ...node, parent: value.purpose } : node) };
+	const graph: WorkGraph = { revision: value.revision + 1, motherThread: value.purpose, purpose: value.purpose, focus: value.focus,
+		nodes: value.nodes.map(node => node.parent === null && node.id !== value.purpose ? { ...node, parent: value.purpose } : node), edges: value.edges };
 	checkGraph(graph);
 	return { graph, changed: true };
 }

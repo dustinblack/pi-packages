@@ -10,7 +10,7 @@ const progress: FeedEvent = { ref: "s:progress", actor: "lead", kind: "assistant
 const second: FeedEvent = { ref: "s:second", actor: "lead", kind: "user", at: "", text: "Keep this read-only and summarize the feature-level result." };
 const known = new Map([[earlier.ref, earlier], [first.ref, first], [progress.ref, progress], [second.ref, second]]), fresh = new Set(known.keys());
 const main = { id: "main", parent: null, kind: "theory", state: "active", label: "Understand formatter behavior",
-	intent: "Investigate formatter behavior.", observed: "The session is investigating the formatter.", actor: "lead", sources: [first.ref] };
+	intent: "Investigate formatter behavior.", observed: "The session is investigating the formatter.", actor: "lead", sources: [first.ref], purposeSource: first.ref };
 const transaction = { revision: 0, purpose: "main", focus: "main", unfinished: [], upsertNodes: [main], upsertEdges: [],
 	removeEdges: [], merges: [], folds: [], removeNodes: [], supersessions: [], note: null };
 const accept = (value: unknown) => acceptGraph(value, emptyGraph(), undefined, known, fresh, new Set());
@@ -77,7 +77,7 @@ test("batch-16 authority omissions and missing review disposition are one determ
 test("a later fresh user source can explicitly supersede prior authority without creating a ledger", () => {
 	const baseline = accept(transaction).graph;
 	const update = { ...transaction, revision: baseline.revision,
-		upsertNodes: [{ ...main, intent: "Keep this read-only and summarize the feature-level result.", sources: [second.ref] }],
+		upsertNodes: [{ ...main, intent: "Keep this read-only and summarize the feature-level result.", sources: [second.ref], purposeSource: second.ref }],
 		supersessions: [{ node: main.id, prior: first.ref, by: second.ref }] };
 	const result = acceptGraph(update, baseline, "one", known, new Set([second.ref]), new Set());
 	assert.deepEqual(result.graph.nodes.find(node => node.id === main.id)?.sources, [second.ref]);
@@ -126,7 +126,7 @@ test("legacy message-accounting fields are rejected instead of becoming a second
 
 test("material durable rules remain source-backed feature annotations", () => {
 	const rule = { id: "read_only", parent: "main", kind: "rule", state: "active", label: "Keep the investigation read-only",
-		intent: "Keep this read-only", observed: "The user retained control of changes.", actor: "user", sources: [second.ref] };
+		intent: "Keep this read-only", observed: "The user retained control of changes.", actor: "user", sources: [second.ref], purposeSource: second.ref };
 	const edge = { from: rule.id, relation: "governs", to: main.id, sources: [second.ref] };
 	const result = accept({ ...transaction, upsertNodes: [main, rule], upsertEdges: [edge] });
 	assert.equal(result.graph.nodes.find(node => node.id === rule.id)?.parent, main.id);

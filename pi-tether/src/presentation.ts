@@ -7,6 +7,8 @@ export interface AnnotationView {
 	intent: string;
 	observed: string;
 	sources: string[];
+	/** One explicit grounding owner for the public intent/Why. */
+	purposeSource?: string;
 	history?: unknown;
 	actor?: string;
 	/** Only a boundary label was loaded, not the complete account. */
@@ -77,6 +79,7 @@ const list = (items: string[], limit = 5): string => items.slice(0, limit).join(
 function annotation(raw: RecordData, summaryOnly: boolean): AnnotationView {
 	return { id: raw.id, kind: text(raw.kind), state: text(raw.state), label: text(raw.label) || raw.id,
 		intent: text(raw.intent), observed: text(raw.observed), sources: strings(raw.sources),
+		...(typeof raw.purposeSource === "string" ? { purposeSource: raw.purposeSource } : {}),
 		...(raw.history !== undefined ? { history: copy(raw.history) } : {}),
 		...(typeof raw.actor === "string" ? { actor: raw.actor } : {}), ...(summaryOnly ? { summaryOnly: true } : {}) };
 }
@@ -229,11 +232,14 @@ export function summaryText(view: WorkView): string {
 		const checkpoint = text((item.history as RecordData).checkpoint);
 		lines.push(`${indent}Folded away → history ${checkpoint || "(checkpoint not recorded; see details)"}`);
 	};
-	const whyEligible = (item: AnnotationView) => !item.summaryOnly && Boolean(item.intent) && item.sources.length > 0
+	const whyEligible = (item: AnnotationView) => !item.summaryOnly && Boolean(item.intent)
 		&& ["active", "parked", "proposed"].includes(item.state);
 	const why = (item: AnnotationView, indent: string, prefix = "") => {
 		if (!whyEligible(item)) return false;
-		lines.push(`${indent}${prefix}Why: ${compact(item.intent, 100)} ${grouped(item.sources.map(source => `[src:${source}]`))}`);
+		if (!item.purposeSource || !item.sources.includes(item.purposeSource)) {
+			lines.push(`${indent}${prefix}Why: evidence unavailable`); return true;
+		}
+		lines.push(`${indent}${prefix}Why: ${compact(item.intent, 100)} [src:${item.purposeSource}]`);
 		return true;
 	};
 	const note = (item: AnnotationView, owner: string | null, indent: string, label = "") => {
@@ -297,7 +303,7 @@ export function summaryText(view: WorkView): string {
 		lines.push(`${heading}: ${compact(name(endeavor), 70)} [${endeavor.id}] — ${state(endeavor)}${focused ? view.historical ? " · recorded focus" : coverageComplete ? " · current" : " · last saved focus" : ""}${endeavor.summaryOnly ? " · name/state only" : ""}`);
 		if (endeavor.parent) lines.push(`  Within: ${compact(endeavors.get(endeavor.parent)?.label || endeavor.parent)}`);
 		annotations(endeavor.annotations, endeavor.id);
-		if (!why(endeavor, "  ") && endeavor.intent) lines.push(`  Purpose: ${compact(endeavor.intent)}`);
+		why(endeavor, "  ");
 		const links: [string, string[]][] = [
 			["Depends on", view.connections.filter(c => c.relation === "depends_on" && c.from === endeavor.id).map(c => c.toAnnotation ?? c.to)],
 			["Alternative to", view.connections.filter(c => c.relation === "alternative_to" && c.from === endeavor.id).map(c => c.toAnnotation ?? c.to)],

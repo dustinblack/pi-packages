@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
-import { acceptGraph } from "../src/contract.ts";
+import { acceptGraph, directlyGrounded } from "../src/contract.ts";
 import { checkGraph, editGraph, emptyGraph, graphSlice, normalizeMotherRoot, type GraphEdit, type GraphNode } from "../src/graph.ts";
 import { presentGraph, readText } from "../src/presentation.ts";
 import { SidecarStore } from "../src/sidecar.ts";
@@ -10,7 +10,7 @@ import { input, isMomRequest, readSidecar, setup } from "./fixture.ts";
 
 const refs = new Set(["s:origin", "s:current", "s:pivot", "s:alternative", "s:blocker"]);
 const node = (id: string, parent: string | null, state: GraphNode["state"], source: string, intent: string, kind: GraphNode["kind"] = "feature"): GraphNode => ({
-	id, parent, state, kind, label: id.replaceAll("_", " "), intent, observed: "", actor: "lead", sources: [source],
+	id, parent, state, kind, label: id.replaceAll("_", " "), intent, observed: "", actor: "lead", sources: [source], purposeSource: source,
 });
 const put = (value: GraphNode): GraphEdit => ({ op: "put_node", node: value });
 const edge = (from: string, relation: "depends_on" | "alternative_to", to: string, source: string): GraphEdit => ({
@@ -60,27 +60,34 @@ test("roots and alternatives preserve the mother-thread structural contract", ()
 		"mother", "current_work", refs), /endpoints must both be endeavors/);
 });
 
-test("public Why accepts full literal quotes and rejects overlap, paraphrase, invented fields, and assistant-only roots", () => {
+test("public Why accepts token-boundary quotes with one explicit grounding owner", () => {
+	assert.equal(directlyGrounded("No push", "Please: NO push!"), true);
+	assert.equal(directlyGrounded("map work", "Roadmap work is separate."), false);
 	const user: FeedEvent = { ref: "s:user", actor: "lead", kind: "user", at: "", text: "Keep this original session purpose while mapping work." };
 	const ruleSource: FeedEvent = { ref: "s:rule", actor: "lead", kind: "user", at: "", text: "Do not push or close the todo." };
 	const known = new Map([[user.ref, user], [ruleSource.ref, ruleSource]]), root = node("mother", null, "active", user.ref, "Keep this original session purpose");
-	const rule = node("hold", "mother", "active", ruleSource.ref, "Do not push or close the todo", "rule");
+	const rule = { ...node("hold", "mother", "active", ruleSource.ref, "Do not push or close the todo", "rule"), sources: [user.ref, ruleSource.ref] };
 	const transaction = { revision: 0, purpose: "mother", focus: "mother", unfinished: [], upsertNodes: [root, rule],
 		upsertEdges: [], removeEdges: [], merges: [], folds: [], removeNodes: [], supersessions: [], note: null };
 	const accepted = acceptGraph(transaction, emptyGraph(), undefined, known, new Set(known.keys()), new Set());
 	assert.equal(accepted.graph.nodes.length, 2);
+	const rendered = readText(presentGraph(graphSlice(accepted.graph)));
+	assert.match(rendered, /Why: Do not push or close the todo \[src:s:rule\]/);
+	assert.doesNotMatch(rendered, /Why: Do not push[^\n]*s:user/);
+	assert.throws(() => acceptGraph({ ...transaction, upsertNodes: [root, { ...rule, purposeSource: user.ref }] }, emptyGraph(), undefined,
+		known, new Set(known.keys()), new Set()), /complete normalized token sequence/);
 	assert.throws(() => acceptGraph({ ...transaction, upsertNodes: [{ ...root, rationale: "Because efficiency demands it." }, rule] }, emptyGraph(), undefined,
 		known, new Set(known.keys()), new Set()), /Invalid graph transaction shape/);
 	// The former three-word anchor accepted "Keep this original" even though the
 	// rest was invented and unrelated. Full-intent grounding must reject it.
 	const genericOverlap = { ...transaction, upsertNodes: [node("mother", null, "active", user.ref, "Keep this original goal for an unrelated deployment."), rule] };
-	assert.throws(() => acceptGraph(genericOverlap, emptyGraph(), undefined, known, new Set(known.keys()), new Set()), /normalized contiguous quote/);
+	assert.throws(() => acceptGraph(genericOverlap, emptyGraph(), undefined, known, new Set(known.keys()), new Set()), /complete normalized token sequence/);
 	const paraphrasedRule = { ...transaction, upsertNodes: [root, { ...rule, intent: "Never publish or finish this task." }] };
 	assert.throws(() => acceptGraph(paraphrasedRule, emptyGraph(), undefined, known, new Set(known.keys()), new Set()), /Public Why for hold/);
 	const assistant: FeedEvent = { ref: "s:assistant", actor: "lead", kind: "assistant", at: "", text: "I invented a purpose." };
 	const assistantKnown = new Map([[assistant.ref, assistant]]);
 	assert.throws(() => acceptGraph({ ...transaction, upsertNodes: [node("mother", null, "active", assistant.ref, "I invented a purpose")] }, emptyGraph(), undefined,
-		assistantKnown, new Set([assistant.ref]), new Set()), /cited user purpose source/);
+		assistantKnown, new Set([assistant.ref]), new Set()), /user purpose evidence/);
 });
 
 test("current-format forest cutover is deterministic, idempotent, source-preserving, and cold-stable", { timeout: 15000 }, async () => {
@@ -90,10 +97,11 @@ test("current-format forest cutover is deterministic, idempotent, source-preserv
 		await mom.open();
 		const captured = await mom.feed.capture(24000, true), source = captured.events.find(event => event.kind === "user")!.ref;
 		mom.close();
+		const inherited = (value: GraphNode) => { const { purposeSource: _missingBeforeThisContract, ...legacy } = value; return legacy; };
 		const oldGraph = { revision: 4, purpose: "main", focus: "alternative", nodes: [
-			node("main", null, "active", source, "Build Tether into Mom."),
-			node("alternative", null, "parked", source, "Keep the replay alternative available."),
-			node("probe", "alternative", "proposed", source, "Probe the alternative later."),
+			inherited(node("main", null, "active", source, "Build Tether into Mom.")),
+			inherited(node("alternative", null, "parked", source, "Keep the replay alternative available.")),
+			inherited(node("probe", "alternative", "proposed", source, "Probe the alternative later.")),
 		], edges: [] };
 		const normalized = normalizeMotherRoot(oldGraph);
 		assert.equal(normalized.changed, true); assert.equal(normalized.graph.revision, 5);
@@ -113,6 +121,17 @@ test("current-format forest cutover is deterministic, idempotent, source-preserv
 		assert.equal(mom.checkpointId, firstId);
 		assert.equal(hash({ graph: mom.graph, cut: mom.checkpoint!.cut }), coldHash);
 		assert.equal((await readSidecar(h)).filter(record => record.type === "map" && record.data.snapshot).length, 2, "cold reopen does not repeat the idempotent cutover");
+		assert.match(readText(presentGraph(graphSlice(mom.graph))), /Why: evidence unavailable/, "grandfathered text is not exposed as grounded Why");
+		h.api.onUnscripted((request) => {
+			if (!isMomRequest(request)) return { text: "No material map change." };
+			const body = input(request);
+			return { tool: { name: "commit_graph", arguments: { revision: body.graph.revision, purpose: body.graph.purpose, focus: body.graph.focus,
+				unfinished: [], upsertNodes: [], upsertEdges: [], removeEdges: [], merges: [], folds: [], removeNodes: [], supersessions: [], note: null } } };
+		});
+		await h.runtime.session.prompt("No material map change; retain the inherited account.");
+		const beforeNoop = structuredClone(mom.graph); await mom.update();
+		assert.deepEqual(mom.graph, beforeNoop, "first post-cutover no-op preserves inherited nodes without forced rewriting");
+		assert.equal(mom.usage.calls, 1, "grandfathered no-op accepts in one proposal");
 	} finally { mom.close(); await h.close(); }
 });
 

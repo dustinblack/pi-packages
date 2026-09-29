@@ -4,7 +4,7 @@ import { presentGraph, readText, summaryText } from "../src/presentation.ts";
 
 const node = (id: string, kind = "rule", state = "active", parent: string | null = "main") => ({
 	id, kind, state, parent, label: `Label for ${id}`, intent: `Keep ${id} unchanged.`, observed: `Evidence for ${id}.`,
-	actor: "user", sources: [`session:${id}`],
+	actor: "user", sources: [`session:${id}`], purposeSource: `session:${id}`,
 });
 
 // Small structural analogue of a recorded carry/fold: completed endeavor, an

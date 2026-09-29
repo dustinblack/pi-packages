@@ -14,7 +14,7 @@ Mom keeps track of the goal, what is unfinished, and where to return after a det
 ## Map behavior
 
 - Work is one source-backed tree. The persisted `motherThread` pointer identifies the stable coordinating root endeavor and `purpose` points to the same node. Every other feature, theory, postulate, or try belongs beneath it; rules, choices, and observations attach to an endeavor.
-- The mother root carries an identifying phrase from cited user purpose evidence. Compact reads derive `Why` only from source handles and distinguish current, interrupted, blocker, return, and alternative paths.
+- The mother root carries English purpose copied as a complete normalized token sequence from cited user evidence. Each public purpose names one explicit `purposeSource` that also belongs to the node's `sources`; compact reads show the English `Why` plus only that citation and distinguish current, interrupted, blocker, return, and alternative paths.
 - User pivots silently park interrupted work. Explicit assent is recorded with its scope and remains governing until later clear direction supersedes it.
 - Completion and folding must preserve active or parked descendants through explicit carried, reparented, or resolved dispositions.
 - Material claims remain source-backed. Tool arguments and outputs are inspected only on demand and are not replayed in routine updates.
@@ -22,7 +22,7 @@ Mom keeps track of the goal, what is unfinished, and where to return after a det
 
 ## Current implementation work
 
-The current change makes the coordinating mother thread a first-class persisted root, rejects unrooted/root-replacement proposals, preserves root/hash/cursor through cold reopen, and renders source-only `Why` plus exact blocker/alternative/return links. A current-format pre-root graph receives one deterministic atomic normalization; older sidecar record layouts remain unsupported. Background updates retain the settled one-proposal/one-repair ceiling. Explicit history questions retain five total calls and separate two-search/two-read limits. Optional Kev/JEV review remains present but disabled by default; explicitly enabling it adds its separate review call outside those ceilings.
+The current change makes the coordinating mother thread a first-class persisted root, rejects unrooted/root-replacement proposals, preserves root/hash/cursor through cold reopen, and renders English purpose plus its sole explicit grounding citation alongside exact blocker/alternative/return links. New or updated active, parked, or proposed endeavors and rules require a `purposeSource` whose event contains the complete intent at normalized token-sequence boundaries, with no minimum-character floor; that source must belong to `sources`. No rationale field exists. A current-format pre-root graph receives one deterministic atomic normalization. Its inherited nodes may remain without `purposeSource` only while unchanged, display `Why: evidence unavailable`, and survive the first post-cutover no-op without a forced rewrite; any upsert must satisfy strict grounding. Older sidecar record layouts remain unsupported. Background updates retain the settled one-proposal/one-repair ceiling. Explicit history questions retain five total calls and separate two-search/two-read limits. Optional Kev/JEV review remains present but disabled by default; explicitly enabling it adds its separate review call outside those ceilings.
 
 Mechanical coverage includes:
 
@@ -33,7 +33,7 @@ Mechanical coverage includes:
 - no Mom state custom entries in the session transcript;
 - branch-safe sidecar restore, failure retry, source lookup, hierarchy, carry, and display behavior.
 
-Scripted tests establish runtime mechanics, not general semantic reliability. The isolated Luna-low capture at `pi-tether/experiments/evidence/todo-007-real-luna-purpose-map.json` ran production Mom over a copied real-session backlog with a fresh temp-only sidecar. Three accepted batches kept one stable mother root, advanced source/worker cursors, and rendered literal source-backed English `Why` text while staying within the two-call background ceiling (2, 2, and 1 calls). The source hash stayed unchanged. The captured prefix had no parked endeavor or `alternative_to` relation, so this proof does not claim either category or general reliability.
+Scripted tests establish runtime mechanics, not general semantic reliability. The isolated Luna-low capture at `pi-tether/experiments/evidence/todo-007-real-luna-purpose-map.json` ran production Mom over a copied real-session backlog with a fresh temp-only sidecar. Three accepted batches kept one stable mother root, advanced source/worker cursors, and rendered literal source-backed English `Why` text while staying within the two-call background ceiling (2, 2, and 1 calls). The source hash stayed unchanged. The capture predates explicit `purposeSource` ownership, so a new isolated production capture is still required to validate the final English-purpose-plus-one-citation contract. The captured prefix also had no parked endeavor or `alternative_to` relation, so this proof does not claim either category or general reliability.
 
 ## Verification and next step
 
