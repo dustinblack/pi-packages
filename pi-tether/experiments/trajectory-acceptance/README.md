@@ -1,6 +1,8 @@
 # Blind production trajectory replay
 
-This directory's phase-4 harness imports production `Mom`; it does not carry an experimental prompt or transaction schema. `Mom` supplies `MOM_PROMPT`, the `openai-codex/gpt-5.6-luna` lookup, low reasoning, required tool choice, background-only `commit_graph`, and the one-proposal/one-repair ceiling.
+V1 is preserved privately and is **inconclusive**; see `V1_INCONCLUSIVE.md`. `V2_PROTOCOL.md` is the only acceptance-scoring path. Its aligned horizons, strict blind semantic scorer schemas, and mechanical coverage matrix were committed before any v2 replay or scoring.
+
+The retained phase-4 harness imports production `Mom`; it does not carry an experimental prompt or transaction schema. `Mom` supplies `MOM_PROMPT`, the `openai-codex/gpt-5.6-luna` lookup, low reasoning, required tool choice, background-only `commit_graph`, and the one-proposal/one-repair ceiling.
 
 ## Evidence adapter and boundaries
 
@@ -10,9 +12,9 @@ The replay aborts rather than selecting a fallback model, exceeding two calls in
 
 The lost-memory Pi attempt 1 is reconstructed conservatively in `attempt-1-failure.json`: only the observed process error and facts mechanically implied by committed control flow are populated; unavailable maps, usage, and totals remain `null`. With no saved temp session/sidecar, Pi is explicitly attempt 2. Buzz and SSMP remain attempt 1.
 
-## Precommitted classifier
+## Structural classifier (diagnostic only; retired from acceptance)
 
-`classifier.ts` uses production graph fields and this precedence:
+`classifier.ts` is retained because it is part of the checkpoint through `9c7927e`. It must not assign v2 acceptance movements, critical gates, points, or adjudication outcomes. For graph-diff diagnostics only, it uses this precedence:
 
 1. existing hierarchy/parent/non-return-link restructuring → `reorganize`;
 2. purpose/focus/current-course/return-focus movement → `redirect`;
@@ -37,4 +39,4 @@ npx tsx pi-tether/experiments/trajectory-acceptance/replay.ts
 npx tsx pi-tether/experiments/trajectory-acceptance/validate-artifact.ts
 ```
 
-After the one run, the three critical-observation booleans are filled by inspection of only packet obligations/source refs and the captured before/after maps. Requests contain no credentials; the committed artifact must pass a secret scan.
+These commands describe the retained v1 harness and diagnostic tests; they do not perform v2 semantic scoring. V2 critical gates are independent blind semantic findings under the strict result schema. Raw requests, responses, transcript text, and reasoning remain private and must pass a secret scan before any safe metadata is committed.
