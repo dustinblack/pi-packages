@@ -8,7 +8,7 @@ The [unified native-opening contract](NATIVE_SESSION_OPENING.md) supersedes the 
 
 Research used Amp CLI `0.0.1790692375-ga7bdff`, published SDK `0.1.0-20260918210405-g81edbf0`, and `amp-acp` source at commit `e35216d4fd3258445ac8b3ac5db7ef4ce3a40af9` (package version `0.10.0`). Public documentation can change independently of these versions.
 
-No team-thread prompts or multiplayer/account changes were performed. A temporary user-authorized local scratch plugin was loaded and exercised; no persistent plugin or credential was left behind. No private thread contents or credentials are included here.
+No multiplayer, account, visibility, or access changes were performed. The user authorized one clearly labeled validation prompt on the existing `max-planner` Orb `T-01a0f0b4-5330-714f-a024-0a156279b832`; no team task was requested. A temporary local scratch plugin was loaded and exercised; no persistent plugin or credential was left behind. No private thread contents or credentials are included here.
 
 ## The objects are different
 
@@ -27,7 +27,7 @@ The documentation differs on whether enabling multiplayer first shares a private
 
 ## Capability map
 
-**Verified** means executed locally without sending an agent prompt. **Documented** means confirmed in official documentation or source, not exercised against a shared Orb.
+**Verified** means executed and observed against the stated surface. **Documented** means confirmed in official documentation or source, but not exercised against a shared Orb.
 
 | Operation | Surface | Evidence and limits |
 | --- | --- | --- |
@@ -152,7 +152,7 @@ Serialize Pi's own submissions per thread, but do not mistake that local seriali
 ## Implementation sequence and proof gates
 
 1. **Read-only participant.** Bind a selected existing Orb and read bounded state/history; detach without affecting it. Prove exact-ID preservation, account scope, and no new prompt or executor attachment. Current probes prove CLI reads only; this Orb-specific gate is still open.
-2. **One approved contribution.** In an owner-approved scratch Orb, send a unique marker through native `op_send` and observe both CLI and markdown evidence. The scratch proof passed: the same remote thread processed the marker and the exported message rendered as `## User`. No local executor was registered. Plugin loading in an Orb remains a separate deployment gate.
+2. **One approved contribution.** In an owner-approved Orb, send a unique marker through native `op_send` and observe both CLI and markdown evidence. This passed on the pre-existing `max-planner` project Orb `T-01a0f0b4-5330-714f-a024-0a156279b832`: the same remote thread processed the marker and the exported message rendered as `## User`. No local executor was registered. Plugin loading in an Orb remains a separate deployment gate.
 3. **Provider-owned multiplayer behavior.** Do not reproduce participant presence, queueing, or cross-user attribution in pi-strings. Test only Pi's own observer disconnect, restart, timeout, and ambiguous-delivery behavior when required by 029. Amp remains responsible for the shared thread's participant and response lineage.
 4. **Richer plugin bridge.** The project-scoped bridge is implemented for bounded observation, append, steer, and explicit cancel. Deterministic tests and a local scratch deployment pass. Full Orb delivery still requires a recognized Amp project to load the plugin; confirm portal authentication, allowlist enforcement, disposal, and human-only approvals before claiming that gate closed.
 5. **Cross-thread handoff.** Transfer only approved evidence between two selected threads and verify provenance and file-transfer semantics. Do not infer that sending a thread link copied its files or commits.
