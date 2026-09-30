@@ -1,5 +1,5 @@
 ---
-status: pending
+status: ready
 issue_id: "008"
 tags: [mom, pi-tether, acceptance]
 dependencies: ["003", "005", "007"]

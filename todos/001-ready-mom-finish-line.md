@@ -9,8 +9,8 @@ dependencies: []
 
 ## Where we are
 
-trunk:    008 — replay acceptance; pending/inconclusive, waits on user promotion once a stable bounded replay path exists
-tangents: 016 — pending decision; 036 — pending flake; 011, 012, 014, and 015 — complete
+trunk:    008 — trajectory replay acceptance; ready, 10 horizons need a fresh replay, then blind scoring
+tangents: 016 — ready (buried-history recall experiment); 036 — ready (graph-runtime flake); 011, 012, 014, and 015 — complete
 
 008 is pending/inconclusive; resume only after the user promotes it once a stable bounded replay path is available.
 

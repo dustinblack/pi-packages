@@ -1,5 +1,5 @@
 ---
-status: pending
+status: ready
 issue_id: "036"
 tags: [pi-tether, tests, flake]
 dependencies: []

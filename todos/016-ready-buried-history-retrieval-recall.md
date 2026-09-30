@@ -1,5 +1,5 @@
 ---
-status: pending
+status: ready
 issue_id: "016"
 tags: [mom, pi-tether, retrieval, research]
 dependencies: ["013"]
