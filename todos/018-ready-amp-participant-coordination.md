@@ -28,7 +28,8 @@ tangents: 020 common/Pi core, 026–029 primary providers, 030 remaining17 cover
 - [030](030-ready-remaining-native-provider-coverage.md) — ready — remaining17 capability investigation and provider delivery children; not delivery by itself
 - [021](021-ready-amp-approved-contribution.md) — ready — authorized contribution
 - [022](022-complete-amp-multiplayer-recovery.md) — complete — multiplayer attribution rejected as provider-owned scope
-- [023](023-complete-amp-plugin-bridge.md) — complete — least-authority bridge design; implementation/deployment requires separate approval
+- [023](023-complete-amp-plugin-bridge.md) — complete — least-authority observation bridge design
+- [031](031-ready-amp-plugin-work-controls.md) — ready — explicit observation, append/steer, and cancel controls; no visibility/multiplayer access changes
 - [024](024-ready-amp-evidence-handoff.md) — ready — provenance-preserving handoff
 
 ## Outcome
