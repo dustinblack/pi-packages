@@ -1,0 +1,348 @@
+{
+  "schemaVersion": 2,
+  "status": "fail",
+  "computedAt": "2026-09-30T16:42:28.521Z",
+  "scoring": {
+    "protocol": "V2_PROTOCOL.md (preregistered)",
+    "packetSha256": "fa5b0e99f7e485a51eaf88cbe4469014c80e47b6b15ce6090a045ee77af726aa",
+    "resolutionsSha256": "9deb6d61e2196529febc31c6abd90bbefaa20939f0700c55a48721410f745147",
+    "scorerA": "openai-codex/gpt-5.6-terra",
+    "scorerB": "opencode-go/kimi-k3",
+    "adjudicator": "opencode-go/glm-5.3",
+    "note": "Scorer and adjudicator identities are recorded here for disclosure; the sealed pre-dispatch record lives at /private/tmp/todo-008-trajectory/private-v2/sealed-identities.json."
+  },
+  "thresholds": {
+    "overall": 12,
+    "perTranscript": 4
+  },
+  "points": {
+    "overall": 3,
+    "of": 15,
+    "perTranscript": [
+      {
+        "corpus": "pi-packages",
+        "points": 0,
+        "cases": 5
+      },
+      {
+        "corpus": "buzz",
+        "points": 3,
+        "cases": 5
+      },
+      {
+        "corpus": "ssmp",
+        "points": 0,
+        "cases": 5
+      }
+    ]
+  },
+  "gateViolations": [],
+  "acceptanceGaps": [],
+  "cases": [
+    {
+      "caseId": "pi-pivot-01",
+      "scorerCaseId": "case-001",
+      "corpus": "pi-packages",
+      "source": "aligned-v2",
+      "goldLabel": "reorganize",
+      "finalMovement": "expand",
+      "agreement": "scorers-match",
+      "gates": {
+        "unsupported_current_purpose": "clear",
+        "revived_rejected_alternative": "clear",
+        "lost_unresolved_return": "clear"
+      },
+      "point": 0,
+      "acceptanceGap": false,
+      "invalid": [],
+      "hasUnknown": false,
+      "hasViolation": false,
+      "movementUnclassifiable": false
+    },
+    {
+      "caseId": "pi-assent-01",
+      "scorerCaseId": "case-002",
+      "corpus": "pi-packages",
+      "source": "aligned-v2",
+      "goldLabel": "accept",
+      "finalMovement": "expand",
+      "agreement": "scorers-match",
+      "gates": {
+        "unsupported_current_purpose": "clear",
+        "revived_rejected_alternative": "clear",
+        "lost_unresolved_return": "clear"
+      },
+      "point": 0,
+      "acceptanceGap": false,
+      "invalid": [],
+      "hasUnknown": false,
+      "hasViolation": false,
+      "movementUnclassifiable": false
+    },
+    {
+      "caseId": "pi-conflict-01",
+      "scorerCaseId": "case-003",
+      "corpus": "pi-packages",
+      "source": "reused-v1",
+      "goldLabel": "accept",
+      "finalMovement": "expand",
+      "agreement": "scorers-match",
+      "gates": {
+        "unsupported_current_purpose": "clear",
+        "revived_rejected_alternative": "clear",
+        "lost_unresolved_return": "clear"
+      },
+      "point": 0,
+      "acceptanceGap": false,
+      "invalid": [],
+      "hasUnknown": false,
+      "hasViolation": false,
+      "movementUnclassifiable": false
+    },
+    {
+      "caseId": "pi-return-01",
+      "scorerCaseId": "case-004",
+      "corpus": "pi-packages",
+      "source": "reused-v1",
+      "goldLabel": "contract",
+      "finalMovement": "expand",
+      "agreement": "scorers-match",
+      "gates": {
+        "unsupported_current_purpose": "clear",
+        "revived_rejected_alternative": "clear",
+        "lost_unresolved_return": "clear"
+      },
+      "point": 0,
+      "acceptanceGap": false,
+      "invalid": [],
+      "hasUnknown": false,
+      "hasViolation": false,
+      "movementUnclassifiable": false
+    },
+    {
+      "caseId": "pi-stale-01",
+      "scorerCaseId": "case-005",
+      "corpus": "pi-packages",
+      "source": "aligned-v2",
+      "goldLabel": "contract",
+      "finalMovement": "accept",
+      "agreement": "scorers-match",
+      "gates": {
+        "unsupported_current_purpose": "clear",
+        "revived_rejected_alternative": "clear",
+        "lost_unresolved_return": "clear"
+      },
+      "point": 0,
+      "acceptanceGap": false,
+      "invalid": [],
+      "hasUnknown": false,
+      "hasViolation": false,
+      "movementUnclassifiable": false
+    },
+    {
+      "caseId": "buzz-pivot-01",
+      "scorerCaseId": "case-006",
+      "corpus": "buzz",
+      "source": "aligned-v2",
+      "goldLabel": "redirect",
+      "finalMovement": "redirect",
+      "agreement": "B+C",
+      "gates": {
+        "unsupported_current_purpose": "clear",
+        "revived_rejected_alternative": "clear",
+        "lost_unresolved_return": "clear"
+      },
+      "point": 1,
+      "acceptanceGap": false,
+      "invalid": [],
+      "hasUnknown": false,
+      "hasViolation": false,
+      "movementUnclassifiable": false
+    },
+    {
+      "caseId": "buzz-assent-01",
+      "scorerCaseId": "case-007",
+      "corpus": "buzz",
+      "source": "reused-v1",
+      "goldLabel": "accept",
+      "finalMovement": "expand",
+      "agreement": "scorers-match",
+      "gates": {
+        "unsupported_current_purpose": "clear",
+        "revived_rejected_alternative": "clear",
+        "lost_unresolved_return": "clear"
+      },
+      "point": 0,
+      "acceptanceGap": false,
+      "invalid": [],
+      "hasUnknown": false,
+      "hasViolation": false,
+      "movementUnclassifiable": false
+    },
+    {
+      "caseId": "buzz-conflict-01",
+      "scorerCaseId": "case-008",
+      "corpus": "buzz",
+      "source": "aligned-v2",
+      "goldLabel": "expand",
+      "finalMovement": "expand",
+      "agreement": "scorers-match",
+      "gates": {
+        "unsupported_current_purpose": "clear",
+        "revived_rejected_alternative": "clear",
+        "lost_unresolved_return": "clear"
+      },
+      "point": 1,
+      "acceptanceGap": false,
+      "invalid": [],
+      "hasUnknown": false,
+      "hasViolation": false,
+      "movementUnclassifiable": false
+    },
+    {
+      "caseId": "buzz-return-01",
+      "scorerCaseId": "case-009",
+      "corpus": "buzz",
+      "source": "aligned-v2",
+      "goldLabel": "accept",
+      "finalMovement": "expand",
+      "agreement": "scorers-match",
+      "gates": {
+        "unsupported_current_purpose": "clear",
+        "revived_rejected_alternative": "clear",
+        "lost_unresolved_return": "clear"
+      },
+      "point": 0,
+      "acceptanceGap": false,
+      "invalid": [],
+      "hasUnknown": false,
+      "hasViolation": false,
+      "movementUnclassifiable": false
+    },
+    {
+      "caseId": "buzz-stale-01",
+      "scorerCaseId": "case-010",
+      "corpus": "buzz",
+      "source": "aligned-v2",
+      "goldLabel": "contract",
+      "finalMovement": "contract",
+      "agreement": "scorers-match",
+      "gates": {
+        "unsupported_current_purpose": "clear",
+        "revived_rejected_alternative": "clear",
+        "lost_unresolved_return": "clear"
+      },
+      "point": 1,
+      "acceptanceGap": false,
+      "invalid": [],
+      "hasUnknown": false,
+      "hasViolation": false,
+      "movementUnclassifiable": false
+    },
+    {
+      "caseId": "ssmp-pivot-01",
+      "scorerCaseId": "case-011",
+      "corpus": "ssmp",
+      "source": "reused-v1",
+      "goldLabel": "reorganize",
+      "finalMovement": "redirect",
+      "agreement": "scorers-match",
+      "gates": {
+        "unsupported_current_purpose": "clear",
+        "revived_rejected_alternative": "clear",
+        "lost_unresolved_return": "clear"
+      },
+      "point": 0,
+      "acceptanceGap": false,
+      "invalid": [],
+      "hasUnknown": false,
+      "hasViolation": false,
+      "movementUnclassifiable": false
+    },
+    {
+      "caseId": "ssmp-assent-01",
+      "scorerCaseId": "case-012",
+      "corpus": "ssmp",
+      "source": "aligned-v2",
+      "goldLabel": "accept",
+      "finalMovement": "redirect",
+      "agreement": "scorers-match",
+      "gates": {
+        "unsupported_current_purpose": "clear",
+        "revived_rejected_alternative": "clear",
+        "lost_unresolved_return": "clear"
+      },
+      "point": 0,
+      "acceptanceGap": false,
+      "invalid": [],
+      "hasUnknown": false,
+      "hasViolation": false,
+      "movementUnclassifiable": false
+    },
+    {
+      "caseId": "ssmp-conflict-01",
+      "scorerCaseId": "case-013",
+      "corpus": "ssmp",
+      "source": "reused-v1",
+      "goldLabel": "redirect",
+      "finalMovement": "contract",
+      "agreement": "B+C",
+      "gates": {
+        "unsupported_current_purpose": "clear",
+        "revived_rejected_alternative": "clear",
+        "lost_unresolved_return": "clear"
+      },
+      "point": 0,
+      "acceptanceGap": false,
+      "invalid": [],
+      "hasUnknown": false,
+      "hasViolation": false,
+      "movementUnclassifiable": false
+    },
+    {
+      "caseId": "ssmp-return-01",
+      "scorerCaseId": "case-014",
+      "corpus": "ssmp",
+      "source": "aligned-v2",
+      "goldLabel": "redirect",
+      "finalMovement": "accept",
+      "agreement": "B+C",
+      "gates": {
+        "unsupported_current_purpose": "clear",
+        "revived_rejected_alternative": "clear",
+        "lost_unresolved_return": "clear"
+      },
+      "point": 0,
+      "acceptanceGap": false,
+      "invalid": [],
+      "hasUnknown": false,
+      "hasViolation": false,
+      "movementUnclassifiable": false
+    },
+    {
+      "caseId": "ssmp-stale-01",
+      "scorerCaseId": "case-015",
+      "corpus": "ssmp",
+      "source": "aligned-v2",
+      "goldLabel": "contract",
+      "finalMovement": "redirect",
+      "agreement": "B+C",
+      "gates": {
+        "unsupported_current_purpose": "clear",
+        "revived_rejected_alternative": "clear",
+        "lost_unresolved_return": "clear"
+      },
+      "point": 0,
+      "acceptanceGap": false,
+      "invalid": [],
+      "hasUnknown": false,
+      "hasViolation": false,
+      "movementUnclassifiable": false
+    }
+  ],
+  "artifacts": {
+    "gold": "labels/final-gold.json",
+    "manifest": "aligned-replay-manifest.json",
+    "packet": "/private/tmp/todo-008-trajectory/semantic-scorer-packet.json"
+  }
+}

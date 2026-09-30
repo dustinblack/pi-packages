@@ -21,3 +21,21 @@ Harness changes, made before any scoring and with no change to prompts, settings
 4. Caps raised from 30 calls / 12 min to 60 calls / 40 min after attempt 1 died near the old budget.
 
 Result: 31 Luna calls, 10 repairs, 0 unresolved gaps, 15/15 cases with before+after maps, 11m43s. Scorer packet `semantic-scorer-packet.json`, sha256 `fa5b0e99f7e485a51eaf88cbe4469014c80e47b6b15ce6090a045ee77af726aa`.
+
+## Scoring run log — 2026-09-30 (blind semantic scoring)
+
+Two failures of my own harness had to be fixed before any score was valid. Both are recorded because they shaped the raw evidence:
+
+1. **Missing routing header.** The first scoring pass dispatched `opencode-go` calls without `options.sessionId`, and pi-ai only injects the required `x-opencode-session` header from it. Both `opencode-go` models returned `MissingSessionID` for all 30+ calls. Fixed by passing `sessionId: todo-008-<slot>-<caseId>`.
+2. **Reasoning starvation.** With the header fixed, the adjudicator (`glm-5.3`) spent its whole 3000-token budget on reasoning tokens and returned no visible text (`stopReason: length`, empty content). Fixed by raising the budget to 12000 and disabling reasoning for `opencode-go` calls (measured ~3 s vs multi-minute). Three adjudications had already succeeded under the default setting before this change; the four final adjudications (case-006, 013, 014, 015) and every re-run used reasoning disabled. First-round scorer A and B results are unchanged from their original calls.
+
+## Result — `semantic-score.json`
+
+`status: fail`, **3/15**, zero critical-gate violations, zero unresolved acceptance gaps.
+
+| | accept | expand | contract | redirect | reorganize |
+|---|---|---|---|---|---|
+| Gold | 5 | 1 | 4 | 3 | 2 |
+| Blind | 2 | 7 | 2 | 4 | 0 |
+
+Blind scorers agreed with each other on 12/15 movements (3 decided by the sealed adjudicator), so the pair is internally consistent, but they label "expand" roughly 7× more often than the gold set and under-apply contract/accept by the same amount. The preregistered gate is a strict label match, so the result is a **fail** — and the distribution shift says the two scorer sets do not share movement semantics. Read it as a measurement finding first, not as proof that Mom's maps are wrong.
