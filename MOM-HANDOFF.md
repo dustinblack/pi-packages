@@ -19,6 +19,7 @@ Mom keeps track of the goal, what is unfinished, and where to return after a det
 - Completion and folding must preserve active or parked descendants through explicit carried, reparented, or resolved dispositions.
 - Material claims remain source-backed. Tool arguments and outputs are inspected only on demand and are not replayed in routine updates.
 - The widget and read-only `mom` tool are derived from the last accepted sidecar checkpoint. If an update fails, they show the last accepted map and expose the exact error through `/mom detail`.
+- `Alt+T` opens a dedicated Mom conversation view. Questions use her saved map and bounded evidence reads; Q&A does not enter the lead transcript. `Esc` or `Alt+T` returns with the lead draft intact; `Ctrl+X` cancels an answer. Actual-terminal proof is in `pi-tether/experiments/evidence/todo-014/`.
 
 ## Current implementation work
 

@@ -10,7 +10,7 @@ dependencies: []
 ## Where we are
 
 trunk:    011 — add brief process-health notices
-tangents: 012, 014, 015 — ready; 016 — pending decision
+tangents: 012, 015 — ready; 014 — complete; 016 — pending decision
 
 008 is pending/inconclusive; resume only after the user promotes it once a stable bounded replay path is available.
 
@@ -41,7 +41,7 @@ tangents: 012, 014, 015 — ready; 016 — pending decision
 - 011 — ready — making-mom, delegates
 - 012 — ready — making-mom, delegates
 - 013 — complete — `d6158d1`, `5722cba` + merge `94bb3bb` — search won 1/3 versus map 0/3; no production change
-- 014 — ready — dedicated Mom view for direct talk and switching back without slash commands
+- 014 — complete — `58ac5a0` — Alt+T Mom conversation; actual-terminal switch/answer/return preserves the lead transcript and draft; 112 Tether and 40 delegate checks pass
 - 015 — ready — making-mom, delegates
 - 016 — pending — richer labeled map handles and improved original-source selection
 
