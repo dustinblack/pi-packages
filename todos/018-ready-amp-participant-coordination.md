@@ -1,7 +1,7 @@
 ---
 status: ready
 issue_id: "018"
-tags: [pi-strings, amp, hub]
+tags: [pi-strings, native-opening, amp, hub]
 dependencies: []
 ---
 
@@ -9,40 +9,42 @@ dependencies: []
 
 ## Where we are
 
-trunk: 019 — replan unified create/open-existing support across agent integrations; no separate Amp extension or tool family
-tangents: 020–024 — retain Amp proof gates but revise adapter placement/dependencies after 019
+trunk: 019 — unified contract/proof accepted by fresh review; closing commit awaits user approval; production unchanged
+tangents: 020 common/Pi core, 026–029 primary providers, 030 remaining17 coverage; 021–024 Amp collaboration gates
 
 ## Findings
 
-- User requires all agent integrations to open existing provider-native threads/sessions as well as create new ones; rejects a separate Amp extension/tool family. Amp local/Orb is execution configuration, not a product boundary.
-- [Superseded proposal and valid probe ledger](../pi-strings/docs/2026-09-29-AMP_PARTICIPANT_BOUNDARY.md): CLI exports full histories; one-shot plugin host exposes lookup but reports no user identity. Do not implement its rejected packaging recommendation.
-- Evolve session admission and lifecycle deliberately; retain existing owned-worker behavior for owned work. Opening shared work must not silently grant cancellation, archive, executor, visibility, or multiplayer-management authority.
-- No remote messages until an exact scratch Orb and message are approved. Never retry uncertain delivery automatically.
+- User requires one `op_*` / ACPX interface for create and native open across all22 named integrations. Amp local/Orb is an execution option, not a separate product.
+- [Current contract and matrix](../pi-strings/docs/NATIVE_SESSION_OPENING.md): ACPX already loads external IDs; Coordinator rejects them. Amp additionally requires an S-to-T adapter mapping today.
+- Real isolated Pi 0.99.1 idle load found a synthetic native session without prior mapping. Recorded thinking survived; absent thinking gained a default entry. Not live-terminal attachment or proof for other providers.
+- Preserve owned-worker behavior; opened work needs explicit identity/settings and lifecycle policy. Disconnect is not cancel. No remote contribution without an approved scratch target/message; no uncertain resend.
 
 ## Children
 
-- [019](019-ready-amp-participant-boundary.md) — ready — redefine unified provider contract and native attachment capability matrix
-- [020](020-ready-amp-readonly-participant.md) — ready — read-only native attachment
-- [021](021-ready-amp-approved-contribution.md) — ready — authorized scratch contribution
-- [022](022-ready-amp-multiplayer-recovery.md) — ready — concurrency, disconnect, permission evidence
-- [023](023-pending-amp-plugin-bridge.md) — pending — only if native proof exposes a concrete gap
-- [024](024-ready-amp-evidence-handoff.md) — ready — explicit provenance-preserving handoff
+- [019](019-ready-amp-participant-boundary.md) — ready — contract, evidence, fresh architecture review
+- [020](020-ready-amp-readonly-participant.md) — ready — common create/open + native Pi vertical slice
+- [026](026-ready-codex-native-opening.md), [027](027-ready-claude-native-opening.md), [028](028-ready-opencode-native-opening.md) — ready — Codex, Claude, OpenCode delivery
+- [029](029-ready-amp-native-opening.md) — ready — Amp local/Orb creation and native opening/observation
+- [030](030-ready-remaining-native-provider-coverage.md) — ready — remaining17 capability investigation and provider delivery children; not delivery by itself
+- [021](021-ready-amp-approved-contribution.md), [022](022-ready-amp-multiplayer-recovery.md) — ready — authorized contribution, multiplayer/recovery
+- [023](023-pending-amp-plugin-bridge.md) — pending — only a demonstrated 029/022 gap plus explicit deployment approval
+- [024](024-ready-amp-evidence-handoff.md) — ready — provenance-preserving handoff
 
 ## Outcome
 
-Every supported agent integration can create sessions and open existing provider-native threads through a unified interface. Amp participation additionally supports existing local/Orb work and approved coordination without taking over human-owned work.
+Every supported agent integration creates sessions and opens existing provider-native threads through one interface. Amp additionally coordinates approved existing local/Orb work without taking over human-owned execution.
 
 ## Context
 
-User requested file-todos and matching session tracking, then corrected the architecture: extend the provider integrations rather than introduce another Amp tool family. The current children capture Amp-specific proof gates; 019 must add provider-wide delivery slices before implementation. File closure requires a user-approved closing commit on main; session progress is separate.
+User approved provider-wide scope and delegated parallelism; rejected separate Amp packaging. File closure requires a user-approved closing commit on main; session progress is separate. The [old ADR](../pi-strings/docs/2026-09-29-AMP_PARTICIPANT_BOUNDARY.md) is superseded, but its probe ledger remains evidence.
 
 ## Acceptance criteria
 
-- [ ] 019 defines provider-wide create/open-existing acceptance and records each adapter gap without presenting unsupported attachment as delivered.
-- [ ] 019–022 and 024, plus provider delivery slices defined by 019, close with evidence and commits on main.
-- [ ] 023 is either explicitly approved and proven, or rejected with the native capability evidence that makes it unnecessary.
-- [ ] Shared-thread activity, Pi operation state, and delivery evidence remain distinct; docs state all unproven limits.
+- [ ] 019 closes with reviewed unified contract and all22 integrations accounted for.
+- [ ] 020–022, 024, 026–030 and the provider children created by030 close with actual acceptance evidence and main-branch commits; an unsupported error is not provider delivery.
+- [ ] 023 is explicitly approved/proven or rejected with evidence that a bridge is unnecessary.
+- [ ] Shared activity, local request state, and delivery evidence remain distinct; user-facing docs state unproven limits.
 
 ## Out of scope
 
-Space voice/video automation; workspace-admin enumeration; private HTTP APIs; permission escalation; autonomous cancellation; automatic file transfer.
+Space media automation, admin enumeration, private HTTP APIs, permission escalation, autonomous cancellation, automatic file transfer.

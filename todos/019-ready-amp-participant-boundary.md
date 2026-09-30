@@ -19,11 +19,11 @@ User clarified that all agent integrations must open existing provider-native th
 ## Acceptance criteria
 
 - [x] Verify available native read-only commands, service/account identity evidence, bounded-history options, and passive activity semantics with actual CLI probes; document unsupported guarantees rather than infer them.
-- [ ] Inventory supported provider adapters: native IDs, creation, arbitrary existing-session opening, executor preservation, history, concurrency, cancellation/disconnect; cite source and separate live proof.
-- [ ] Record the unified tool/session contract and provider-specific adapter gaps; reuse the existing integration surface rather than split extensions.
-- [ ] Replace the superseded ADR and define independently verifiable provider delivery slices; review authority and concurrency changes fresh.
+- [x] Inventory all22 named integrations; source-backed native-opening evidence for9 and explicit unverified status for13. Record identity, settings, history, concurrency, and disconnect gaps separately from live proof; route remaining investigation to030 without dropping providers.
+- [x] Record the unified tool/session contract and provider-specific adapter gaps; reuse the existing integration surface rather than split extensions.
+- [x] Replace the superseded ADR with the unified contract; define independently verifiable delivery slices020/026–030 and review authority/concurrency changes fresh.
 - [x] Identify unsupported assumptions and exact scratch-Orb/second-participant prerequisites; no guessed API or unsupported success claim.
-- [ ] Resolve remaining session-authority semantics with the user; packaging separation is rejected, not an open question. Evidence contains command outcomes and review findings.
+- [x] Record the user-approved unified direction and explicit safe authority defaults: no implicit stop, settings change, takeover, or resend on open. No packaging fork remains. Evidence contains command outcomes and fresh review findings; live mutations remain separately authorized.
 
 ## Out of scope
 
@@ -31,4 +31,13 @@ Production changes, remote contributions, plugin installation, permission change
 
 ## Evidence
 
-Uncommitted evidence; no closing SHA exists. [Proposed ADR and command ledger](../pi-strings/docs/2026-09-29-AMP_PARTICIPANT_BOUNDARY.md) contains parent-run list/account/top/help probes and the approved capability-only script result. CLI `0.0.1790712063-gb89205`: plugin probe exit 0, lookup exposed, user-present false (null or missing, not proof of bad credentials); no thread methods called. No matching observer/probe remained after execution. Two Codex-2 Luna scouts completed; the source follow-up found only native binaries in the exact npm distribution. Codex-2 Astra's fresh review accepted the experiment plan and code with no findings, but blocked production pending packaging approval and authenticated bounded-read proof. Subsequently the user rejected packaging/tool-family separation and required native existing-thread opening for all agent integrations. That supersedes the reviewed proposal, not its probe results. Next: provider capability matrix and unified session semantics; no production or Orb proof is claimed.
+Uncommitted; no closing SHA exists. All decision/proof deliverables are complete, but the file remains ready until a user-approved closing commit is on main.
+
+- [Unified contract/matrix](../pi-strings/docs/NATIVE_SESSION_OPENING.md) supersedes the separate-extension ADR. Three Codex-2 Luna recon lanes investigated internal/primary/registry adapters; source links and exact versions are in the matrix. 13 providers remain unverified, explicitly tracked by030.
+- `npm run check` baseline:96 pass,19 skipped,0 fail. Skipped live-provider/worktree cases are not claimed passed; no production behavior changed.
+- Current Coordinator rejected synthetic external T-ID with `RESUME_PROVENANCE_UNKNOWN`, runtime calls0. Actual ACPX subprocess fixture loaded an externally seeded exact ID and rejected unknown ID without creating.
+- `node scripts/probe-native-pi-opening.mjs` exit0 on Pi0.99.1: isolated synthetic native transcripts, no prompt; exact native ID/mapping, original entries preserved, exact unknown-session error(-32602), one native JSONL across the session tree. Recorded thinking off remained byte-identical; absent thinking gained default high. Initial blanket byte-identical predicate failed and was narrowed honestly. Idle close only, not active shared execution.
+- Fresh Codex-2 Astra architecture/probe review `reviewer-610408d9-9283-4215-9fde-93a9aabe7cda`: accepted. P2 probe specificity corrected (exact error plus recursive native inventory), parent reran successfully, reviewer verified syntax/source. Active disconnect/provider proof gates remain.
+- [Earlier Amp ledger](../pi-strings/docs/2026-09-29-AMP_PARTICIPANT_BOUNDARY.md): CLI0.0.1790712063-gb89205 capability-only probe exit0, lookup exposed, user-present false(null or missing); no thread method invoked. No authenticated bounded Orb read is claimed.
+- Cleanup: final `pgrep -fl 'pi-strings-native-pi-probe-'` found no process; experiment deletes only its isolated temp roots.
+- Revised020–024 and filed026–030; session todos mirror the dependencies. No production, Orb contribution, plugin deployment, or permission change performed.

@@ -1,32 +1,34 @@
 ---
 status: ready
 issue_id: "020"
-tags: [pi-strings, amp]
+tags: [pi-strings, native-opening, pi]
 dependencies: ["019"]
 forked_from: "018"
 ---
 
-# Observe an exact existing Orb without taking ownership
+# Create and open native Pi sessions through the existing tools
 
 ## Outcome
 
-Pi discovers accessible threads, binds one exact native identity, reads bounded observations, and detaches locally without changing remote work.
+The common `op_*` interface creates owned workers and opens an independently created native Pi session without treating it as owned work. Other adapters reuse this contract.
 
 ## Context
 
-Implement only the reviewed contract from 019. Reuse existing CLI authentication, not workspace-admin credentials. `T-...` is native identity, not an ACP `S-...` session. Initial empty or disconnected activity snapshots are not idle evidence.
+Implement [the unified contract](../pi-strings/docs/NATIVE_SESSION_OPENING.md), not the superseded separate Amp participant proposal. ACPX already loads exact external IDs; Coordinator admission, owned-worker launch defaults, persistence, prompt decoration, and cancellation policy are the barriers. The vendored Pi adapter already finds native sessions absent its mapping. The real Pi 0.99.1 experiment preserved recorded thinking but appended a default when none was recorded; load is not universally read-only.
 
 ## Acceptance criteria
 
-- [ ] Exact service/account/thread scope is verified; invalid, inaccessible, changed-account, or non-Orb targets fail honestly without fallback to latest.
-- [ ] State/history outputs and process lifetime are bounded; limits and unavailable fields are explicit, no full transcript leaks into logs or model context.
-- [ ] Detach, timeout, shutdown, and reload affect only Pi's passive local resources; no prompt, executor attachment, cancel, archive, visibility, or multiplayer calls.
-- [ ] New-contract tests and existing package checks pass; actual selected-Orb read/observe/detach smoke records exact ID preservation and remote non-mutation evidence.
+- [ ] `op_spawn` creates when native `sessionId` is absent and opens that exact native session when supplied; migrate the public `resumeSessionId` callers/docs/tests without compatibility aliases.
+- [ ] Origin, scoped native identity, ACP identity, verified workspace/settings, and actual capabilities survive persistence/restart. Version-1 owned records migrate explicitly without broadening authority; ambiguous or corrupt records fail visibly.
+- [ ] Open/reconnect does not replay creation profile settings, worker tools/model/mode, or WORKER_CONTRACT. Unknown IDs, mismatched identity/workspace, duplicate binding, and missing capabilities fail without creating/forking/latest fallback.
+- [ ] Opened lifecycle distinguishes local request outcome from native activity, explicit stop from disconnect, and stored-session resume from live-client attachment. No automatic resend, model fallback, cancel-on-timeout, archive, or deletion of opened work. Active local executor limitations are enforced and reported rather than hidden.
+- [ ] Bounded observations expose enough native history/state to verify the target without injecting full transcripts. Existing owned-worker behavior and tests remain intact.
+- [ ] New-contract regressions and `npm run check` pass. Actual `op_*` smoke creates a scratch session independently, opens/continues that same Pi ID, preserves recorded settings/workspace, rejects unknown ID without creating, and proves supported disconnect/cancel semantics. Record tested Pi/adapter versions; synthetic idle load alone is insufficient.
 
 ## Out of scope
 
-Sending and management controls. A real existing Orb selected for the probe is required before claiming this live gate passed. No persistent transcript archive or always-on bridge.
+Provider-specific gaps belong to 026–030; Amp live collaboration belongs to 021–024/029. Never claim simultaneous attachment to an already-running native Pi executor from stored-session loading. No arbitrary user session mutation; live inference uses an authorized scratch session.
 
 ## Evidence
 
-Pending; work starts after 019 closes on main.
+Pending; starts after 019 closes on main. `scripts/probe-native-pi-opening.mjs` is prior isolated idle-load evidence, not delivery of this tool path.

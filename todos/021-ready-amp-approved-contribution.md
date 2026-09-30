@@ -2,7 +2,7 @@
 status: ready
 issue_id: "021"
 tags: [pi-strings, amp]
-dependencies: ["020"]
+dependencies: ["029"]
 forked_from: "018"
 ---
 
@@ -14,7 +14,7 @@ Pi sends an authorized, visibly attributed contribution to a selected remote thr
 
 ## Context
 
-Native exact-ID Orb continuation is documented but not live-proven here. Use fixed executable/argv and stdin, preserve remote settings, never decorate with WORKER_CONTRACT. User approval must name the scratch Orb and message before the first send.
+Native exact-ID Orb continuation is documented but not live-proven here. Use the common `op_send` through the Amp adapter/ACPX path proven in 029, not a parallel CLI coordinator. Preserve remote settings; never decorate opened work with WORKER_CONTRACT. User approval must name the scratch Orb and message before the first send.
 
 ## Acceptance criteria
 
@@ -30,4 +30,4 @@ Any unapproved team-thread message; permission changes; automated retry; busy-th
 
 ## Evidence
 
-Pending; blocked on 020 closure plus target/message authorization.
+Pending; blocked on 029 closure plus target/message authorization.

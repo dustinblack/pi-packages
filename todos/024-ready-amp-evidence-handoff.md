@@ -14,7 +14,7 @@ Pi coordinates independent work by sending only approved evidence to an explicit
 
 ## Context
 
-Cross-thread messages do not copy workspaces, files, or commits. Use the proven participant transport; 023 is not a dependency unless 022 demonstrates it is necessary and the plan is explicitly updated.
+Cross-thread messages do not copy workspaces, files, or commits. Use the common `op_*` / Amp adapter path proven by 029–022. Conditional 023 is a dependency only if a concrete native capability gap requires it and the plan is explicitly updated.
 
 ## Acceptance criteria
 
