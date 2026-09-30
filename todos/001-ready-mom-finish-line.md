@@ -9,8 +9,8 @@ dependencies: []
 
 ## Where we are
 
-trunk:    011 — add brief process-health notices
-tangents: 012, 015 — ready; 014 — complete; 016 — pending decision
+trunk:    012 — optional Kev screening before Mom wakes
+tangents: 015 — ready; 011 and 014 — complete; 016 — pending decision
 
 008 is pending/inconclusive; resume only after the user promotes it once a stable bounded replay path is available.
 
@@ -38,10 +38,10 @@ tangents: 012, 015 — ready; 014 — complete; 016 — pending decision
 - 008 — pending — labels and aligned scorer preregistration preserved; replay inconclusive/cancelled before a valid result; no production prompt change
 - 009 — complete — `be537b4` + merge `45a85e6` — lead receives pivot/assent rules only while Mom is enabled
 - 010 — complete — `d4cb4d9` + `d55f39e8` + merge `77350ec` — sidecar pruned to map, notice, and usage
-- 011 — ready — `bc0afa0` on `todo-011`; 126 checks pass and real-model advisory captured; main integration waits for the concurrent widget repaint edits to be committed
+- 011 — complete — `a2211d0` — four sourced process-risk classes, stable deduplication, atomic resolution, and a real Luna advisory capture; combined main passes 128 Tether + 40 delegate tests
 - 012 — ready — making-mom, delegates
 - 013 — complete — `d6158d1`, `5722cba` + merge `94bb3bb` — search won 1/3 versus map 0/3; no production change
-- 014 — complete — `58ac5a0` — Alt+T Mom conversation; actual-terminal switch/answer/return preserves the lead transcript and draft; 112 Tether and 40 delegate checks pass
+- 014 — complete — `58ac5a0` — Alt+T Mom conversation; actual-terminal switch/answer/return preserves the lead transcript and draft, including the combined 011/widget-fix rerun
 - 015 — ready — making-mom, delegates
 - 016 — pending — richer labeled map handles and improved original-source selection
 
