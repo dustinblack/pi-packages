@@ -18,7 +18,7 @@ The Amp integration uses the same `op_*` tools to create local/Orb sessions or o
 
 ## Acceptance criteria
 
-- [ ] Common creation path accepts the advertised execution option and proves both local and Orb scratch creation. Existing-thread path accepts the exact native T-ID without prior S mapping and verifies service/account/thread identity.
+- [x] Common creation path accepts the advertised execution option and proves both local and Orb scratch creation. Existing-thread path accepts the exact native T-ID without prior S mapping and verifies service/account/thread identity.
 - [ ] Opening preserves the target's local/Orb executor/settings; rejects explicit executor/model overrides and invalid/inaccessible/changed-scope targets without fallback to latest or new thread.
 - [ ] Selected existing local and Orb threads expose bounded state/history. Initial empty/disconnected activity is unknown, not idle; no prompt, executor takeover, permission change, archive, or cancellation during observation.
 - [ ] Disconnect, timeout, shutdown, and reload release only the permitted local resources. Prove remote non-mutation for idle observation; report local active-executor limitations honestly. Explicit stop remains separate.
@@ -37,4 +37,6 @@ Read-only live Orb probe completed against the user-authorized `T-01a0efc0-bad3-
 
 A user-authorized scratch Orb creation completed through the common path on `T-01a0f0e5-49d7-70fc-a166-70a79b15df96` (ACP session `S-munp3ekd-9g4yrr`): `executionEnvironment: orb`, one approved marker request `req_106d4160-49ab-4e91-8a2f-11d65e71d375`, `status: completed`, one attempt, no repository or external action, then `op_close`. A subsequent read-only exact-ID reopen returned account scope `amp://account/user_01KBDMQ2KMKD7B3EP7XE7X4V2Y`, cwd `/Users/ssweens/src/pi-packages/pi-strings`, executor `orb`, mode `medium`, and `disconnectEffect: unknown`; status and close completed without a prompt.
 
-Still open before completion: real local creation scratch proof, native mode/settings preservation during a contribution, active-turn/disconnect semantics, and bounded observation. Amp owns multiplayer attribution; it is not a pi-strings acceptance gate. Live mutation cases require explicit scratch targets and permission.
+A user-authorized local scratch creation completed through the common path on `T-01a0f0f7-87ef-7738-bf6f-240f547b7399`, using a temporary workspace and request `req_bac16f09-fc82-45cc-b1fa-c2c742f5d090`: `executionEnvironment: local`, `status: completed`, one attempt, no repository or external action, then `op_close`. Status exposed account scope `amp://account/authenticated`, the temporary cwd, mode `medium`, and `disconnectEffect: stops-local-executor`.
+
+Still open before completion: native mode/settings preservation during a contribution, active-turn/disconnect semantics, and bounded observation. Amp owns multiplayer attribution; it is not a pi-strings acceptance gate. Live mutation cases require explicit scratch targets and permission.

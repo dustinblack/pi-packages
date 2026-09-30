@@ -29,4 +29,4 @@ Deferred until 029's native-opening proof demonstrates a concrete gap and the us
 
 ## Evidence
 
-Pending; conditional work is not authorized by filing this plan.
+029 now identifies one concrete native gap: the CLI adapter supplies exact identity, creation, continuation, and metadata, but it does not provide a bounded passive per-thread history/event cursor. `amp threads export` is unbounded, while `amp top` supplies activity snapshots rather than a transcript subscription or request receipt. No plugin bridge is approved, installed, or deployed; this evidence only satisfies the gap-identification gate.

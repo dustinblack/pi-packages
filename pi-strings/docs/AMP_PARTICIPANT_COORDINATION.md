@@ -164,7 +164,7 @@ Implementation starts with the common create/open contract and Pi vertical slice
 - Cross-user CLI/SDK write authorization for an already-active multiplayer thread.
 - Exact busy-thread queueing and streamed-result correlation for `-ox` continuation.
 - Remote behavior when a streaming CLI is interrupted or loses its connection.
-- Stable passive transcript streaming outside the plugin host.
+- The native CLI path has no bounded passive transcript or per-thread event cursor: `amp threads export` is unbounded, and `amp top` provides snapshots rather than a transcript subscription.
 - Native message receipt/idempotency for remote sends; the plugin append API also returns no receipt.
 - Whether plugin state/history reads across threads require any executor attachment or wake, and the least-privilege bridge deployment location.
 - Supported Space media/bot APIs; none found in the inspected public interfaces.
