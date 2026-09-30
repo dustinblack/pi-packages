@@ -9,8 +9,8 @@ dependencies: []
 
 ## Where we are
 
-trunk:    008 — trajectory replay acceptance; ready, 10 horizons need a fresh replay, then blind scoring
-tangents: 016 — ready (buried-history recall experiment); 036 — complete (graph-runtime flake, test-only); 011, 012, 014, and 015 — complete
+trunk:    037 — scorer calibration: the blind scorer set and the gold set do not share movement semantics
+tangents: 016 — ready (buried-history recall experiment); 008/011/012/014/015/036 — complete (008 ran clean and scored 3/15)
 
 008 is pending/inconclusive; resume only after the user promotes it once a stable bounded replay path is available.
 
@@ -36,7 +36,7 @@ tangents: 016 — ready (buried-history recall experiment); 036 — complete (gr
 - 005 — complete — `608e83a` + review fixes `d50ae02`, `6872740` + latest closure `925bd40` — final reviewer `SHIP`; raw compaction review and one deferred corrective advisory
 - 006 — complete — `b055b52` + merge `b976dd4` — real-terminal current display accepted; reviewed `/mom map` alias
 - 007 — complete — `ec71ff0` + fixes through `4eefa7c` + merge `a29b32b` — stable full-purpose mother root, grounded `purposeSource`, bounded gap recovery
-- 008 — pending — labels and aligned scorer preregistration preserved; replay inconclusive/cancelled before a valid result; no production prompt change
+- 008 — complete — `bf6690d` + `2616b7c` — aligned replay of 10 missing horizons (31 calls, 0 gaps) and preregistered blind scoring; **result 3/15 against a ≥12/15 gate, zero gate violations, zero unresolved gaps**. The blind pair agreed 12/15 with each other but not with the gold set (expand 7 vs 1), so todo 037 owns the measurement question before any further map-quality claim.
 - 009 — complete — `be537b4` + merge `45a85e6` — lead receives pivot/assent rules only while Mom is enabled
 - 010 — complete — `d4cb4d9` + `d55f39e8` + merge `77350ec` — sidecar pruned to map, notice, and usage
 - 011 — complete — `a2211d0` — four sourced process-risk classes, stable deduplication, atomic resolution, and a real Luna advisory capture; combined main passes 128 Tether + 40 delegate tests
@@ -45,6 +45,7 @@ tangents: 016 — ready (buried-history recall experiment); 036 — complete (gr
 - 014 — complete — `58ac5a0` — Alt+T Mom conversation; actual-terminal switch/answer/return preserves the lead transcript and draft, including the combined 011/widget-fix rerun
 - 015 — ready — making-mom, delegates
 - 015 — complete — `d512be8` — live-cadence cost replay: Mom 0.68% of the lead's nominal cost, cache share 52.99% vs 44.75%, independent recompute matched
+- 037 — pending — blind scorer set vs gold set movement-semantics calibration; owns the explanation of 008's 3/15 before any further map-quality claim
 - 016 — pending — richer labeled map handles and original-source selection
 
 ## Outcome
