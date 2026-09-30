@@ -11,6 +11,8 @@ The bridge accepts one exact Amp `T-...` thread per request:
 - `op_steer`: calls `thread.appendUserMessage(..., { steer: true })`.
 - `op_cancel_remote`: calls `thread.cancel()` explicitly.
 
+Attribution is intentional: Amp's public plugin API has no author or label override, so `op_append` and `op_steer` appear as plugin-originated automation. Use the existing native `op_send` path when the contribution should appear as an ordinary user message; it preserves the exact opened T-ID and Orb executor.
+
 Each request has a Pi-generated `ctl_...` ID, exact thread ID, action, and delivery state. `accepted` means the plugin handler completed the provider API call. It does not mean the remote agent has finished. A timeout, connection loss, malformed callback, or missing response returns `delivery: unknown`; pi-strings never retries automatically.
 
 The bridge does not call visibility, multiplayer, participant, archive, delete, or approval APIs. `op_close`, coordinator shutdown, local timeout, and plugin disposal never invoke `op_cancel_remote` implicitly.
@@ -50,4 +52,4 @@ A user-authorized local Amp scratch run loaded the plugin and proved:
 - `steer` returned `delivery: accepted` and took priority after the active tool was cancelled;
 - `cancel` returned `delivery: accepted`, `remoteStop: requested`, and stopped the active wait.
 
-A separate no-project Orb scratch run proved the portal route itself but returned provider `502: sandbox is running but port is not open`; the workspace plugin was not present in that Orb. This is a deployment prerequisite, not a claim that Orb plugin execution is available. A real Orb proof requires a project-scoped plugin loaded into an Amp project recognized by the provider. No persistent plugin or team-thread mutation was left behind.
+A separate no-project Orb scratch run proved the portal route itself but returned provider `502: sandbox is running but port is not open`; the workspace plugin was not present in that Orb. This is a deployment prerequisite, not a claim that Orb plugin execution is available. A new scratch Orb, `T-01a0f2f6-3484-74ff-ad08-97572bdb46e9`, was opened through the native adapter and accepted a native `op_send`; its markdown export shows the contribution as `## User`, not a plugin message. The Orb had no recognized Amp project, so plugin loading there remains unproven. No persistent plugin or team-thread mutation was left behind.

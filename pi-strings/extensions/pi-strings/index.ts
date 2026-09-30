@@ -60,7 +60,7 @@ export default function piStrings(pi: ExtensionAPI): void {
   register({
     name: "op_send",
     label: "Send turn",
-    description: `Start a turn. Created workers receive role/acceptance decoration and allow explicit model selection/reassignment. Opened sessions receive the exact text, retain native settings, and never automatically retry. requestTimeoutMs ends local observation for opened work without cancelling it; the session stays busy until its turn settles. Returns a requestId for op_wait/op_result. Do not send to a session concurrently used by another native client unless its capabilities support it.`, 
+    description: `Start a turn. Created workers receive role/acceptance decoration and allow explicit model selection/reassignment. Opened sessions receive the exact text, retain native settings, and never automatically retry; for Amp this is the ordinary user-attributed contribution path. requestTimeoutMs ends local observation for opened work without cancelling it; the session stays busy until its turn settles. Returns a requestId for op_wait/op_result. Do not send to a session concurrently used by another native client unless its capabilities support it.`,
     parameters: Type.Object({
       name: Type.String(),
       prompt: Type.String(),
@@ -83,7 +83,7 @@ export default function piStrings(pi: ExtensionAPI): void {
   register({
     name: "op_append",
     label: "Append Amp message",
-    description: "Append one explicitly approved user message to an opened exact Amp T-ID through the plugin bridge. This is separate from steering; no automatic retry is performed.",
+    description: "Append one explicitly approved message to an opened exact Amp T-ID through the plugin bridge. Amp displays this as plugin-attributed automation; use op_send for ordinary user attribution. This is separate from steering; no automatic retry is performed.",
     parameters: Type.Object({
       name: Type.String(),
       text: Type.String(),
@@ -93,7 +93,7 @@ export default function piStrings(pi: ExtensionAPI): void {
   register({
     name: "op_steer",
     label: "Steer Amp thread",
-    description: "Queue one explicitly approved steering message on an opened exact Amp T-ID through the plugin bridge. Steering is provider-defined and does not claim instantaneous interruption.",
+    description: "Queue one explicitly approved, plugin-attributed steering message on an opened exact Amp T-ID through the plugin bridge. Use op_send for ordinary user attribution. Steering is provider-defined and does not claim instantaneous interruption.",
     parameters: Type.Object({
       name: Type.String(),
       text: Type.String(),
