@@ -24,6 +24,17 @@ test("agents read current neighborhoods, folded history and original sources wit
 		}
 		return result.details.data;
 	};
+	/** The durable snapshot lands in the sidecar before Mom publishes it in memory and before
+	 * her update settles coverage, so a read immediately after until(checkpoints…) can race
+	 * the publish window and return the empty "still catching up" view. Poll for the settled
+	 * read the test means, then take it through read() with every original assertion. */
+	const readCurrent = async (args: unknown) => {
+		await until(async () => {
+			const probe = await h.tools.get("mom").execute("read", args, undefined);
+			return probe.details.data.coverageComplete === true;
+		}, "settled current Mom read");
+		return read(args);
+	};
 	try {
 		h.api.onUnscripted((request) => {
 			if (!isMomRequest(request)) return { text: "Recorded the research result; deferred wording remains open." };
@@ -50,12 +61,12 @@ test("agents read current neighborhoods, folded history and original sources wit
 		await h.runtime.session.prompt("Keep the goal. Research returned with two findings; defer wording. No file edits.");
 		await h.command("resume");
 		await until(async () => (await checkpoints()).length === 1);
-		const before = await read({ graph: {} }), saved = structuredClone(before);
+		const before = await readCurrent({ graph: {} }), saved = structuredClone(before);
 		await h.command("pause");
 		await h.runtime.session.prompt("Fold the completed research. Keep the wording obligation and no-edit constraint.");
 		await h.command("resume");
 		await until(async () => (await checkpoints()).length === 2);
-		const calls = h.api.requests.length, current = await read({ graph: {} });
+		const calls = h.api.requests.length, current = await readCurrent({ graph: {} });
 		assert.equal(current.nodes.length, 3); assert.equal(before.nodes.length, 6);
 		assert.equal(current.change.before, 6); assert.equal(current.change.after, 3);
 		assert.deepEqual(current.change.created, []);
