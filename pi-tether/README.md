@@ -4,7 +4,7 @@ Mom keeps track of your goal, what's unfinished, and where to return after a det
 
 The map follows what you're building or exploring: **features, theories, postulates, and things you're trying**. Rules, open choices, and observations are attached to that work. They are not separate projects. Exactly one persisted endeavor is the **mother thread**: it carries the source-backed original session purpose and coordinates every current, interrupted, and alternative branch beneath it.
 
-The widget shows the main line and the current branch as a tree, using the same colors and branch marks as pi-omp's todo panel. When transcript coverage is complete, the current location is marked **you are here**. While Mom is busy, blocked, catching up, or has pending coverage, the panel and story reads label the map as a partial last-saved snapshot and suppress current-orientation markers. Each work node shows its state and current progress. Rules, choices and observations are left out of the widget; `alt+t` opens the full saved view.
+The widget shows the main line and the current branch as a tree, using the same colors and branch marks as pi-omp's todo panel. When transcript coverage is complete, the current location is marked **you are here**. While Mom is busy, blocked, catching up, or has pending coverage, the panel and story reads label the map as a partial last-saved snapshot and suppress current-orientation markers. Each work node shows its state and current progress. Rules, choices and observations are left out of the widget; `alt+t` switches to Mom's dedicated conversation view. Ask there without a slash command, then press Escape or `alt+t` to return to the untouched lead editor and its draft.
 
 Default `mom` reads show a compact story map: the mother thread, current endeavor, live rules, choices waiting on you, recorded outcomes, and handles for folded history. Active purposes and rules show an English `Why` copied as one complete normalized token sequence from evidence, followed by only the explicit `purposeSource` citation that grounds it. Mom does not add separate causal rationale prose. Rules appear as short sentences under their endeavor, not as `governs` arrows or record dumps. Select an endeavor or attached record when you need complete fields and sources. There is no separate graph viewer.
 
@@ -46,7 +46,8 @@ Measured on the frozen negative-zero case with `kev-latest`: each review took ab
 
 | Command | Action |
 |---|---|
-| `/mom` or `alt+t` | Open the saved overview. Scroll with arrows or Page Up/Down; Escape closes it. |
+| `alt+t` | Switch to Mom's dedicated view. Enter asks from her map; Ctrl+X cancels an answer; Escape or `alt+t` returns to the lead with its draft and context untouched. |
+| `/mom` | Open the read-only saved overview. Scroll with arrows or Page Up/Down; Escape closes it. |
 | `/mom status` | Show where you are, update status, and usage. |
 | `/mom map [id] [depth]` or `/mom graph [id] [depth]` | Show the compact map, or select one record for complete fields and sources. |
 | `/mom detail` | Show raw saved data and exact diagnostic errors. |
@@ -128,6 +129,7 @@ A frozen live session-synthesis check passed 3/3 independent siblings. Each firs
 
 ```bash
 cd pi-tether && npm run check
+npx tsx test/terminal-mom-proof.ts # isolated tmux PTY + local loopback provider
 cd ../pi-delegate && npm run check
 ```
 

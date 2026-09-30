@@ -1,5 +1,7 @@
 /** Mom owns the work graph. Working agents read it; they never maintain it. */
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import { SettingsManager, type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import { SystemOneAdvisor } from "./advisor.ts";
@@ -8,7 +10,7 @@ import { CORRECTION } from "./feed.ts";
 import { finishCompactionReview, prepareCompactionReview, type PendingCompactionReview } from "./compaction.ts";
 import { DEFAULT_MODEL, Mom } from "./mother.ts";
 import { SidecarStore } from "./sidecar.ts";
-import { FOCUS_KEY, MomPanel, widgetLines, type PanelView } from "./panel.ts";
+import { FOCUS_KEY, MomConversationView, MomPanel, widgetLines, type PanelView } from "./panel.ts";
 import { formatElapsed, isStatusPing } from "./status.ts";
 import { presentGraph, readText, summaryText, type WorkView } from "./presentation.ts";
 
@@ -19,6 +21,7 @@ export const LEAD_BEHAVIOR_SECTION = `Mom observes and maps the work; the lead d
 - Always notice and respect clear, scoped assent such as “yes, note that” or “yes, let's go down that path” for exactly the point or path it addresses; do not generalize it to nearby proposals. Respect that assent while it is current. If later direction appears to conflict, check the recorded session evidence and follow the latest clear direction without asking the user to reconfirm the pivot.`;
 const LEAD_BEHAVIOR_SECTION_KEY = "mom_lead_behavior";
 const WIDGET = "pi-tether";
+const AGENT_DIR = process.env.PI_CODING_AGENT_DIR ?? join(homedir(), ".pi", "agent");
 
 export default function piTether(pi: ExtensionAPI) {
 	pi.registerFlag("mom-model", { description: "Exact provider/model for Mom; never inherits or silently substitutes the lead model", type: "string", default: DEFAULT_MODEL });
@@ -216,11 +219,26 @@ export default function piTether(pi: ExtensionAPI) {
 		return { action: "handled" as const };
 	});
 
+	let conversationOpen = false;
+	let conversationDraft = "";
 	async function show(context: ExtensionContext) {
 		if (context.mode !== "tui") { context.ui.notify(cached(), "info"); return; }
 		await context.ui.custom<void>((tui, theme, _keys, done) => new MomPanel(view, theme, () => Math.max(5, tui.terminal.rows - 6), () => done()));
 	}
-	pi.registerShortcut(FOCUS_KEY, { description: "Show Mom's working page", handler: async (context) => { await show(context); } });
+	async function talk(context: ExtensionContext) {
+		if (context.mode !== "tui") { context.ui.notify("Mom conversation view requires interactive mode.", "error"); return; }
+		if (conversationOpen) return;
+		conversationOpen = true;
+		try {
+			await context.ui.custom<void>((tui, theme, keys, done) => new MomConversationView(
+				{ view, ask: (question, signal) => run(question, signal) }, theme, tui, keys,
+				SettingsManager.create(context.cwd, AGENT_DIR), () => done(), conversationDraft,
+				(draft) => { conversationDraft = draft; },
+			), { overlay: true, overlayOptions: { width: "100%", maxHeight: "100%", anchor: "top-left", margin: 0 } });
+		} catch (error) { context.ui.notify(`Cannot open Mom: ${String(error)}`, "error"); }
+		finally { conversationOpen = false; }
+	}
+	pi.registerShortcut(FOCUS_KEY, { description: "Switch to Mom conversation (Esc or Alt+T returns)", handler: async (context) => { await talk(context); } });
 	pi.registerTool({ name: "mom", label: "Mom", description: "Find out where you are in the work: the goal, what this is part of, what's unfinished, and where to return after a detour. Default reads return a compact story map: current work, live rules, waiting choices, and folded history. Features, theories, postulates and things being tried form the map; rules, choices and observations are attached to them. Omit arguments or use graph={} for the map; graph.nodes selects full records; source reads original evidence. These reads make no model call. question asks Mom to reason about the history. Read-only: you do not maintain Mom's notes. Choose at most one of graph, source, question.",
 		renderCall(args, theme) {
 			const action = args.question ? "asking about the work" : args.source ? "reading original evidence" : args.graph?.checkpoint ? "reading earlier work" : args.graph ? "finding our place" : "where we are";

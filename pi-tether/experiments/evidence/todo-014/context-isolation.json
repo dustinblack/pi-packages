@@ -1,0 +1,7 @@
+{
+  "beforeSha256": "783be847aa30b7adc99987e36a5ce67b3eca47a373d48a772d433d8bacae1d01",
+  "afterSha256": "783be847aa30b7adc99987e36a5ce67b3eca47a373d48a772d433d8bacae1d01",
+  "equal": true,
+  "leadDraft": "LEAD-DRAFT-014",
+  "provider": "local-loopback"
+}

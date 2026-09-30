@@ -1,9 +1,13 @@
-import type { Theme } from "@earendil-works/pi-coding-agent";
-import { matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
+import { CustomEditor, getSelectListTheme, type KeybindingsManager, type SettingsManager, type Theme } from "@earendil-works/pi-coding-agent";
+import { matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component, type Focusable, type TUI } from "@earendil-works/pi-tui";
 import type { AnnotationView, EndeavorView, WorkView } from "./presentation.ts";
 
 export const FOCUS_KEY = "alt+t";
 export interface PanelView { status: string; summary: string; complete?: boolean; note?: string; error?: string; work?: WorkView }
+export interface MomConversationSource {
+	view(): PanelView;
+	ask(question: string, signal: AbortSignal): Promise<string | undefined>;
+}
 
 const PREVIEW_NEIGHBORS = 6;
 const finished = (state: string) => ["settled", "finished", "completed", "done"].includes(state);
@@ -140,6 +144,120 @@ export function widgetLines(view: PanelView, theme: Theme, width: number): strin
 	if (view.error) lines.push(clip(theme.fg("warning", view.error), w));
 	else if (view.note) lines.push(clip(theme.fg("accent", `↳ ${clean(view.note)}`), w));
 	return lines;
+}
+
+/** Full-viewport, sidecar-backed conversation. It owns neither the lead editor nor lead messages. */
+export class MomConversationView implements Component, Focusable {
+	private editor: CustomEditor;
+	private exchanges: { question: string; answer?: string; error?: string }[] = [];
+	private controller?: AbortController;
+	private asking = false;
+	private notice = "";
+	private scroll = 0;
+	private pageRows = 1;
+	private draft: string;
+
+	get focused() { return this.editor.focused; }
+	set focused(value: boolean) { this.editor.focused = value; }
+
+	constructor(private source: MomConversationSource, private theme: Theme, private tui: TUI,
+		keybindings: KeybindingsManager, settings: SettingsManager, private done: () => void,
+		draft = "", private saveDraft: (text: string) => void = () => {}) {
+		this.draft = draft;
+		this.editor = new CustomEditor(tui, {
+			borderColor: theme.fg.bind(theme, "borderAccent"),
+			selectList: getSelectListTheme(),
+		}, keybindings, { paddingX: settings.getEditorPaddingX(), autocompleteMaxVisible: settings.getAutocompleteMaxVisible() });
+		this.editor.setText(draft);
+		this.editor.onSubmit = (text) => { void this.ask(text); };
+	}
+
+	private async ask(text: string) {
+		const question = text.trim();
+		if (!question || this.asking) return;
+		this.draft = "";
+		this.asking = true;
+		this.editor.disableSubmit = true;
+		this.controller = new AbortController();
+		const exchange = { question } as { question: string; answer?: string; error?: string };
+		this.exchanges.push(exchange);
+		this.notice = "Reading the saved map and its sources…";
+		this.scroll = Number.POSITIVE_INFINITY;
+		this.tui.requestRender();
+		try {
+			exchange.answer = await this.source.ask(question, this.controller.signal) ?? "Mom returned no answer.";
+			this.notice = "";
+		} catch {
+			if (this.controller.signal.aborted) exchange.error = "Question cancelled. The saved map is unchanged.";
+			else exchange.error = "Mom couldn't answer. Her last saved map is unchanged; /mom detail has the reason.";
+			this.notice = "";
+		} finally {
+			this.asking = false;
+			this.editor.disableSubmit = false;
+			this.controller = undefined;
+			this.scroll = Number.POSITIVE_INFINITY;
+			this.tui.requestRender();
+		}
+	}
+
+	handleInput(data: string): void {
+		if (matchesKey(data, "escape") || matchesKey(data, FOCUS_KEY)) {
+			this.controller?.abort();
+			this.done();
+			return;
+		}
+		if (matchesKey(data, "ctrl+x") && this.asking) {
+			this.notice = "Cancelling Mom's answer…";
+			this.controller?.abort();
+		} else if (matchesKey(data, "pageUp")) this.scroll = Math.max(0, (Number.isFinite(this.scroll) ? this.scroll : Number.MAX_SAFE_INTEGER) - this.pageRows);
+		else if (matchesKey(data, "pageDown")) this.scroll = Number.isFinite(this.scroll) ? this.scroll + this.pageRows : this.scroll;
+		else if (matchesKey(data, "ctrl+end")) this.scroll = Number.POSITIVE_INFINITY;
+		else this.editor.handleInput(data);
+		this.tui.requestRender();
+	}
+
+	private content(width: number): string[] {
+		const view = this.source.view();
+		const wrap = (text: string) => wrapTextWithAnsi(text, Math.max(1, width)).map(line => clip(line, width));
+		const lines = [
+			this.theme.bold(this.theme.fg("accent", "Mom")) + this.theme.fg("dim", ` · ${view.status}`),
+			this.theme.fg("muted", "Ask about the work here. Questions and answers stay out of the lead conversation."), "",
+		];
+		if (view.error) lines.push(...wrap(this.theme.fg("warning", view.error)), "");
+		if (view.work?.endeavors.length) lines.push(...hierarchy(view.work, this.theme, width, false));
+		else lines.push(...wrap(this.theme.fg("muted", fallback(view.summary) || "No saved work yet. Mom can answer after the map has a saved view.")));
+		for (const exchange of this.exchanges) {
+			lines.push("", ...wrap(this.theme.bold(this.theme.fg("text", `You: ${exchange.question}`))));
+			if (exchange.answer) lines.push(...wrap(this.theme.fg("text", `Mom: ${exchange.answer}`)));
+			else if (exchange.error) lines.push(...wrap(this.theme.fg("warning", exchange.error)));
+			else lines.push(this.theme.fg("dim", "Mom: reading…"));
+		}
+		return lines.map(line => clip(line, width));
+	}
+
+	render(width: number): string[] {
+		const w = Math.max(1, Math.floor(width));
+		const height = Math.max(5, this.tui.terminal.rows);
+		const editor = this.editor.render(w);
+		const footer = [
+			...(this.notice ? [clip(this.theme.fg("dim", this.notice), w)] : []),
+			...editor,
+			clip(this.theme.fg("dim", `${this.asking ? "Ctrl+X cancel · " : ""}Enter ask · Esc or Alt+T return to lead · PgUp/PgDn scroll · Ctrl+End latest`), w),
+		];
+		this.pageRows = Math.max(1, height - footer.length);
+		const content = this.content(w);
+		const max = Math.max(0, content.length - this.pageRows);
+		if (!Number.isFinite(this.scroll) || this.scroll > max) this.scroll = max;
+		const visible = content.slice(this.scroll, this.scroll + this.pageRows);
+		while (visible.length < this.pageRows) visible.push("");
+		return [...visible, ...footer].slice(-height).map(line => line + " ".repeat(Math.max(0, w - visibleWidth(line))));
+	}
+
+	invalidate(): void { this.editor.invalidate(); }
+	dispose(): void {
+		this.controller?.abort();
+		this.saveDraft(this.editor.getExpandedText() || this.draft);
+	}
 }
 
 /** Scrollable version of the same cached hierarchy, not a separately maintained map. */

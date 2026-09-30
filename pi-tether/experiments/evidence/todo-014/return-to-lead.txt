@@ -1,0 +1,30 @@
+
+ Warning: tmux extended-keys is off. Modified Enter keys may not work. Add `set -g extended-keys
+ on` to ~/.tmux.conf and restart tmux.
+
+
+ Ship the dedicated Mom view
+
+
+ LEAD-ANSWER-UNCHANGED
+
+
+
+
+
+
+
+
+
+
+
+
+Mom · up to date · last saved 0s ago
+└─ Main purpose · you are here · mother thread · 0/1 done
+     Lead continued.
+────────────────────────────────────────────────────────────────────────────────────────────────────
+LEAD-DRAFT-014
+────────────────────────────────────────────────────────────────────────────────────────────────────
+/private<isolated-root>/project
+0.0%/33k                                                                           (fixture) fixture
+MOM-PROOF-READY
