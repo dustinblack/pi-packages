@@ -12,7 +12,7 @@ if (args[0] === 'threads' && args[1] === 'export') {
   process.stdout.write(JSON.stringify({
     id,
     creatorUserID: 'fake-account',
-    meta: { executorType: orb ? 'orb' : 'local-client', agentMode: orb ? 'high' : 'medium' },
+    meta: { executorType: orb ? 'sandbox' : 'local-client', agentMode: orb ? 'high' : 'medium' },
     env: { initial: { workingDirectory: process.cwd(), trees: [] } },
     messages: []
   }))

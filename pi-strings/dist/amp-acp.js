@@ -193,7 +193,7 @@ async function lookupAmpThread(id, cwd) {
   const trees = Array.isArray(initial.trees) ? initial.trees : [];
   const tree = trees.find((value) => value && typeof value === "object" && typeof value.uri === "string");
   const rawExecutor = typeof meta.executorType === "string" ? meta.executorType.toLowerCase() : "";
-  const executor = rawExecutor.includes("orb") || rawExecutor.includes("remote") ? "orb" : rawExecutor.includes("local") ? "local" : void 0;
+  const executor = rawExecutor.includes("orb") || rawExecutor.includes("remote") || rawExecutor.includes("sandbox") ? "orb" : rawExecutor.includes("local") ? "local" : void 0;
   const rawCwd = typeof initial.workingDirectory === "string" ? initial.workingDirectory : tree?.uri;
   const localCwd = rawCwd?.startsWith("file://") ? fileURLToPath(rawCwd) : void 0;
   return {
