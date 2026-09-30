@@ -682,14 +682,17 @@ export class AcpRuntimeManager {
       record: result.record,
     };
   }
-  async describeNativeSession(input: { agent: string; sessionId: string; cwd?: string }): Promise<NativeSessionDescription> {
+  async describeNativeSession(input: { agent: string; sessionId: string; cwd?: string; executionEnvironment?: string }): Promise<NativeSessionDescription> {
     const { agentCommand, agentArgv } = normalizeAgentCommandInput(this.options.agentRegistry.resolve(input.agent));
     const client = this.createClient({ agentCommand, agentArgv, cwd: input.cwd ?? this.options.cwd,
       permissionMode: "deny-all", nonInteractivePermissions: "deny" });
     try {
       return await withTimeout((async () => {
         await client.start();
-        return await client.describeNativeSession(input.sessionId);
+        return await client.describeNativeSession(input.sessionId, {
+          cwd: input.cwd,
+          executionEnvironment: input.executionEnvironment,
+        });
       })(), this.options.timeoutMs);
     } finally { await client.close(); }
   }

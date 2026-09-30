@@ -94,7 +94,7 @@ export interface RuntimeTurn {
 
 export interface RuntimePort {
   ensureSession(input: { name: string; agent: string; cwd: string; profile: Profile; resumeSessionId?: string; executionEnvironment?: string }): Promise<RuntimeHandle>;
-  describeNativeSession?(agent: string, sessionId: string): Promise<NativeSessionDescription>;
+  describeNativeSession?(agent: string, sessionId: string, options?: { cwd?: string; executionEnvironment?: string }): Promise<NativeSessionDescription>;
   openSession?(input: { name: string; agent: string; native: NativeSessionDescription; handle?: RuntimeHandle }): Promise<RuntimeHandle>;
   disconnect?(handle: RuntimeHandle): Promise<void>;
   startTurn(input: { handle: RuntimeHandle; prompt: string; requestId: string; timeoutMs: number }): RuntimeTurn;

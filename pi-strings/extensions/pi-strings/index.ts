@@ -34,7 +34,7 @@ export default function piStrings(pi: ExtensionAPI): void {
   register({
     name: "op_spawn",
     label: "Create or open session",
-    description: `Create a worker, or open an exact provider-native sessionId without taking ownership. Agent defaults to pi; name matches ${NAME_PATTERN}. Opening preserves native settings and workspace: no profile, role, tools, model, or executionEnvironment overrides. Capability gaps fail explicitly; native opening is currently implemented for Pi. Stored-session resume is not live-terminal attachment. Local disconnect stops this adapter's executor, not another native client. Creation uses the existing worker policy and optional advertised executionEnvironment.`,
+    description: `Create a worker, or open an exact provider-native sessionId without taking ownership. Agent defaults to pi; name matches ${NAME_PATTERN}. Opening preserves native settings and workspace: no profile, role, tools, or model overrides. Amp native T-IDs use provider metadata to resolve executor; pass cwd or executionEnvironment local/orb only as an explicit verification hint when needed. Capability gaps fail explicitly. Stored-session resume is not live-terminal attachment; disconnect behavior is reported by the provider. Creation uses the existing worker policy and optional advertised executionEnvironment.`,
     parameters: Type.Object({
       name: Type.String(),
       profile: Type.Optional(Type.String()),

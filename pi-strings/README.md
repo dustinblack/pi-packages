@@ -19,7 +19,7 @@ Any ACP agent works through the same `AcpxRuntimePort`. Well-exercised ones:
 
 - `pi` (default) — through the vendored Pi adapter
 - `codex`, `opencode` — via the ACPX built-in registry
-- `amp` — via the `amp` registry override (`npx -y amp-acp`, i.e. `tao12345666333/amp-acp`)
+- `amp` — via the vendored `dist/amp-acp.js` adapter, which drives the installed `amp` CLI for local/Orb creation and exact native `T-...` opening
 - `claude` — via the ACPX built-in `claude` entry (`@agentclientprotocol/claude-agent-acp`)
 
 Provider write-tool behavior differs: Codex (Guardian Review) and Amp (`apply_patch`) decide write permission *inside* the provider, **bypassing the ACP permission layer**. Claude routes its `Write`/`Edit` through ACP `session/request_permission`, so it is seen by ACPX — it only escapes because writers use `permissionPolicy: { defaultAction: "approve" }` and ACPX's policy is not path-scoped. The boundary is a documented provider/ACP-policy limitation, not something ACPX params currently confine (see `docs/ARCHITECTURE.md` §4).
@@ -31,7 +31,7 @@ Provider write-tool behavior differs: Codex (Guardian Review) and Amp (`apply_pa
 
 The extension registers eight `op_*` tools with strict per-tool schemas:
 
-- `op_spawn` — create a worker, or open an existing native session with `sessionId`; opening preserves native settings and currently verifies identity for Pi
+- `op_spawn` — create a worker, or open an existing native session with `sessionId`; opening preserves native settings and verifies identity for Pi and Amp. Amp native opens may accept `cwd` and an `executionEnvironment: "local" | "orb"` hint when provider metadata cannot identify the executor
 - `op_status` — report origin, native identity/capabilities, and advertised model IDs
 - `op_send` — start an ordinary turn; created workers may select a model and receive role decoration, opened sessions receive the exact text and never retry
 - `op_wait` — wait for one, the first (`mode: "any"`), or all (`mode: "all"`) selected turns using a fixed snapshot (`waitTimeoutMs` bounds the call, default 300000)

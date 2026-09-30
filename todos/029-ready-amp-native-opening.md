@@ -31,4 +31,6 @@ Sending to existing threads before 021's target/message approval; arbitrary Orb 
 
 ## Evidence
 
-Pending; starts after 020 closes on main. Live cases require explicit scratch targets and permission to create local/Orb work.
+Implementation slice is present in the common ACPX path: `vendor/amp-acp/src/index.ts` builds the local adapter, `op_spawn` selects local/Orb creation, and exact native `T-...` opening verifies authenticated `amp threads export` metadata for scoped ID, owner, cwd, executor, and mode without replaying transcript messages. `tests/native-amp.test.ts` exercises local creation, Orb creation, exact local/Orb opening, duplicate admission, disconnect metadata, and provider `is_error` failure handling. `npm run typecheck`, `npm run build`, and the focused Amp test pass.
+
+Still open before completion: authenticated live Amp account identity beyond the configured scope label, real local/Orb scratch proof, native mode/settings preservation, active-turn/disconnect semantics, and multiplayer attribution. Live cases require explicit scratch targets and permission to create local/Orb work.

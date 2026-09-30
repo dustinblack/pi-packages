@@ -148,7 +148,10 @@ export class Coordinator {
           record.status = "failed";
         } else if (!wasActive && record.status === "idle") {
           try {
-            const native = await runtime.describeNativeSession(profile.agent, record.native.id);
+            const native = await runtime.describeNativeSession(profile.agent, record.native.id, {
+              cwd: record.native.cwd,
+              executionEnvironment: record.native.executionEnvironment,
+            });
             this.requireSameNative(record.native, native);
             record.handle = await runtime.openSession({ name: record.name, agent: profile.agent, native, handle: record.handle });
             record.native = native;
@@ -288,20 +291,30 @@ export class Coordinator {
   }
 
   private requireSameNative(expected: NativeSessionDescription, actual: NativeSessionDescription): void {
-    if (expected.id !== actual.id || expected.scope !== actual.scope || expected.cwd !== actual.cwd || expected.executionEnvironment !== actual.executionEnvironment) {
+    if (expected.id !== actual.id || expected.scope !== actual.scope || expected.cwd !== actual.cwd || expected.executionEnvironment !== actual.executionEnvironment || expected.model !== actual.model) {
       throw new StringsError("SESSION_IDENTITY_CHANGED", "Native identity, storage/account scope, workspace, or executor changed.");
     }
   }
 
   private async openNative(input: Action, name: string, agent: string, sessionId: string): Promise<StringsResponse> {
-    for (const key of ["profile", "role", "tools", "model", "thinking", "executionEnvironment"]) {
+    const executionEnvironment = optionalString(input.executionEnvironment);
+    for (const key of ["profile", "role", "tools", "model", "thinking"]) {
       if (input[key] !== undefined) throw new StringsError("OPEN_OVERRIDE_FORBIDDEN", `Opening preserves native settings; ${key} is creation-only.`);
     }
-    const profile = directProfile(agent, "writer", undefined);
+    if (executionEnvironment && agent.toLowerCase() !== "amp") {
+      throw new StringsError("OPEN_OVERRIDE_FORBIDDEN", "Only Amp accepts an execution environment hint while opening a native ID.");
+    }
+    const profile = directProfile(agent, "read-only", undefined);
     const runtime = this.runtimeFactory(this.parentCwd, this.stateDir, profile, "opened");
     if (!runtime.describeNativeSession || !runtime.openSession || !runtime.disconnect) throw new StringsError("NATIVE_OPEN_UNSUPPORTED", "The adapter cannot yet verify native opening and disconnect.");
-    const native = await runtime.describeNativeSession(agent, sessionId);
+    const native = await runtime.describeNativeSession(agent, sessionId, {
+      ...(typeof input.cwd === "string" ? { cwd: await realpath(requiredString(input.cwd, "cwd")) } : {}),
+      ...(executionEnvironment ? { executionEnvironment } : {}),
+    });
     if (native.id !== sessionId) throw new StringsError("SESSION_IDENTITY_CHANGED", "Adapter returned a different native ID.");
+    if (agent.toLowerCase() === "amp" && native.executionEnvironment !== "local" && native.executionEnvironment !== "orb") {
+      throw new StringsError("NATIVE_OPEN_UNSUPPORTED", "Amp could not establish the native thread executor; provide a provider lookup with executor metadata.");
+    }
     if (input.cwd !== undefined && await realpath(requiredString(input.cwd, "cwd")) !== native.cwd) throw new StringsError("SESSION_WORKSPACE_MISMATCH", "cwd does not match the native workspace.");
     for (const worker of this.workers.values()) {
       const duplicate = worker.record.native
@@ -309,7 +322,6 @@ export class Coordinator {
         : worker.record.profile.agent.toLowerCase() === agent.toLowerCase() && (worker.record.handle.agentSessionId ?? worker.record.handle.backendSessionId) === sessionId;
       if (duplicate) throw new StringsError("SESSION_IN_USE", `Native session is already bound to ${worker.record.name}.`);
     }
-    if (native.executionEnvironment === "local") await this.admitWriter(profile, native.cwd);
     const handle = await runtime.openSession({ name, agent, native });
     if (handle.agentSessionId !== sessionId) {
       await runtime.disconnect(handle);
@@ -317,7 +329,7 @@ export class Coordinator {
     }
     const now = new Date().toISOString();
     const record: WorkerRecord = { origin: "opened", native, name, profileName: `direct:${agent}`, profile,
-      role: native.executionEnvironment === "local" ? "writer" : "read-only", status: "idle", cwd: native.cwd,
+      role: "read-only", status: "idle", cwd: native.cwd,
       handle: { ...handle, agent, cwd: native.cwd }, createdAt: now, updatedAt: now };
     this.workers.set(name, { record, runtime });
     await this.persist();
@@ -332,7 +344,10 @@ export class Coordinator {
     const prompt = opened ? requiredPrompt(input.prompt) : requiredString(input.prompt, "prompt");
     if (opened) {
       if (input.model !== undefined || input.predecessorRequestId !== undefined) throw new StringsError("OPEN_OVERRIDE_FORBIDDEN", "Opened sessions do not accept model overrides or automatic reassignment.");
-      const native = await worker.runtime.describeNativeSession!(worker.record.profile.agent, worker.record.native!.id);
+      const native = await worker.runtime.describeNativeSession!(worker.record.profile.agent, worker.record.native!.id, {
+        cwd: worker.record.native!.cwd,
+        executionEnvironment: worker.record.native!.executionEnvironment,
+      });
       this.requireSameNative(worker.record.native!, native);
     }
     const requestedModel = opened ? undefined : input.model === undefined ? worker.record.profile.model : optionalModel(input.model);

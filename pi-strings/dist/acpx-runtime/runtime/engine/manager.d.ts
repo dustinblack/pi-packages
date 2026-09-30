@@ -23,6 +23,7 @@ export declare class AcpRuntimeManager {
         agent: string;
         sessionId: string;
         cwd?: string;
+        executionEnvironment?: string;
     }): Promise<NativeSessionDescription>;
     ensureSession(input: {
         sessionKey: string;

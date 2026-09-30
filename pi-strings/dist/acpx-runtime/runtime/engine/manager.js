@@ -468,7 +468,10 @@ export class AcpRuntimeManager {
         try {
             return await withTimeout((async () => {
                 await client.start();
-                return await client.describeNativeSession(input.sessionId);
+                return await client.describeNativeSession(input.sessionId, {
+                    cwd: input.cwd,
+                    executionEnvironment: input.executionEnvironment,
+                });
             })(), this.options.timeoutMs);
         }
         finally {

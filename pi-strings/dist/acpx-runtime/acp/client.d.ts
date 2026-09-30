@@ -106,7 +106,10 @@ export declare class AcpClient {
     private handleInitializeFailure;
     private createTappedStream;
     createSession(cwd?: string): Promise<SessionCreateResult>;
-    describeNativeSession(sessionId: string): Promise<NativeSessionDescription>;
+    describeNativeSession(sessionId: string, options?: {
+        cwd?: string;
+        executionEnvironment?: string;
+    }): Promise<NativeSessionDescription>;
     loadSession(sessionId: string, cwd?: string, nativeSession?: NativeSessionBinding): Promise<SessionLoadResult>;
     loadSessionWithOptions(sessionId: string, cwd?: string, options?: LoadSessionOptions): Promise<SessionLoadResult>;
     resumeSession(sessionId: string, cwd?: string, nativeSession?: NativeSessionBinding): Promise<SessionResumeResult>;

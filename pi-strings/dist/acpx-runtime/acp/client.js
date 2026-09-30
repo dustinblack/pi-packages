@@ -602,11 +602,11 @@ export class AcpClient {
             legacyModelMetadataPresent: hasResponseField(result, "models"),
         };
     }
-    async describeNativeSession(sessionId) {
+    async describeNativeSession(sessionId, options = {}) {
         if (this.initializeResult?.agentCapabilities?._meta?.[NATIVE_SESSION_CAPABILITY] !== 1) {
             throw new RequestError(-32601, "Adapter does not advertise verified native session opening.");
         }
-        const result = NativeSessionDescriptionSchema.parse(await this.runConnectionRequest(() => this.getConnection().extMethod(NATIVE_SESSION_DESCRIBE, { sessionId })));
+        const result = NativeSessionDescriptionSchema.parse(await this.runConnectionRequest(() => this.getConnection().extMethod(NATIVE_SESSION_DESCRIBE, { sessionId, ...options })));
         if (result.id !== sessionId)
             throw new Error("Adapter described a different native session.");
         return result;

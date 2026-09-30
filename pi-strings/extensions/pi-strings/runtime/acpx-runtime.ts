@@ -7,6 +7,7 @@ import { StringsError } from "../domain/errors.js";
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const adapterEntry = resolve(packageRoot, "dist/pi-acp.js");
+const ampAdapterEntry = resolve(packageRoot, "dist/amp-acp.js");
 
 export function normalize(event: AcpRuntimeEvent): NormalizedEvent | null {
   if (event.type === "text_delta") return { type: "text", text: event.text, stream: event.stream === "thought" ? "thought" : "output" };
@@ -44,7 +45,7 @@ function fromHandle(handle: RuntimeHandle): AcpRuntimeHandle { return { ...handl
 export class AcpxRuntimePort implements RuntimePort {
   private readonly runtime: AcpxRuntime;
 
-  constructor(cwd: string, stateDir: string, profile: Profile, origin: "created" | "opened" = "created") {
+  constructor(cwd: string, stateDir: string, profile: Profile, private readonly origin: "created" | "opened" = "created") {
     const piAdapterArgv = origin === "opened"
       ? [process.execPath, adapterEntry, "--pi-strings-opened"]
       : [process.execPath, adapterEntry, "--pi-strings-worker", "--pi-tools-json", JSON.stringify(profile.tools)];
@@ -55,11 +56,11 @@ export class AcpxRuntimePort implements RuntimePort {
       agentRegistry: createAgentRegistry({
         overrides: {
           pi: piAdapterArgv,
-          // Amp Code via its ACP adapter: drives the locally-installed `amp` CLI
-          // for streaming. Requires paid Amp credits (free tier is not ACP-eligible)
-          // and `amp login`. Native `amp`-mode tools are NOT confined by the ACP
-          // permission layer (same provider-native boundary as Codex's Guardian).
-          amp: ["npx", "-y", "amp-acp"],
+          // Vendored Amp adapter: drives the locally-installed `amp` CLI for
+          // local/Orb execution and exact native T-ID continuation. Requires
+          // `amp login`; provider-native tools are not confined by ACPX's
+          // permission layer (same boundary as Codex's Guardian).
+          amp: [process.execPath, ampAdapterEntry],
         },
       }),
       permissionMode: permissionModeFor(profile),
@@ -81,8 +82,8 @@ export class AcpxRuntimePort implements RuntimePort {
     this.runtime = new AcpxRuntime(runtimeOptions);
   }
 
-  async describeNativeSession(agent: string, sessionId: string): Promise<NativeSessionDescription> {
-    try { return await this.runtime.describeNativeSession({ agent, sessionId }); }
+  async describeNativeSession(agent: string, sessionId: string, options: { cwd?: string; executionEnvironment?: string } = {}): Promise<NativeSessionDescription> {
+    try { return await this.runtime.describeNativeSession({ agent, sessionId, ...options }); }
     catch (error) {
       const rpc = error as { code?: number; data?: unknown };
       if (rpc.code === -32601) throw new StringsError("NATIVE_OPEN_UNSUPPORTED", "This adapter does not yet advertise verified native opening.");
@@ -94,7 +95,14 @@ export class AcpxRuntimePort implements RuntimePort {
     const { id, scope, cwd } = input.native;
     const handle = await this.runtime.ensureSession({
       sessionKey: input.handle?.sessionKey ?? `pi-strings:opened:${input.name}:${randomUUID()}`,
-      agent: input.agent, mode: "persistent", cwd, resumeSessionId: id, nativeSession: { id, scope, cwd },
+      agent: input.agent, mode: "persistent", cwd, resumeSessionId: id,
+      nativeSession: {
+        id, scope, cwd,
+        ...(input.agent.toLowerCase() === "amp" ? {
+          execution_environment: input.native.executionEnvironment,
+          ...(input.native.model ? { model: input.native.model } : {}),
+        } : {}),
+      },
     });
     if (handle.agentSessionId !== id) {
       await this.runtime.disconnect({ handle });
@@ -118,13 +126,18 @@ export class AcpxRuntimePort implements RuntimePort {
       },
     });
     try {
+      const status = (input.executionEnvironment || input.profile.model) ? await this.runtime.getStatus({ handle }) : undefined;
       if (input.executionEnvironment) {
-        const status = await this.runtime.getStatus({ handle });
-        const options = status.details?.configOptions as Array<{ id: string; options?: Array<{ value?: string; options?: Array<{ value: string }> }> }> | undefined;
+        const options = status?.details?.configOptions as Array<{ id: string; options?: Array<{ value?: string; options?: Array<{ value: string }> }> }> | undefined;
         const option = options?.find(option => option.id === "execution-environment");
         const values = option?.options?.flatMap(option => option.options?.map(value => value.value) ?? (option.value ? [option.value] : [])) ?? [];
         if (!values.includes(input.executionEnvironment)) throw new Error(`Execution environment is not advertised: ${input.executionEnvironment}`);
         await this.runtime.setConfigOption({ handle, key: "execution-environment", value: input.executionEnvironment });
+      }
+      if (input.profile.model && status?.details?.configOptions) {
+        const options = status.details.configOptions as Array<{ id: string; category?: string }>;
+        const modelConfigId = options.find(option => option.category === "model")?.id;
+        if (modelConfigId) await this.runtime.setConfigOption({ handle, key: modelConfigId, value: input.profile.model });
       }
       if (input.agent === "codex") await this.runtime.setMode?.({ handle, mode: input.profile.role === "writer" ? "agent" : "read-only" });
     } catch (error) {
@@ -138,6 +151,7 @@ export class AcpxRuntimePort implements RuntimePort {
   }
 
   async getStatus(handle: RuntimeHandle): Promise<RuntimeStatus> {
+    if (this.origin === "opened") return { modelDiscoverySupported: false, availableModelIds: [] };
     const status = await this.runtime.getStatus({ handle: fromHandle(handle) });
     if (!status.models) return { modelDiscoverySupported: false, availableModelIds: [] };
     const configOptions = status.details?.configOptions as Array<{ id: string; category?: string }> | undefined;

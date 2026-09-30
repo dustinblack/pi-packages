@@ -220,6 +220,7 @@ export interface AcpRuntime {
         agent: string;
         sessionId: string;
         cwd?: string;
+        executionEnvironment?: string;
     }): Promise<NativeSessionDescription>;
     disconnect(input: {
         handle: AcpRuntimeHandle;

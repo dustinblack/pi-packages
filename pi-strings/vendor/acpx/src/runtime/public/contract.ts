@@ -260,7 +260,7 @@ export interface AcpRuntimeTurn {
 }
 
 export interface AcpRuntime {
-  describeNativeSession(input: { agent: string; sessionId: string; cwd?: string }): Promise<NativeSessionDescription>;
+  describeNativeSession(input: { agent: string; sessionId: string; cwd?: string; executionEnvironment?: string }): Promise<NativeSessionDescription>;
   disconnect(input: { handle: AcpRuntimeHandle }): Promise<void>;
   ensureSession(input: AcpRuntimeEnsureInput): Promise<AcpRuntimeHandle>;
   startTurn(input: AcpRuntimeTurnInput): AcpRuntimeTurn;

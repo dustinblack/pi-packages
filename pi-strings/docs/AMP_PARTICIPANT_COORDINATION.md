@@ -2,7 +2,7 @@
 
 ## Decision status
 
-Research complete; the user approved staged implementation with delegated parallel work. The selected role is **participant/coordinator**: Pi contributes to selected existing Amp threads while humans and Amp remain in control. This is not an autonomous supervisor or a voice/video bot. The durable plan is [todo 018](../../todos/018-ready-amp-participant-coordination.md), with decision/proof work in 019 before production attachment. No native participant functionality has shipped; live mutation still requires an exact approved scratch Orb and message.
+Research complete; the user approved staged implementation with delegated parallel work. The selected role is **participant/coordinator**: Pi contributes to selected existing Amp threads while humans and Amp remain in control. This is not an autonomous supervisor or a voice/video bot. The durable plan is [todo 018](../../todos/018-ready-amp-participant-coordination.md). The common ACPX path now has a vendored Amp adapter for local/Orb creation and exact T-ID opening; live authenticated account, executor-preservation, and mutation proofs remain gated.
 
 The [unified native-opening contract](NATIVE_SESSION_OPENING.md) supersedes the separate participant-extension proposal: every agent integration must support creating new sessions and opening existing provider-native threads through the same tool surface. Amp local/Orb execution is a provider configuration choice. Investigate and extend adapter capabilities first; preserve explicit lifecycle authority rather than treating every opened thread as a Pi-owned worker. CLI/plugin research below remains evidence, not a decision to bypass ACP or deploy another extension.
 
@@ -126,7 +126,7 @@ Source evidence:
 - [`AcpxRuntimePort`](../extensions/pi-strings/runtime/acpx-runtime.ts) forwards model settings and normal prompt turns, not the native Amp collaboration API.
 - The current [coordination layers](2026-08-02-COORDINATION_LAYERS.md) deliberately exclude in-flight steering, recursive coordination, and a second production runtime. The unified contract extends the existing Coordinator with origin/lifecycle policy; it does not introduce a second runtime.
 
-The inspected amp-acp source creates an `S-...` session with no native thread ID. Resume/load requires an existing durable mapping. Its custom lifecycle methods expose metadata and archive/unarchive, not arbitrary `T-...` attachment. See [session creation and loading][adapter-sessions] and [native lifecycle][adapter-lifecycle].
+The upstream `amp-acp` source creates an `S-...` session with no arbitrary native thread admission; resume/load requires an existing durable mapping. pi-strings now uses a vendored adapter that verifies an authenticated `amp threads markdown T-...` lookup and continues the exact T-ID through the installed CLI, while intentionally avoiding transcript replay. See [session creation and loading][adapter-sessions] and [native lifecycle][adapter-lifecycle].
 
 Two additional issues must be addressed in the retained ACP integration:
 
@@ -157,7 +157,7 @@ Serialize Pi's own submissions per thread, but do not mistake that local seriali
 4. **Richer plugin bridge, only if needed.** Prove native state subscription, explicit steering, and lifecycle correlation with the target thread. Confirm permission expiry fails closed and human-only approvals remain human-only. Specify host placement, authentication, and disposal before deployment.
 5. **Cross-thread handoff.** Transfer only approved evidence between two selected threads and verify provenance and file-transfer semantics. Do not infer that sending a thread link copied its files or commits.
 
-Implementation starts with the common create/open contract and Pi vertical slice (020), then Amp native admission/observation (029), then these contribution gates (021–024). Provider-specific capabilities live in the adapter and flow through ACPX. Preserve existing owned-worker behavior while adding explicit opened-session policy to the same Coordinator.
+Implementation starts with the common create/open contract and Pi vertical slice (020), then Amp native admission/observation (029), then these contribution gates (021–024). The Amp adapter slice is implemented; live provider evidence is still required before closing 029. Provider-specific capabilities live in the adapter and flow through ACPX. Preserve existing owned-worker behavior while adding explicit opened-session policy to the same Coordinator.
 
 ## Remaining uncertainties
 

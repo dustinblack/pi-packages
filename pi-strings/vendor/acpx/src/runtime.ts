@@ -169,7 +169,7 @@ export class AcpxRuntime implements AcpxRuntimeLike {
     };
   }
 
-  async describeNativeSession(input: { agent: string; sessionId: string; cwd?: string }): Promise<NativeSessionDescription> {
+  async describeNativeSession(input: { agent: string; sessionId: string; cwd?: string; executionEnvironment?: string }): Promise<NativeSessionDescription> {
     return (await this.getManager()).describeNativeSession(input);
   }
 
