@@ -1,7 +1,7 @@
 import { Type, type Static } from "typebox";
 import * as fs from "node:fs/promises";
-import { Text } from "@mariozechner/pi-tui";
-import type { ExtensionAPI, ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import { Text } from "@earendil-works/pi-tui";
+import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import type { PiOmpConfig } from "../src/config";
 import {
 	renderTodoCallHeader,

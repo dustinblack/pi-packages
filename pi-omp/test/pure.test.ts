@@ -82,7 +82,7 @@ describe("roles", () => {
 	});
 });
 
-import { visibleWidth } from "@mariozechner/pi-tui";
+import { visibleWidth } from "@earendil-works/pi-tui";
 import { type TodoState, emptyState, addTask, startTask, completeTask, blockTask, dropTask } from "../src/todo";
 import { renderTodoLines, renderTodoWidgetLines, romanNumeral, CHECKED, UNCHECKED, type TodoStyler } from "../src/todo-render";
 

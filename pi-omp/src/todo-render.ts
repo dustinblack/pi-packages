@@ -16,7 +16,7 @@
  * Pure and theme-agnostic: takes a minimal {@link TodoStyler} so it is unit-
  * testable with a stub; the real pi `Theme` satisfies it structurally.
  */
-import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
+import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import type { TodoState, TodoItem } from "./todo";
 
 /** Subset of pi's ThemeColor used by the todo panel. */

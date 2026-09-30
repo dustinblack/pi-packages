@@ -3,7 +3,7 @@
  * captured model + thinking) and a model picker (auto + available models). Pure and
  * theme-agnostic, mirroring `settings-render.ts`.
  */
-import { visibleWidth } from "@mariozechner/pi-tui";
+import { visibleWidth } from "@earendil-works/pi-tui";
 import type { RoleModelConfig, RoleThinking } from "./config";
 import {
 	BINDABLE_ROLES,

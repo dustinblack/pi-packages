@@ -3,7 +3,7 @@
  * Pure and theme-agnostic (see {@link SettingsStyler}) so the layout, per-feature
  * descriptions, and ON/OFF rendering are unit-testable without a TUI.
  */
-import { visibleWidth } from "@mariozechner/pi-tui";
+import { visibleWidth } from "@earendil-works/pi-tui";
 import { FEATURE_KEYS, type FeatureKey, type PersonaName } from "./config";
 
 export type SettingsColor = "accent" | "success" | "error" | "dim" | "muted" | "toolTitle" | "text";

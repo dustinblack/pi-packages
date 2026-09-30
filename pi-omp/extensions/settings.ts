@@ -1,6 +1,6 @@
-import { Key, matchesKey } from "@mariozechner/pi-tui";
-import type { Component } from "@mariozechner/pi-tui";
-import type { ExtensionAPI, ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import { Key, matchesKey } from "@earendil-works/pi-tui";
+import type { Component } from "@earendil-works/pi-tui";
+import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { type PersonaName, type PiOmpConfig, type RoleModelConfig } from "../src/config";
 import { loadConfig, saveConfig } from "../src/config";
 import {

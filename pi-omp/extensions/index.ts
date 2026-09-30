@@ -1,4 +1,4 @@
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { loadConfig, isFeatureEnabled, type PiOmpConfig } from "../src/config";
 import { installPersona } from "./personality";
 import { installEngineering } from "./engineering";

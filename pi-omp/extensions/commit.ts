@@ -1,6 +1,6 @@
-import { completeSimple } from "@mariozechner/pi-ai";
+import { completeSimple } from "@earendil-works/pi-ai/compat";
 import * as fs from "node:fs/promises";
-import type { ExtensionAPI, ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import type { PiOmpConfig } from "../src/config";
 import { COMMIT_SYSTEM } from "../src/prompts";
 

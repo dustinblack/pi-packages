@@ -198,7 +198,7 @@ Optional: mirror the one-shot review entrypoint as a `prompts/review.md` **templ
   5. Guard: `ctx.signal` abort, 4s timeout, keep prior level on failure, skip if prompt-generation changed (`turn_start` version counter).
 - `ultrathink` bypasses classification → highest supported level.
 
-**pi API:** `before_agent_start` (`event.prompt`, `ctx.model`), `completeSimple` (from `@mariozechner/pi-ai`), `pi.setThinkingLevel`, `ctx.signal`, `thinking_level_select` (status display).
+**pi API:** `before_agent_start` (`event.prompt`, `ctx.model`), `completeSimple` (from `@earendil-works/pi-ai/compat`), `pi.setThinkingLevel`, `ctx.signal`, `thinking_level_select` (status display).
 
 > Stock pi tops out at `xhigh`; omp's `max` tier is dropped (documented).
 
@@ -232,7 +232,7 @@ Optional: mirror the one-shot review entrypoint as a `prompts/review.md` **templ
 The factory is deliberately thin — it loads config, then calls each feature module's `install(pi, cfg)` so the whole thing stays one extension while each module remains independently removable:
 
 ```ts
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { PiOmpConfig } from "../src/config";
 import { installPersonality } from "./personality";
 import { installEngineering } from "./engineering";

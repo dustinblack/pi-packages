@@ -1,5 +1,5 @@
-import { completeSimple } from "@mariozechner/pi-ai";
-import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
+import { completeSimple } from "@earendil-works/pi-ai/compat";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { PiOmpConfig } from "../src/config";
 import { resolveThinking, LEVEL_ORDER, type ThinkLevel } from "../src/auto-think";
 import { DEFAULT_ROLES, resolveRole } from "../src/roles";

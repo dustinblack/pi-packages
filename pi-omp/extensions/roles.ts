@@ -1,5 +1,5 @@
-import { Key } from "@mariozechner/pi-tui";
-import type { ExtensionAPI, ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import { Key } from "@earendil-works/pi-tui";
+import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import type { PiOmpConfig } from "../src/config";
 import {
 	enabledRoleNames,
