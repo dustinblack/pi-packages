@@ -24,3 +24,9 @@ On a realistic live session, Mom's model usage is measured per call and stays be
 - [ ] Mom's total tokens and nominal cost are below the lead's
 - [ ] The cache share is reported
 - [ ] If Mom exceeds the lead, a follow-up todo names the measured driver
+
+## Findings
+
+- Read-only inventory on 2026-09-30 of `~/.pi/agent/sessions/*/*.mom` found one sidecar: the making-Mom session. It spans 18.11 hours but contains the obsolete `control`/`attempt`/`checkpoint` layout (1/101/65 records), not the current `map`/`notice`/`usage` runtime. This is historical evidence, not current-runtime cost acceptance.
+- The committed 006 capture records two settled turns and two Mom calls; it does not meet this todo's multi-hour or live-cadence replay criterion.
+- Required evidence is still a current-runtime multi-hour session with per-reply lead and Mom usage, or a completed live-cadence replay. No new replay was started for this inventory; no session or sidecar was changed.
