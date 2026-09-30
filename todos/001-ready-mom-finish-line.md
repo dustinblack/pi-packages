@@ -9,8 +9,8 @@ dependencies: []
 
 ## Where we are
 
-trunk:    015 — measure Mom's model usage against the lead on a realistic session
-tangents: 016 — pending decision; 011, 012, and 014 — complete
+trunk:    008 — replay acceptance; pending/inconclusive, waits on user promotion once a stable bounded replay path exists
+tangents: 016 — pending decision; 036 — pending flake; 011, 012, 014, and 015 — complete
 
 008 is pending/inconclusive; resume only after the user promotes it once a stable bounded replay path is available.
 
@@ -24,7 +24,8 @@ tangents: 016 — pending decision; 011, 012, and 014 — complete
 - Live terminal acceptance: the original five-turn line was simplified by the backlog owner to 1–2 real turns in the approved file-todo board summary before execution; it was not a quoted user directive. Closure follows that board criterion: two real consecutive settled turns each produced one later Mom update; `/mom map` showed the current accepted map, the widget reported `up to date`, no stale node was marked current, and no permanent update failure appeared → 006 complete.
 - Update budget: background updates now use one proposal plus at most one aggregated repair, with `commit_graph` as their only tool. Explicit questions retain five calls, two searches, and two reads. A failed exact range waits for newer settled material or explicit refresh; two deterministic failures create an atomic visible gap so newer evidence proceeds, while provider/source/invalidation/storage failures never skip. `/mom refresh` retries the oldest gap → 003 complete at `17e508b`.
 - Every successful compaction receives one bounded Mom review against the actual replaced branch range plus the source-backed map. The remaining review P1 now searches the entire selected branch for the latest prior compaction, so a new boundary before that compaction record still starts capture at the prior `firstKeptEntryId`, never branch root → 005 complete through `6872740`.
-- Waking on every event cost 787 calls and $2.02 in one session [6766]. That is fixed in the working tree but not yet measured → 015.
+- Waking on every event cost 787 calls and $2.02 in one session [6766]. The settled-boundary runtime now measures 132 replies and $0.2532 nominal across ~68 hours of source-session activity in the live-cadence replay (69.7% cache share edge over the lead) → 015 complete at `d512be8`. Evidence: `pi-tether/experiments/evidence/todo-015/`.
+- Todo 015 live-cadence replay (`d512be8`): 92 wakes / 132 Luna replies; Mom 690,426 input + 82,961 output and $0.2532 nominal vs lead 102,175,945 + 617,452 and $37.3901; cache share 52.99% vs 44.75%; worst-case-uncached Mom $0.4088. Seven deterministic failures and six no-op wakes are included as real production cost.
 - Dead end: per-message and per-fragment classification. Removed at the user's direction [5315][5325]. Do not reintroduce it.
 
 ## Children
@@ -43,7 +44,8 @@ tangents: 016 — pending decision; 011, 012, and 014 — complete
 - 013 — complete — `d6158d1`, `5722cba` + merge `94bb3bb` — search won 1/3 versus map 0/3; no production change
 - 014 — complete — `58ac5a0` — Alt+T Mom conversation; actual-terminal switch/answer/return preserves the lead transcript and draft, including the combined 011/widget-fix rerun
 - 015 — ready — making-mom, delegates
-- 016 — pending — richer labeled map handles and improved original-source selection
+- 015 — complete — `d512be8` — live-cadence cost replay: Mom 0.68% of the lead's nominal cost, cache share 52.99% vs 44.75%, independent recompute matched
+- 016 — pending — richer labeled map handles and original-source selection
 
 ## Outcome
 
