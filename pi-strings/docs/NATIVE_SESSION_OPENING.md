@@ -1,6 +1,6 @@
 # Create or open native sessions through one provider interface
 
-Status: Pi and Amp create/open paths are implemented through the common ACPX runtime. Amp native opening uses authenticated export metadata for executor, owner scope, cwd, and mode when available; `cwd` and `executionEnvironment` remain optional verification hints. Live account/executor and multiplayer proofs remain acceptance gates. Arbitrary history-page/character limits are not part of the shared contract.
+Status: Pi and Amp create/open paths are implemented through the common ACPX runtime. Amp native opening uses authenticated export metadata for executor, owner scope, cwd, and mode when available; `cwd` and `executionEnvironment` remain optional verification hints. Live account/executor and lifecycle proofs remain acceptance gates. Amp owns participant identity, presence, queueing, and cross-user attribution; those are not pi-strings acceptance gates. Arbitrary history-page/character limits are not part of the shared contract.
 Tracked by [019](../../todos/019-complete-amp-participant-boundary.md) and [hub 018](../../todos/018-ready-amp-participant-coordination.md).
 
 ## Decision
@@ -29,7 +29,7 @@ Keep the tool names. Extend `op_spawn` with `sessionId`, meaning the exact provi
 - `op_send`, `op_wait`, and `op_result` remain the common message/request interface. Opened sessions receive the requested text without `WORKER_CONTRACT` or acceptance-report decoration. The local request result is not automatically the shared thread's global completion state.
 - `op_cancel` is an explicit stop request. `op_close` for an opened session disconnects local participation; it must not secretly invoke cancellation, archive, deletion, or backend `session/close` with stronger semantics. Existing owned-worker force-close behavior remains intact for created workers.
 
-Opening an idle stored local session is not the same as attaching to the live terminal process that previously used it. Advertise these distinctions; do not promise concurrent participation from a `loadSession` method alone. Amp's busy multiplayer case has its own live proof gate, but uses the same tools.
+Opening an idle stored local session is not the same as attaching to the live terminal process that previously used it. Advertise these distinctions; do not promise concurrent participation from a `loadSession` method alone. Amp owns busy-thread and multiplayer behavior; pi-strings reports only its local observation and provider outcome.
 
 ## Internal changes required
 
@@ -55,7 +55,7 @@ ACPX `close` currently calls `cancel` first; with discard it may issue backend `
 
 Stopping an adapter process can itself affect a locally executing turn even when no cancel RPC is sent. Surface provider behavior and refuse to claim durable execution across disconnect without proof. In particular, idle-close evidence below does not prove active-turn survival.
 
-For opened sessions, disable automatic prompt retry/model fallback and worker prompt decoration. A transport loss can leave delivery unknown; do not resend. A request deadline ends Pi's wait, not authority over other contributors. Record local observation/request outcome separately from provider work state. Shared result attribution requires provider receipt/turn evidence, not the last assistant message or an idle snapshot.
+For opened sessions, disable automatic prompt retry/model fallback and worker prompt decoration. A transport loss can leave delivery unknown; do not resend. A request deadline ends Pi's wait, not authority over other contributors. Record local observation/request outcome separately from provider work state. Shared result attribution belongs to Amp. Pi-strings must not infer it from the last assistant message or an idle snapshot.
 
 ### Persistence cutover
 
@@ -71,7 +71,7 @@ The vendored registry has **21 entries**, plus pi-strings' Amp override: **22 na
 | Codex | `@agentclientprotocol/codex-acp@1.1.5` [published source][codex] | `CodexAcpClient.resumeSession/loadSession` calls `threadResume({threadId: request.sessionId})`; load reads that thread's history. ACP session ID and native thread ID coincide. | Live proof; resume supplies cwd/config/model-provider, so settings preservation is not automatic; native close unsubscribes whereas delete archives |
 | Claude | `@agentclientprotocol/claude-agent-acp@0.60.0` [published source][claude] | `loadSession/resumeSession` call `getOrCreateSession`, which supplies SDK `resume: params.sessionId`; matching live fingerprint reuses the query. | Live unknown-ID/no-create proof and settings preservation; changed cwd/MCP fingerprint recreates the underlying query |
 | OpenCode | 1.18.33, commit `51ef4be1d3c122f18fefb510dca8d778571f4f18` [service][opencode] | Load/resume first `session.get` exact native `sessionID`, then restore model/variant/mode via `session.load`; creation has a separate branch. Resume fetches 20 messages, load full history. | Live proof and active-turn/disconnect semantics; installed resolution is currently unpinned |
-| Amp | Local `vendor/amp-acp` adapter using the Amp CLI's `threads continue T-...` path; upstream `amp-acp` remains source evidence [server][amp] | Common create path exposes local/Orb execution. Exact T-ID opening verifies authenticated export metadata for thread, owner scope, cwd, executor, and mode when available; no transcript replay. | Live account identity, metadata availability across local/Orb cases, active-turn/disconnect semantics, multiplayer attribution, and bounded observation proof |
+| Amp | Local `vendor/amp-acp` adapter using the Amp CLI's `threads continue T-...` path; upstream `amp-acp` remains source evidence [server][amp] | Common create path exposes local/Orb execution. Exact T-ID opening verifies authenticated export metadata for thread, owner scope, cwd, executor, and mode when available; no transcript replay. | Live account identity, metadata availability across local/Orb cases, active-turn/disconnect semantics, and bounded observation proof. Participant attribution remains Amp-owned. |
 | Gemini | commit `38700b4b38bf387dafded6c97c3f190d084b49e9` [manager][gemini] | Load resolves persisted session via `SessionSelector`, resumes chat, and streams history. It reconstructs an executor, not a live terminal attachment. | Pin/test deployed version; original configuration and active-session behavior |
 | Kimi | commit `9ab1286b8fe4e6bcd116949a27ce5e0ac3389c82` [server][kimi] | Load/resume use `Session.find(work_dir, session_id)`; missing IDs reject. Load replays wire history; resume returns config. | Live proof; workdir/config preservation and concurrent ownership |
 | Qwen | commit `ccea5f9fbebdc78ad2b4e929c0c4f8d5f6500f95` [ACP agent][qwen] | Actual CLI load/resume handlers resolve a persisted native ID and throw resource-not-found if absent, restore approval/model state, then register the session. | Live proof; normalization/alias handling; load may restore worktree/background-agent services, so it is not necessarily a passive read |
@@ -110,7 +110,7 @@ Fresh Codex-2 Astra review (`reviewer-610408d9-9283-4215-9fde-93a9aabe7cda`) acc
 - [026](../../todos/026-ready-codex-native-opening.md), [027](../../todos/027-ready-claude-native-opening.md), [028](../../todos/028-ready-opencode-native-opening.md): Codex, Claude, OpenCode create/open/continue evidence.
 - [029](../../todos/029-ready-amp-native-opening.md): Amp local/Orb creation and exact native opening/observation; [021](../../todos/021-ready-amp-approved-contribution.md) then proves an approved contribution.
 - [030](../../todos/030-ready-remaining-native-provider-coverage.md): remaining17 provider delivery routes and bounded children; decision closure is not delivery of those providers.
-- [022](../../todos/022-ready-amp-multiplayer-recovery.md) and [024](../../todos/024-ready-amp-evidence-handoff.md): multiplayer/recovery and evidence handoff. [023](../../todos/023-pending-amp-plugin-bridge.md) stays conditional on a demonstrated 029/022 gap and explicit user deployment approval.
+- [022](../../todos/022-complete-amp-multiplayer-recovery.md) and [024](../../todos/024-ready-amp-evidence-handoff.md): multiplayer scope decision and evidence handoff. [023](../../todos/023-pending-amp-plugin-bridge.md) stays conditional on a demonstrated 029 gap and explicit user deployment approval.
 
 019 closed in user-approved main-branch commit `382b9e9`; dependent020 and030 are authorized to start. Production implementation and live provider proofs are still outstanding.
 
@@ -120,7 +120,7 @@ For every supported integration: create a native session independently, capture 
 
 Core deterministic coverage must include scoped-ID collisions, existing owned restoration, no creation-setting replay on open/reconnect, imported history bounds, unsupported capability, native-ID mismatch, no silent fallback, ambiguous delivery, and shutdown races. All existing owned-worker tests must continue passing.
 
-Amp additionally needs existing local and Orb cases, shared activity with a second contributor, permission failure, and cross-thread handoff evidence. A plugin is conditional only if an adapter capability cannot supply a required native function; placement/authentication requires an explicit decision before deployment.
+Amp additionally needs existing local and Orb cases, permission failure, active-turn/disconnect evidence, bounded observation, and cross-thread handoff evidence. Participant identity and shared activity remain provider-owned. A plugin is conditional only if an adapter capability cannot supply a required native function; placement/authentication requires an explicit decision before deployment.
 
 [amp]: https://github.com/tao12345666333/amp-acp/blob/e35216d4fd3258445ac8b3ac5db7ef4ce3a40af9/src/server.ts
 [codex]: https://unpkg.com/@agentclientprotocol/codex-acp@1.1.5/dist/index.js

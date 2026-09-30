@@ -20,7 +20,7 @@ Cross-thread messages do not copy workspaces, files, or commits. Use the common 
 
 - [ ] Source and destination identities are explicit; selected content and destination are approved before disclosure.
 - [ ] Each handoff carries source thread/message references, bounded selected evidence, and honest file/commit transfer status.
-- [ ] Two authorized scratch threads show correct destination, attribution, provenance, and no transcript broadcast or duplicate send on uncertain failure.
+- [ ] Two authorized scratch threads show the correct destination and provenance, with no transcript broadcast or duplicate send on uncertain failure.
 - [ ] New-contract tests, existing checks, real-path smoke, and user-facing examples pass without changing owned ACP workers.
 
 ## Out of scope

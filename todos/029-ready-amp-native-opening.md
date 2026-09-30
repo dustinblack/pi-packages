@@ -35,4 +35,4 @@ Implementation slice is present in the common ACPX path: `vendor/amp-acp/src/ind
 
 Read-only live Orb probe completed against the user-authorized `T-01a0efc0-bad3-7153-8a89-37d9c005d36c`: exact native ID, owner scope `user_01KBDDVEH7H3DNNJBBXR14061B`, executor metadata `sandbox` mapped to Orb, and mode `high` were returned; no prompt, cancellation, archive, or setting change was issued; `op_close` disconnected the local adapter. The provider reported the remote disconnect effect as unknown, so no remote-survival claim is made.
 
-Still open before completion: real local creation/Orb creation scratch proof, native mode/settings preservation during a contribution, active-turn/disconnect semantics, and multiplayer attribution. Live mutation cases require explicit scratch targets and permission.
+Still open before completion: real local creation/Orb creation scratch proof, native mode/settings preservation during a contribution, active-turn/disconnect semantics, and bounded observation. Amp owns multiplayer attribution; it is not a pi-strings acceptance gate. Live mutation cases require explicit scratch targets and permission.

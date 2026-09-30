@@ -26,7 +26,7 @@ Native exact-ID Orb continuation is documented but not live-proven here. Use the
 
 ## Out of scope
 
-Any unapproved team-thread message; permission changes; automated retry; busy-thread correlation claims (022); implicit steering or cancellation.
+Any unapproved team-thread message; permission changes; automated retry; provider-owned multiplayer attribution claims; implicit steering or cancellation.
 
 ## Evidence
 

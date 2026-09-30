@@ -2,7 +2,7 @@
 
 ## Decision status
 
-Research complete; the user approved staged implementation with delegated parallel work. The selected role is **participant/coordinator**: Pi contributes to selected existing Amp threads while humans and Amp remain in control. This is not an autonomous supervisor or a voice/video bot. The durable plan is [todo 018](../../todos/018-ready-amp-participant-coordination.md). The common ACPX path now has a vendored Amp adapter for local/Orb creation and exact T-ID opening; live authenticated account, executor-preservation, and mutation proofs remain gated.
+Research complete; the user approved staged implementation with delegated parallel work. The selected role is **participant/coordinator**: Pi contributes to selected existing Amp threads while humans and Amp remain in control. This is not an autonomous supervisor or a voice/video bot. Amp owns participant identity, presence, queueing, and cross-user attribution; pi-strings does not build or certify a second participant layer. The durable plan is [todo 018](../../todos/018-ready-amp-participant-coordination.md). The common ACPX path now has a vendored Amp adapter for local/Orb creation and exact T-ID opening; live authenticated account, executor-preservation, and mutation proofs remain gated.
 
 The [unified native-opening contract](NATIVE_SESSION_OPENING.md) supersedes the separate participant-extension proposal: every agent integration must support creating new sessions and opening existing provider-native threads through the same tool surface. Amp local/Orb execution is a provider configuration choice. Investigate and extend adapter capabilities first; preserve explicit lifecycle authority rather than treating every opened thread as a Pi-owned worker. CLI/plugin research below remains evidence, not a decision to bypass ACP or deploy another extension.
 
@@ -82,7 +82,7 @@ Limits:
 - Remote SDK execution accepts string prompts, not streaming input. Local `steer` and `requestId` streaming-input guarantees do not automatically apply to Orb sends.
 - No remote-send idempotency guarantee was found. After an ambiguous transport failure, record delivery as unknown and reconcile; do not automatically resend.
 - SDK abort signals terminate the local CLI subprocess. The reviewed source does not establish whether that stops remote work. Do not report remote cancellation from a local process exit.
-- A streamed result in a busy multiplayer thread needs a correlation experiment before Pi can claim it answers Pi's message.
+- Pi does not claim that a streamed result in a busy multiplayer thread answers its message. Amp owns that correlation.
 - `amp top` gives activity snapshots, not authoritative message delivery, contributor presence, or a durable event cursor.
 
 ### 2. Amp plugin: richer coordination if required
@@ -153,7 +153,7 @@ Serialize Pi's own submissions per thread, but do not mistake that local seriali
 
 1. **Read-only participant.** Bind a selected existing Orb and read bounded state/history; detach without affecting it. Prove exact-ID preservation, account scope, and no new prompt or executor attachment. Current probes prove CLI reads only; this Orb-specific gate is still open.
 2. **One approved contribution.** In an owner-approved scratch Orb, send a unique marker and observe both CLI and web evidence. Prove the same remote thread processes it, no local executor is registered, and remote settings remain unchanged.
-3. **Multiplayer race and disconnect.** Have a human send another message while Pi contributes. Prove correct attribution and request/result lineage. Stop Pi's observer and restart Pi while Amp continues. Test ambiguous delivery without duplicating the message. A second authorized participant is needed for the cross-user permission case.
+3. **Provider-owned multiplayer behavior.** Do not reproduce participant presence, queueing, or cross-user attribution in pi-strings. Test only Pi's own observer disconnect, restart, timeout, and ambiguous-delivery behavior when required by 029. Amp remains responsible for the shared thread's participant and response lineage.
 4. **Richer plugin bridge, only if needed.** Prove native state subscription, explicit steering, and lifecycle correlation with the target thread. Confirm permission expiry fails closed and human-only approvals remain human-only. Specify host placement, authentication, and disposal before deployment.
 5. **Cross-thread handoff.** Transfer only approved evidence between two selected threads and verify provenance and file-transfer semantics. Do not infer that sending a thread link copied its files or commits.
 
@@ -169,7 +169,7 @@ Implementation starts with the common create/open contract and Pi vertical slice
 - Whether plugin state/history reads across threads require any executor attachment or wake, and the least-privilege bridge deployment location.
 - Supported Space media/bot APIs; none found in the inspected public interfaces.
 
-These are live acceptance gates, not promises inferred from interface names. The next mutation-bearing experiment requires a user-approved scratch Orb and message; it must not run against an arbitrary active team thread.
+These are provider behavior questions, not pi-strings acceptance gates. Pi-strings records only the exact native ID, local request state, delivery evidence, and provider outcome that its adapter can observe. Any mutation-bearing experiment still requires a user-approved scratch Orb and message; it must not run against an arbitrary active team thread.
 
 [threads]: https://ampcode.com/docs/threads
 [multiplayer]: https://ampcode.com/docs/collaborate/multiplayer

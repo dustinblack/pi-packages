@@ -25,7 +25,7 @@ Plugin state/history APIs, steering, and lifecycle message IDs exist, but host p
 
 ## Out of scope
 
-Deferred until 029's native-opening proof or 022's multiplayer experiment demonstrates a concrete gap and the user promotes this item. Dependency 019 permits resolving a read-path blocker without a 029→021→022→023 cycle. No permanent service, webhook, or plugin installation beforehand; no guessed internal APIs.
+Deferred until 029's native-opening proof demonstrates a concrete gap and the user promotes this item. Multiplayer attribution is Amp-owned and does not create a pi-strings plugin requirement. Dependency 019 permits resolving a read-path blocker without a 029→021→022→023 cycle. No permanent service, webhook, or plugin installation beforehand; no guessed internal APIs.
 
 ## Evidence
 
