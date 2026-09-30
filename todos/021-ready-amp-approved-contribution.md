@@ -30,4 +30,6 @@ Any unapproved team-thread message; permission changes; automated retry; busy-th
 
 ## Evidence
 
-Pending; blocked on 029 closure plus target/message authorization.
+The user explicitly authorized target `T-01a0f0b4-5330-714f-a024-0a156279b832` and marker `[Pi coordinator scratch probe] Exact-ID contribution test — no action required.`. After a read-only identity check, the common `op_spawn`/`op_send`/`op_wait`/`op_result`/`op_close` path sent exactly one request: `req_8e2e67a5-c766-4e05-83f9-e29700bf5b15`. It completed with `delivery: accepted`, `providerOutcome: completed`, one attempt, and no decoration; Amp returned `Received. This probe message needs no action, so I'm doing nothing with it.` No retry or cancellation occurred.
+
+A subsequent read-only export found exactly one occurrence at message index 10, message ID `11`, protocol message ID `M-034XcLszXd82PjgLtXorn2`, with executor metadata `sandbox` and mode `medium`. The target was closed through the provider-neutral disconnect path. This is evidence for one approved contribution, but 021 remains blocked in the planner until 029's native-opening gates are closed and does not claim busy multiplayer attribution.
