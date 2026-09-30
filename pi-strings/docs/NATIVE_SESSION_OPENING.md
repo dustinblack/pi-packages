@@ -1,6 +1,6 @@
 # Create or open native sessions through one provider interface
 
-Status: user-approved direction; fresh architecture review accepted the implementation contract. Nothing in this document is a shipped API change.
+Status: Pi create/open path is implemented. Other named integrations still fail honestly until their adapters advertise native identity. Arbitrary history-page/character limits are not part of the shared contract.
 Tracked by [019](../../todos/019-complete-amp-participant-boundary.md) and [hub 018](../../todos/018-ready-amp-participant-coordination.md).
 
 ## Decision
@@ -13,7 +13,7 @@ A provider missing native opening is an implementation gap. Returning an honest 
 
 ## Proposed public contract
 
-Keep the tool names. Extend `op_spawn` with `sessionId`, meaning the exact provider-native ID. Omit it to create; supply it to open. Examples are proposed, not runnable against the current extension:
+Keep the tool names. Extend `op_spawn` with `sessionId`, meaning the exact provider-native ID. Omit it to create; supply it to open. Pi opening is implemented; other agents currently return `NATIVE_OPEN_UNSUPPORTED`:
 
 ```json
 {"name":"research","agent":"amp","executionEnvironment":"orb"}

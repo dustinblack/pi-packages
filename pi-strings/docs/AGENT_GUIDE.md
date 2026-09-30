@@ -20,12 +20,15 @@ Project to specific live workers when you already know their names:
 {"tool":"op_list","input":{"names":["audit","fix"]}}
 ```
 
-Spawn workers directly from an ACP agent; `agent` defaults to `pi`, and direct workers default to safe read-only tools:
+Spawn workers directly from an ACP agent; `agent` defaults to `pi`, and direct workers default to safe read-only tools. Supply `sessionId` to open an existing provider-native session instead of creating one:
 
 ```json
 {"tool":"op_spawn","input":{"name":"audit","agent":"opencode","cwd":"/absolute/path/to/repo"}}
 {"tool":"op_spawn","input":{"name":"default"}}
+{"tool":"op_spawn","input":{"name":"existing","agent":"pi","sessionId":"<native-session-id>"}}
 ```
+
+Opening preserves the native workspace and settings. Do not pass `profile`, `role`, `tools`, `model`, or `executionEnvironment` on that path. Pi currently verifies native identity; other agents fail with `NATIVE_OPEN_UNSUPPORTED` until their adapters advertise it. A stored Pi session starts a new local executor for that file — it is not attachment to an already-running terminal. `op_close` on an opened session disconnects this adapter only and can stop that local executor; it does not archive or delete the native session.
 
 Profiles remain optional reusable policy bundles. Spawn a configured profile when its role, tools, isolation, or timeout policy is desired:
 

@@ -335,7 +335,7 @@ async function loadOrCreateRuntimeSession(params) {
 }
 async function resumeRuntimeSession(params) {
     try {
-        const resumeResult = await withTimeout(params.client.resumeSession(params.record.acpSessionId, params.record.cwd), params.timeoutMs);
+        const resumeResult = await withTimeout(params.client.resumeSession(params.record.acpSessionId, params.record.cwd, params.record.acpx?.native_session), params.timeoutMs);
         reconcileAgentSessionId(params.record, resumeResult.agentSessionId);
         applyConfigOptionsToRecord(params.record, resumeResult);
         return {
@@ -356,6 +356,7 @@ async function loadRuntimeSession(params) {
     try {
         const loadResult = await withTimeout(params.client.loadSessionWithOptions(params.record.acpSessionId, params.record.cwd, {
             suppressReplayUpdates: true,
+            nativeSession: params.record.acpx?.native_session,
         }), params.timeoutMs);
         reconcileAgentSessionId(params.record, loadResult.agentSessionId);
         applyConfigOptionsToRecord(params.record, loadResult);

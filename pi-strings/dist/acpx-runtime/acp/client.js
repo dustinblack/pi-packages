@@ -8,6 +8,7 @@ import { FileSystemHandlers } from "../filesystem.js";
 import { classifyPermissionDecision, decisionToResponse, inferToolKind, resolvePermissionRequestWithDetails, } from "../permissions.js";
 import { getUnsupportedPromptContentMessage, textPrompt } from "../prompt-content.js";
 import { extractRuntimeSessionId } from "../session/runtime-session-id.js";
+import { NATIVE_SESSION_CAPABILITY, NATIVE_SESSION_DESCRIBE, NativeSessionDescriptionSchema, requireNativeSessionBinding } from "./native-session.js";
 import { buildAgentSpawnCommand, buildSpawnCommandOptions } from "../spawn-command-options.js";
 import { getAcpxVersion } from "../version.js";
 import { buildClaudeAcpSessionCreateTimeoutMessage, buildClaudeCodeOptionsMeta, buildGeminiAcpStartupTimeoutMessage, buildQoderAcpCommandArgs, ensureCopilotAcpSupport, isClaudeAcpCommand, isCopilotAcpCommand, isDevinAcpCommand, isGeminiAcpCommand, isQoderAcpCommand, resolveAgentCloseAfterStdinEndMs, resolveClaudeAcpSessionCreateTimeoutMs, resolveClaudeCodeExecutable, resolveClaudeCodeSettingSources, resolveGeminiAcpStartupTimeoutMs, resolveGeminiCommandArgs, shouldIgnoreNonJsonAgentOutputLine, } from "./agent-command.js";
@@ -601,9 +602,18 @@ export class AcpClient {
             legacyModelMetadataPresent: hasResponseField(result, "models"),
         };
     }
-    async loadSession(sessionId, cwd = this.options.cwd) {
+    async describeNativeSession(sessionId) {
+        if (this.initializeResult?.agentCapabilities?._meta?.[NATIVE_SESSION_CAPABILITY] !== 1) {
+            throw new RequestError(-32601, "Adapter does not advertise verified native session opening.");
+        }
+        const result = NativeSessionDescriptionSchema.parse(await this.runConnectionRequest(() => this.getConnection().extMethod(NATIVE_SESSION_DESCRIBE, { sessionId })));
+        if (result.id !== sessionId)
+            throw new Error("Adapter described a different native session.");
+        return result;
+    }
+    async loadSession(sessionId, cwd = this.options.cwd, nativeSession) {
         this.getConnection();
-        return await this.loadSessionWithOptions(sessionId, cwd, {});
+        return await this.loadSessionWithOptions(sessionId, cwd, { nativeSession });
     }
     async loadSessionWithOptions(sessionId, cwd = this.options.cwd, options = {}) {
         const connection = this.getConnection();
@@ -615,7 +625,10 @@ export class AcpClient {
                 sessionId,
                 cwd: sessionCwd,
                 mcpServers: this.options.mcpServers ?? [],
+                ...(options.nativeSession ? { _meta: { [NATIVE_SESSION_CAPABILITY]: options.nativeSession } } : {}),
             }));
+            if (options.nativeSession)
+                requireNativeSessionBinding(response?._meta?.[NATIVE_SESSION_CAPABILITY], options.nativeSession);
             await this.waitForSessionUpdateDrain(options.replayIdleMs ?? REPLAY_IDLE_MS, options.replayDrainTimeoutMs ?? REPLAY_DRAIN_TIMEOUT_MS);
         }
         finally {
@@ -626,14 +639,17 @@ export class AcpClient {
         this.updateRememberedSessionModels(sessionId, result);
         return result;
     }
-    async resumeSession(sessionId, cwd = this.options.cwd) {
+    async resumeSession(sessionId, cwd = this.options.cwd, nativeSession) {
         const connection = this.getConnection();
         const sessionCwd = await resolveAgentSessionCwd(cwd, this.options.agentCommand);
         const response = await this.runConnectionRequest(() => connection.resumeSession({
             sessionId,
             cwd: sessionCwd,
             mcpServers: this.options.mcpServers ?? [],
+            ...(nativeSession ? { _meta: { [NATIVE_SESSION_CAPABILITY]: nativeSession } } : {}),
         }));
+        if (nativeSession)
+            requireNativeSessionBinding(response?._meta?.[NATIVE_SESSION_CAPABILITY], nativeSession);
         this.loadedSessionId = sessionId;
         const result = toReconnectedSessionResult(response);
         this.updateRememberedSessionModels(sessionId, result);

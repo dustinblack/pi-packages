@@ -24,3 +24,12 @@ test("does not expose recursive orchestration in a worker", () => {
   assert.equal(tools.length, 0);
   if (prior === undefined) delete process.env.PI_STRINGS_WORKER; else process.env.PI_STRINGS_WORKER = prior;
 });
+
+test("does not expose recursive orchestration in an opened adapter", () => {
+  const prior = process.env.PI_STRINGS_OPENED;
+  process.env.PI_STRINGS_OPENED = "1";
+  const tools: unknown[] = [];
+  piStrings({ on: () => undefined, registerTool: (tool: unknown) => tools.push(tool) } as never);
+  assert.equal(tools.length, 0);
+  if (prior === undefined) delete process.env.PI_STRINGS_OPENED; else process.env.PI_STRINGS_OPENED = prior;
+});

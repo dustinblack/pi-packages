@@ -272,7 +272,7 @@ async function writerResume(): Promise<void> {
 
   const second = new Coordinator(process.cwd(), { stateDir, profiles });
   try {
-    const resumed = await second.execute({ action: "spawn", name: "writer-resumed", profile: profileName, cwd: worktree, resumeSessionId: session });
+    const resumed = await second.execute({ action: "spawn", name: "writer-resumed", agent: "pi", cwd: worktree, sessionId: session });
     assert.equal(resumed.ok, true, resumed.ok ? "" : JSON.stringify(resumed));
     const followUp = await second.execute({ action: "send", name: "writer-resumed", prompt: `Use the write tool to replace ${markerPath} with exactly RESUMED. Then report the final content.` });
     assert.equal(followUp.ok, true);

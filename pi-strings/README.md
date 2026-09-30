@@ -31,14 +31,14 @@ Provider write-tool behavior differs: Codex (Guardian Review) and Amp (`apply_pa
 
 The extension registers eight `op_*` tools with strict per-tool schemas:
 
-- `op_spawn` — create or restore a worker directly from an ACP agent (`agent` defaults to `pi`) or an optional profile; direct workers default to read-only `read`, `grep`, `find`, and `ls`
-- `op_status` — discover a live worker's `currentModelId` and `availableModelIds` through ACPX `getStatus`
-- `op_send` — start an ordinary turn, optionally selecting a discovered model before the turn (`requestTimeoutMs` bounds the entire request; default is the profile `timeoutMs`)
+- `op_spawn` — create a worker, or open an existing native session with `sessionId`; opening preserves native settings and currently verifies identity for Pi
+- `op_status` — report origin, native identity/capabilities, and advertised model IDs
+- `op_send` — start an ordinary turn; created workers may select a model and receive role decoration, opened sessions receive the exact text and never retry
 - `op_wait` — wait for one, the first (`mode: "any"`), or all (`mode: "all"`) selected turns using a fixed snapshot (`waitTimeoutMs` bounds the call, default 300000)
 - `op_result` — inspect retained output and terminal status
 - `op_list` — inspect workers and requests (optional `names` projection)
 - `op_cancel` — cooperatively cancel an active turn, with bounded escalation
-- `op_close` — stop a worker and optionally discard persistent session state
+- `op_close` — created workers may discard persistent state; opened sessions disconnect locally without cancel/archive/delete RPCs
 
 Requests expose attempt lineage for cancel-and-reassign flows. Run `npm run test:integration` for explicit prerequisite skips, or `npm run test:e2e` with configured credentials and models for real provider gates.
 

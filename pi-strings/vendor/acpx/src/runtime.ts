@@ -7,6 +7,9 @@ import {
   resolveAgentCommand,
 } from "./agent-registry.js";
 import { AcpRuntimeManager } from "./runtime/engine/manager.js";
+import type { NativeSessionDescription } from "./acp/native-session.js";
+export type { NativeSessionBinding, NativeSessionDescription } from "./acp/native-session.js";
+export { NativeSessionDescriptionSchema } from "./acp/native-session.js";
 import type {
   AcpAgentRegistry,
   AcpRuntime,
@@ -166,6 +169,15 @@ export class AcpxRuntime implements AcpxRuntimeLike {
     };
   }
 
+  async describeNativeSession(input: { agent: string; sessionId: string; cwd?: string }): Promise<NativeSessionDescription> {
+    return (await this.getManager()).describeNativeSession(input);
+  }
+
+  async disconnect(input: { handle: AcpRuntimeHandle }): Promise<void> {
+    const { handle } = this.resolveManagerHandle(input.handle);
+    await (await this.getManager()).disconnect(handle);
+  }
+
   async ensureSession(input: AcpRuntimeEnsureInput): Promise<AcpRuntimeHandle> {
     const sessionName = input.sessionKey.trim();
     if (!sessionName) {
@@ -183,6 +195,7 @@ export class AcpxRuntime implements AcpxRuntimeLike {
       mode: input.mode,
       cwd: input.cwd ?? this.options.cwd,
       resumeSessionId: input.resumeSessionId,
+      nativeSession: input.nativeSession,
       sessionOptions: input.sessionOptions,
     });
 

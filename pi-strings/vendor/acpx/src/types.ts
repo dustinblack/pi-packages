@@ -355,6 +355,7 @@ export type SessionConversation = {
 };
 
 export type SessionAcpxState = {
+  native_session?: import("./acp/native-session.js").NativeSessionBinding;
   reset_on_next_ensure?: boolean;
   current_mode_id?: string;
   desired_mode_id?: string;

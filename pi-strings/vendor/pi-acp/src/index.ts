@@ -16,6 +16,13 @@ if (process.argv.includes('--pi-strings-worker')) {
   if (thinking) process.env.PI_STRINGS_PI_THINKING = thinking
 }
 
+if (process.argv.includes('--pi-strings-opened')) {
+  delete process.env.PI_STRINGS_WORKER
+  delete process.env.PI_STRINGS_PI_TOOLS
+  delete process.env.PI_STRINGS_PI_THINKING
+  process.env.PI_STRINGS_OPENED = '1'
+}
+
 // Terminal Auth entrypoint. The ACP client launches the agent with `--terminal-login`.
 if (process.argv.includes('--terminal-login')) {
   const { spawnSync } = await import('node:child_process')
@@ -64,34 +71,27 @@ const output = new ReadableStream<Uint8Array>({
 
 const stream = ndJsonStream(input, output)
 
-const agent = new AgentSideConnection(conn => new PiAcpAgent(conn), stream)
+let piAgent: PiAcpAgent | undefined
+new AgentSideConnection(conn => {
+  piAgent = new PiAcpAgent(conn)
+  return piAgent
+}, stream)
 
-function shutdown() {
-  try {
-    // Best-effort: dispose session subprocesses when the client disconnects.
-    ;(agent as any)?.agent?.dispose?.()
-  } catch {
-    // ignore
-  }
-  try {
+let shuttingDown: Promise<void> | undefined
+function shutdown(): Promise<void> {
+  return (shuttingDown ??= (async () => {
+    try {
+      await piAgent?.dispose()
+    } catch {
+      // ignore disposal failures; the adapter is exiting
+    }
     process.exit(0)
-  } catch {
-    // ignore
-  }
+  })())
 }
 
-process.stdin.on('end', shutdown)
-process.stdin.on('close', shutdown)
-
+process.stdin.on('end', () => { void shutdown() })
+process.stdin.on('close', () => { void shutdown() })
 process.stdin.resume()
-process.on('SIGINT', shutdown)
-process.on('SIGTERM', shutdown)
-
-// Avoid crashing if the client closes stdout early.
-process.stdout.on('error', () => {
-  try {
-    process.exit(0)
-  } catch {
-    // ignore
-  }
-})
+process.on('SIGINT', () => { void shutdown() })
+process.on('SIGTERM', () => { void shutdown() })
+process.stdout.on('error', () => { void shutdown() })

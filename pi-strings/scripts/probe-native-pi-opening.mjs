@@ -1,15 +1,16 @@
 // No-prompt opening experiment against the real Pi CLI and vendored ACP adapter.
-// Run after npm run build: node scripts/probe-native-pi-opening.mjs
+// Run after npm run build: node --import tsx scripts/probe-native-pi-opening.mjs
 // Uses synthetic transcripts and isolated HOME/config/state; never sends a prompt.
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { AcpxRuntime, createAgentRegistry, createFileSessionStore } from "../dist/acpx-runtime/runtime.js";
+import { Coordinator } from "../extensions/pi-strings/orchestration/coordinator.ts";
 
 const { stdout } = await promisify(execFile)("pi", ["--version"], { timeout: 10_000, maxBuffer: 32_768 });
 const piVersion = stdout.trim();
@@ -44,12 +45,23 @@ for (const thinking of [undefined, "off"]) {
     permissionMode: "deny-all", nonInteractivePermissions: "deny", timeoutMs: 15_000,
   });
   let handle;
+  const coordinator = new Coordinator(cwd, { stateDir: join(root, 'coordinator'), profiles: {} });
   try {
+    const opened = await coordinator.execute({ action: 'spawn', name: 'native', agent: 'pi', sessionId: id });
+    assert.equal(opened.ok, true, JSON.stringify(opened));
+    assert.equal(opened.details.origin, 'opened');
+    assert.equal(opened.details.nativeSessionId, id);
+    assert.equal(opened.details.native.disconnectEffect, 'stops-local-executor');
+    const closed = await coordinator.execute({ action: 'close', name: 'native' });
+    assert.equal(closed.ok, true, JSON.stringify(closed));
+    const missing = await coordinator.execute({ action: 'spawn', name: 'missing', agent: 'pi', sessionId: randomUUID() });
+    assert.equal(missing.ok, false, JSON.stringify(missing));
+    await coordinator.shutdown();
     handle = await runtime.ensureSession({ sessionKey: "native-opening-probe", agent: "pi", mode: "persistent", cwd, resumeSessionId: id });
     const reportedBackendIdMatches = handle.backendSessionId === id;
     const mapping = JSON.parse(await readFile(join(root, ".pi", "pi-acp", "session-map.json"), "utf8"));
     assert.equal(reportedBackendIdMatches, true);
-    assert.equal(mapping.sessions[id]?.sessionFile, file);
+    assert.equal(await realpath(mapping.sessions[id]?.sessionFile), await realpath(file));
     await runtime.close({ handle, reason: "idle probe complete", discardPersistentState: false });
     handle = undefined;
     const actual = await readFile(file, "utf8");
@@ -74,7 +86,7 @@ for (const thinking of [undefined, "off"]) {
     const files = (await readdir(join(agentDir, "sessions"), { recursive: true })).filter(path => path.endsWith(".jsonl"));
     assert.deepEqual(files, [join("probe", `${id}.jsonl`)]);
     console.log(JSON.stringify({
-      piVersion, syntheticTranscript: true, promptSent: false,
+      piVersion, commonToolOpenAndDisconnect: true, syntheticTranscript: true, promptSent: false,
       seededThinking: thinking ?? "absent", reportedBackendIdMatches,
       mappingPointsToSeed: true, seedEntriesPreserved,
       byteIdenticalAfterIdleClose: actual === seed, appended,
@@ -83,6 +95,7 @@ for (const thinking of [undefined, "off"]) {
     }));
   } finally {
     try {
+      await coordinator.shutdown();
       if (handle) await runtime.close({ handle, reason: "probe cleanup", discardPersistentState: false });
     } finally {
       for (const [key, value] of prior) {

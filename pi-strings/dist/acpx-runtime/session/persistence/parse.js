@@ -1,4 +1,5 @@
 import { resolveAgentArgvForCommand } from "../../acp/builtin-command-migration.js";
+import { NativeSessionBindingSchema } from "../../acp/native-session.js";
 import { SESSION_RECORD_SCHEMA } from "../../types.js";
 import { defaultSessionEventLog } from "../event-log.js";
 import { normalizeRuntimeSessionId } from "../runtime-session-id.js";
@@ -328,6 +329,8 @@ function parseAcpxState(raw) {
         return undefined;
     }
     const state = {};
+    if (record.native_session !== undefined)
+        state.native_session = NativeSessionBindingSchema.parse(record.native_session);
     assignBooleanTrue(state, "reset_on_next_ensure", record.reset_on_next_ensure);
     assignStringState(state, "current_mode_id", record.current_mode_id);
     assignStringState(state, "desired_mode_id", record.desired_mode_id);

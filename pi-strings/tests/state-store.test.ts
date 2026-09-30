@@ -27,7 +27,7 @@ test("coordinator state is atomic, private, and corruption is explicit", async (
     const path = join(root, "state.json");
     assert.equal((await stat(root)).mode & 0o777, 0o700);
     assert.equal((await stat(path)).mode & 0o777, 0o600);
-    assert.deepEqual(await store.load(), { version: 1, workers: [], requests: [], sessions: [] });
+    assert.deepEqual(await store.load(), { version: 2, workers: [], requests: [], sessions: [] });
     await writeFile(path, "{broken", { mode: 0o600 });
     await assert.rejects(store.load(), (error: unknown) => (error as { code?: string }).code === "STATE_CORRUPT");
     assert.equal(await readFile(path, "utf8"), "{broken");

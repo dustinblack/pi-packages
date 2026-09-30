@@ -587,7 +587,7 @@ async function resumeRuntimeSession(params: {
 }): Promise<RuntimeSessionLoadState> {
   try {
     const resumeResult = await withTimeout(
-      params.client.resumeSession(params.record.acpSessionId, params.record.cwd),
+      params.client.resumeSession(params.record.acpSessionId, params.record.cwd, params.record.acpx?.native_session),
       params.timeoutMs,
     );
     reconcileAgentSessionId(params.record, resumeResult.agentSessionId);
@@ -616,6 +616,7 @@ async function loadRuntimeSession(params: {
     const loadResult = await withTimeout(
       params.client.loadSessionWithOptions(params.record.acpSessionId, params.record.cwd, {
         suppressReplayUpdates: true,
+        nativeSession: params.record.acpx?.native_session,
       }),
       params.timeoutMs,
     );

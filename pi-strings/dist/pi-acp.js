@@ -856,9 +856,11 @@ function toToolCallLocations(args, cwd, line) {
 var SessionManager = class {
   sessions = /* @__PURE__ */ new Map();
   store = new SessionStore();
-  /** Dispose all sessions and their underlying pi subprocesses. */
-  disposeAll() {
-    for (const [id] of this.sessions) this.close(id);
+  /** Dispose all sessions and wait for their pi subprocesses to exit. */
+  async disposeAll() {
+    const procs = [...this.sessions.values()].map((session) => session.proc);
+    this.sessions.clear();
+    await Promise.all(procs.map((proc) => proc.terminate()));
   }
   /** Get a registered session if it exists (no throw). */
   maybeGet(sessionId) {
@@ -1568,7 +1570,8 @@ function toToolKind(toolName) {
 }
 
 // vendor/pi-acp/src/acp/pi-sessions.ts
-import { readdirSync as readdirSync2, readFileSync as readFileSync4, statSync, openSync, readSync, closeSync, existsSync as existsSync2 } from "node:fs";
+import { readdirSync as readdirSync2, readFileSync as readFileSync4, statSync, openSync, readSync, closeSync, existsSync as existsSync2, realpathSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 import { homedir as homedir3 } from "node:os";
 import { join as join3, resolve as resolve2, isAbsolute as isAbsolute2 } from "node:path";
 var DEFAULT_TAIL_BYTES = 256 * 1024;
@@ -1819,6 +1822,20 @@ function findPiSession(sessionId) {
   const all = listPiSessions();
   return all.find((s) => s.sessionId === sessionId) ?? null;
 }
+function describePiSession(sessionId) {
+  const root = getPiSessionsDir();
+  const files = [];
+  walkJsonlFiles(root, files);
+  let found = null;
+  for (const file of files) {
+    const line = readFirstLine(file);
+    const header = line ? parseSessionHeader(line) : null;
+    if (header?.sessionId !== sessionId) continue;
+    if (found) throw new Error(`Ambiguous native session ID: ${sessionId}`);
+    found = { id: header.sessionId, scope: pathToFileURL(realpathSync(root)).href, cwd: realpathSync(header.cwd), sessionFile: realpathSync(file) };
+  }
+  return found;
+}
 
 // vendor/pi-acp/src/acp/translate/pi-messages.ts
 function normalizePiMessageText(content) {
@@ -1969,7 +1986,7 @@ function toAvailableCommandsFromPiGetCommands(data, opts) {
 
 // vendor/pi-acp/src/acp/agent.ts
 import { isAbsolute as isAbsolute3 } from "node:path";
-import { existsSync as existsSync4, readFileSync as readFileSync6, realpathSync, readdirSync as readdirSync3, statSync as statSync2, unlinkSync } from "node:fs";
+import { existsSync as existsSync4, readFileSync as readFileSync6, realpathSync as realpathSync2, readdirSync as readdirSync3, statSync as statSync2, unlinkSync } from "node:fs";
 import { join as join5, dirname as dirname2, basename } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -2033,7 +2050,7 @@ var PiAcpAgent = class {
   store = new SessionStore();
   restoringSessions = /* @__PURE__ */ new Map();
   dispose() {
-    this.sessions.disposeAll();
+    return this.sessions.disposeAll();
   }
   // Remember recent session cwd and use it as the default filter.
   lastSessionCwd = null;
@@ -2112,6 +2129,21 @@ var PiAcpAgent = class {
       this.restoringSessions.delete(sessionId);
     }
   }
+  async extMethod(method, params) {
+    if (method !== "pi-strings/session/describe") throw RequestError3.methodNotFound(method);
+    if (typeof params.sessionId !== "string" || !params.sessionId) throw RequestError3.invalidParams("sessionId is required");
+    const native = describePiSession(params.sessionId);
+    if (!native) throw RequestError3.invalidParams(`Unknown sessionId: ${params.sessionId}`);
+    const { sessionFile: _file, ...identity } = native;
+    return {
+      ...identity,
+      executionEnvironment: "local",
+      attachment: "stored-session",
+      disconnectEffect: "stops-local-executor",
+      concurrentNativeClients: "unsupported",
+      activity: "unknown"
+    };
+  }
   async initialize(params) {
     const supportedVersion = 1;
     const requested = params.protocolVersion;
@@ -2128,6 +2160,7 @@ var PiAcpAgent = class {
         supportsTerminalAuthMeta: params?.clientCapabilities?._meta?.["terminal-auth"] === true
       }),
       agentCapabilities: {
+        _meta: { "pi-strings/native-session": 1 },
         loadSession: true,
         mcpCapabilities: { http: false, sse: false },
         promptCapabilities: {
@@ -2452,7 +2485,7 @@ ${JSON.stringify(stats, null, 2)}`;
             const which = spawnSync(whichCmd, ["pi"], { encoding: "utf-8" });
             const piPath = String(which.stdout ?? "").split(/\r?\n/)[0]?.trim();
             if (piPath) {
-              const resolved = realpathSync(piPath);
+              const resolved = realpathSync2(piPath);
               const pkgRoot = dirname2(dirname2(resolved));
               const p = join5(pkgRoot, "CHANGELOG.md");
               if (existsSync4(p)) return p;
@@ -2662,6 +2695,16 @@ ${JSON.stringify(stats, null, 2)}`;
     if (!isAbsolute3(params.cwd)) {
       throw RequestError3.invalidParams(`cwd must be an absolute path: ${params.cwd}`);
     }
+    const binding = params._meta?.["pi-strings/native-session"];
+    const native = binding ? describePiSession(params.sessionId) : void 0;
+    if (binding) {
+      if (!native) throw RequestError3.invalidParams(`Unknown sessionId: ${params.sessionId}`);
+      if (binding.id !== native.id || binding.scope !== native.scope || binding.cwd !== native.cwd || realpathSync2(params.cwd) !== native.cwd) {
+        throw RequestError3.invalidParams("Native session identity or workspace changed");
+      }
+      if (process.env.PI_STRINGS_WORKER === "1") throw RequestError3.invalidParams("Native opening cannot apply worker launch settings");
+      this.store.upsert({ sessionId: native.id, cwd: native.cwd, sessionFile: native.sessionFile });
+    }
     this.lastSessionCwd = params.cwd;
     const stored = this.findStoredSession(params.sessionId);
     if (!stored) {
@@ -2679,7 +2722,14 @@ ${JSON.stringify(stats, null, 2)}`;
       cwd: params.cwd,
       sessionFile: stored.sessionFile
     });
-    const data = await proc.getMessages();
+    if (native) {
+      const state = await proc.getState();
+      if (state.sessionId !== native.id || !state.sessionFile || realpathSync2(state.sessionFile) !== native.sessionFile) {
+        this.sessions.close(params.sessionId);
+        throw RequestError3.invalidParams("Pi loaded a different native session");
+      }
+    }
+    const data = native ? {} : await proc.getMessages();
     const messages = Array.isArray(data?.messages) ? data.messages : [];
     for (const m of messages) {
       const role = String(m?.role ?? "");
@@ -2771,6 +2821,7 @@ ${JSON.stringify(stats, null, 2)}`;
       models,
       modes,
       _meta: {
+        ...native ? { agentSessionId: native.id, "pi-strings/native-session": { id: native.id, scope: native.scope, cwd: native.cwd } } : {},
         piAcp: {
           startupInfo: null
         }
@@ -3195,6 +3246,12 @@ if (process.argv.includes("--pi-strings-worker")) {
   const thinking = optionValue("--pi-thinking");
   if (thinking) process.env.PI_STRINGS_PI_THINKING = thinking;
 }
+if (process.argv.includes("--pi-strings-opened")) {
+  delete process.env.PI_STRINGS_WORKER;
+  delete process.env.PI_STRINGS_PI_TOOLS;
+  delete process.env.PI_STRINGS_PI_THINKING;
+  process.env.PI_STRINGS_OPENED = "1";
+}
 if (process.argv.includes("--terminal-login")) {
   const { spawnSync: spawnSync2 } = await import("node:child_process");
   const cmd = getPiCommand(process.env.PI_ACP_PI_COMMAND);
@@ -3235,26 +3292,34 @@ var output = new ReadableStream({
   }
 });
 var stream = ndJsonStream(input, output);
-var agent = new AgentSideConnection((conn) => new PiAcpAgent(conn), stream);
+var piAgent;
+new AgentSideConnection((conn) => {
+  piAgent = new PiAcpAgent(conn);
+  return piAgent;
+}, stream);
+var shuttingDown;
 function shutdown() {
-  try {
-    ;
-    agent?.agent?.dispose?.();
-  } catch {
-  }
-  try {
+  return shuttingDown ??= (async () => {
+    try {
+      await piAgent?.dispose();
+    } catch {
+    }
     process.exit(0);
-  } catch {
-  }
+  })();
 }
-process.stdin.on("end", shutdown);
-process.stdin.on("close", shutdown);
+process.stdin.on("end", () => {
+  void shutdown();
+});
+process.stdin.on("close", () => {
+  void shutdown();
+});
 process.stdin.resume();
-process.on("SIGINT", shutdown);
-process.on("SIGTERM", shutdown);
+process.on("SIGINT", () => {
+  void shutdown();
+});
+process.on("SIGTERM", () => {
+  void shutdown();
+});
 process.stdout.on("error", () => {
-  try {
-    process.exit(0);
-  } catch {
-  }
+  void shutdown();
 });

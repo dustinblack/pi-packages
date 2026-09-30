@@ -1,4 +1,5 @@
 import { AcpClient } from "../../acp/client.js";
+import { type NativeSessionBinding, type NativeSessionDescription } from "../../acp/native-session.js";
 import type { SessionRecord } from "../../types.js";
 import type { AcpRuntimeEvent, AcpRuntimeHandle, AcpRuntimeOptions, AcpRuntimePromptMode, AcpRuntimeStatus, AcpRuntimeTurnAttachment, AcpRuntimeTurn } from "../public/contract.js";
 import { type SessionAgentOptions } from "./session-options.js";
@@ -18,12 +19,18 @@ export declare class AcpRuntimeManager {
     private refreshClosedState;
     private retainPersistentClientAfterTurn;
     private withRuntimeControlSession;
+    describeNativeSession(input: {
+        agent: string;
+        sessionId: string;
+        cwd?: string;
+    }): Promise<NativeSessionDescription>;
     ensureSession(input: {
         sessionKey: string;
         agent: string;
         mode: "persistent" | "oneshot";
         cwd?: string;
         resumeSessionId?: string;
+        nativeSession?: NativeSessionBinding;
         sessionOptions?: SessionAgentOptions;
     }): Promise<SessionRecord>;
     private createAndSaveRuntimeRecord;
@@ -74,6 +81,7 @@ export declare class AcpRuntimeManager {
     setMode(handle: AcpRuntimeHandle, mode: string, sessionMode?: "persistent" | "oneshot"): Promise<void>;
     setConfigOption(handle: AcpRuntimeHandle, key: string, value: string, sessionMode?: "persistent" | "oneshot"): Promise<void>;
     cancel(handle: AcpRuntimeHandle): Promise<void>;
+    disconnect(handle: AcpRuntimeHandle): Promise<void>;
     close(handle: AcpRuntimeHandle, options?: {
         discardPersistentState?: boolean;
     }): Promise<void>;

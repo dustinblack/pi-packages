@@ -1,3 +1,7 @@
+import type { NativeSessionDescription } from "../../../dist/acpx-runtime/runtime.js";
+export type { NativeSessionDescription } from "../../../dist/acpx-runtime/runtime.js";
+export type SessionOrigin = "created" | "opened";
+
 export type WorkerRole = "read-only" | "writer";
 export type WorkerKind = "oracle" | "finder" | "worker" | "free";
 export type IsolationMode = "shared" | "worktree";
@@ -67,6 +71,7 @@ export interface RuntimeStatus {
   modelDiscoverySupported: boolean;
   currentModelId?: string;
   availableModelIds: string[];
+  modelConfigId?: string;
 }
 
 export type NormalizedEvent =
@@ -88,7 +93,10 @@ export interface RuntimeTurn {
 }
 
 export interface RuntimePort {
-  ensureSession(input: { name: string; agent: string; cwd: string; profile: Profile; resumeSessionId?: string }): Promise<RuntimeHandle>;
+  ensureSession(input: { name: string; agent: string; cwd: string; profile: Profile; resumeSessionId?: string; executionEnvironment?: string }): Promise<RuntimeHandle>;
+  describeNativeSession?(agent: string, sessionId: string): Promise<NativeSessionDescription>;
+  openSession?(input: { name: string; agent: string; native: NativeSessionDescription; handle?: RuntimeHandle }): Promise<RuntimeHandle>;
+  disconnect?(handle: RuntimeHandle): Promise<void>;
   startTurn(input: { handle: RuntimeHandle; prompt: string; requestId: string; timeoutMs: number }): RuntimeTurn;
   getStatus?(handle: RuntimeHandle): Promise<RuntimeStatus>;
   setConfigOption?(input: { handle: RuntimeHandle; key: string; value: string }): Promise<void>;
@@ -116,9 +124,13 @@ export interface RequestRecord {
   requestedModel?: string;
   attemptModels?: string[];
   attempts?: number;
+  delivery?: "unknown" | "accepted";
+  providerOutcome?: "completed" | "cancelled" | "failed";
 }
 
 export interface WorkerRecord {
+  origin: SessionOrigin;
+  native?: NativeSessionDescription;
   name: string;
   profileName: string;
   profile: Profile;

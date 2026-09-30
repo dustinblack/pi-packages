@@ -1,5 +1,6 @@
 import { DEFAULT_AGENT_NAME, listBuiltInAgents, normalizeAgentName, resolveCanonicalAgentName, resolveAgentArgv, resolveAgentCommand, } from "./agent-registry.js";
 import { AcpRuntimeManager } from "./runtime/engine/manager.js";
+export { NativeSessionDescriptionSchema } from "./acp/native-session.js";
 import { AcpRuntimeError } from "./runtime/public/errors.js";
 import { createFileSessionStore } from "./runtime/public/file-session-store.js";
 import { decodeAcpxRuntimeHandleState, writeHandleState } from "./runtime/public/handle-state.js";
@@ -73,6 +74,13 @@ export class AcpxRuntime {
             details: normalizeRuntimeDetails(report.details),
         };
     }
+    async describeNativeSession(input) {
+        return (await this.getManager()).describeNativeSession(input);
+    }
+    async disconnect(input) {
+        const { handle } = this.resolveManagerHandle(input.handle);
+        await (await this.getManager()).disconnect(handle);
+    }
     async ensureSession(input) {
         const sessionName = input.sessionKey.trim();
         if (!sessionName) {
@@ -89,6 +97,7 @@ export class AcpxRuntime {
             mode: input.mode,
             cwd: input.cwd ?? this.options.cwd,
             resumeSessionId: input.resumeSessionId,
+            nativeSession: input.nativeSession,
             sessionOptions: input.sessionOptions,
         });
         const handle = {

@@ -30,4 +30,13 @@ Implementing all17 adapters in one item, removing providers from scope, arbitrar
 
 ## Evidence
 
-Pending; starts after 019 closes on main. Source-only reconnaissance can run alongside 020; production children depend on 020 and their provider-specific prerequisite.
+Source-only reconnaissance alongside 020. Not delivery.
+
+- fast-agent: published ACP `session/load`/`resume` exact-ID lookup with cwd equality and no create fallback; ACP `session/close` is rejected, so disconnect needs adapter process lifecycle. Source: `evalstate/fast-agent` `src/fast_agent/acp/server/{agent_acp_server.py,session_store.py}`.
+- kilocode: native HTTP `sessionID` API with `SessionNotFoundError` and interrupt; ACP mapping to that API is not established. Source: `Kilo-Org/kilocode` `CONTEXT.md` and `specs/v2/{api.html,session.md}`.
+- mux@0.28.0: ACP transport only; no identifiable native load/resume in the published bundle.
+- Cursor docs (`cursor.com/docs/cli/acp`) document ACP `session/load` but not durable native-ID scope.
+- Copilot/Droid: public ACP native-open source/docs were not retrievable (Copilot docs 404s / unrelated; Factory-AI/droid 404).
+- zeroclaw: downloaded repo has session memory fields, no ACP native lifecycle.
+- Gemini/Kimi/Qwen/OpenClaw remain at the 019 pinned-source gaps; OpenClaw close still cancels.
+- Remaining: grok-build, iflow, kiro, pool, qoder, trae still need public-source retrieval. No live/authenticated probes were run.

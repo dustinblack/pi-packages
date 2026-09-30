@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Open existing native sessions through the same `op_*` tools: `op_spawn` with `sessionId` binds exact provider identity without taking ownership; omit it to create. Opening preserves native settings, sends the exact prompt, and disconnects without cancel/archive/delete RPCs. Pi verifies native identity; other adapters fail with `NATIVE_OPEN_UNSUPPORTED` until they advertise the same capability. Public `resumeSessionId` is removed. Stored Pi open starts a new local executor for that session file, not a live-terminal attach.
 - Split the single `strings` action dispatcher into eight strict-schema `op_*` tools (`op_spawn`, `op_status`, `op_send`, `op_wait`, `op_result`, `op_list`, `op_cancel`, `op_close`). `op_spawn` can directly create an ACP worker (`agent` defaults to `pi`) without a profile; profiles remain optional policy bundles. `op_status` exposes ACPX model discovery, and `op_send` can select a model before a turn while retaining `requestedModel` provenance. `timeoutMs` is split into `requestTimeoutMs` (op_send, default profile `timeoutMs`) and `waitTimeoutMs` (op_wait, default 300000); op_list gains an optional `names` projection; op_send returns the appended prompt decoration as `decoratedPromptSuffix`.
 
 - Route every production worker, including Pi, through the vendored ACPX `0.13.0` runtime snapshot at upstream PR #468; retain only the vendored Pi adapter command override.

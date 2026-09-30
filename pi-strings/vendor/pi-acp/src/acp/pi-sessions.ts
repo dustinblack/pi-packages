@@ -1,4 +1,5 @@
-import { readdirSync, readFileSync, statSync, openSync, readSync, closeSync, existsSync } from 'node:fs'
+import { readdirSync, readFileSync, statSync, openSync, readSync, closeSync, existsSync, realpathSync } from 'node:fs'
+import { pathToFileURL } from 'node:url'
 import { homedir } from 'node:os'
 import { join, resolve, isAbsolute } from 'node:path'
 
@@ -326,6 +327,22 @@ export function listPiSessions(): PiSessionListItem[] {
 export function findPiSession(sessionId: string): PiSessionListItem | null {
   const all = listPiSessions()
   return all.find(s => s.sessionId === sessionId) ?? null
+}
+
+// Native admission reads headers only; titles/history are unrelated to identity.
+export function describePiSession(sessionId: string): { id: string; scope: string; cwd: string; sessionFile: string } | null {
+  const root = getPiSessionsDir()
+  const files: string[] = []
+  walkJsonlFiles(root, files)
+  let found: { id: string; scope: string; cwd: string; sessionFile: string } | null = null
+  for (const file of files) {
+    const line = readFirstLine(file)
+    const header = line ? parseSessionHeader(line) : null
+    if (header?.sessionId !== sessionId) continue
+    if (found) throw new Error(`Ambiguous native session ID: ${sessionId}`)
+    found = { id: header.sessionId, scope: pathToFileURL(realpathSync(root)).href, cwd: realpathSync(header.cwd), sessionFile: realpathSync(file) }
+  }
+  return found
 }
 
 export function findPiSessionFile(sessionId: string): string | null {

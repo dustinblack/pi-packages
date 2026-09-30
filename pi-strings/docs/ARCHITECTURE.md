@@ -18,11 +18,11 @@ The public actions are `spawn`, `status`, `send`, `wait`, `result`, `list`, `can
 
 ### `spawn`
 
-`name` is required; `profile` is optional for reusable policy bundles, and `agent` is optional (default `pi`). Without a profile, direct workers use safe read-only defaults (`read`, `grep`, `find`, `ls`); `role: "writer"` selects the explicit writer tool default, or callers may provide `tools`. `cwd`, `model`, and `resumeSessionId` are optional. Names are unique and validated. Writers default to shared isolation (one live writer per canonical cwd); `isolation: "worktree"` remains a profile policy and requires a linked worktree distinct from the parent. A failed spawn registers no half-created worker.
+`name` is required; `profile` is optional for reusable policy bundles, and `agent` is optional (default `pi`). Without a profile, direct workers use safe read-only defaults (`read`, `grep`, `find`, `ls`); `role: "writer"` selects the explicit writer tool default, or callers may provide `tools`. `cwd`, `model`, and `executionEnvironment` apply to creation. `sessionId` opens an existing provider-native session instead of creating one: opening preserves native settings, rejects creation overrides, and does not decorate prompts or retry. Native opening currently verifies identity through the Pi adapter; other adapters fail with `NATIVE_OPEN_UNSUPPORTED` until they advertise the same capability. Opening a stored Pi session starts a new local executor for that file, not attachment to an already-running terminal process. Names are unique and validated. Writers default to shared isolation (one live writer per canonical cwd); `isolation: "worktree"` remains a profile policy and requires a linked worktree distinct from the parent. A failed spawn registers no half-created worker.
 
 ### `status`
 
-`name` is required. The coordinator exposes ACPX `getStatus` model discovery as `currentModelId` and `availableModelIds` for a live worker. If the runtime does not advertise discovery, the operation fails explicitly with `MODEL_DISCOVERY_UNSUPPORTED` (or a discovery failure code).
+`name` is required. The coordinator reports origin, native identity/capabilities when opened, and advertised model IDs. Created-worker model discovery still requires ACPX `getStatus`; unsupported discovery fails with `MODEL_DISCOVERY_UNSUPPORTED`.
 
 ### `send`
 
@@ -30,7 +30,7 @@ The public actions are `spawn`, `status`, `send`, `wait`, `result`, `list`, `can
 
 The coordinator starts ACPX turns with timeout `0` and runs the profile deadline itself. On deadline it records `timed_out`, gates late output/results, attempts cooperative cancellation, closes the stream/runtime within bounded grace, and marks the worker failed and unusable until explicitly closed or replaced.
 
-The prompt is decorated with the worker's role contract and acceptance contract based on `kind` (oracle, finder, worker, free). Oracle, finder, and worker kinds are expected to produce a fenced `acceptance-report` block in their output; the coordinator parses it onto the request.
+Created-worker prompts are decorated with the role and acceptance contracts based on `kind` (oracle, finder, worker, free). Opened sessions receive the exact prompt, including surrounding whitespace, and never retry or apply stall/turn-budget cancellation. Oracle, finder, and worker kinds are expected to produce a fenced `acceptance-report` block in their output; the coordinator parses it onto the request.
 
 For profiles with `fallbackModels` and `maxAttempts > 1`, a retryable provider failure triggers a bounded retry on the same persistent session with the fallback model. The public request ID is stable across retries. Non-retryable failures, cancellations, and policy violations (stall, turn budget) are never retried.
 

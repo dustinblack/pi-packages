@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { normalizeAgentCommandInput } from "../../acp/client-process.js";
 import { AcpClient } from "../../acp/client.js";
+import { requireNativeSessionBinding } from "../../acp/native-session.js";
 import { normalizeOutputError } from "../../acp/error-normalization.js";
 import { extractAcpError, isAcpResourceNotFoundError } from "../../acp/error-shapes.js";
 import { modelStateFromConfigOptions } from "../../acp/model-support.js";
@@ -333,10 +334,10 @@ function applyDesiredConfigOptionToRecord(record, configId, value) {
         setDesiredConfigOption(record, configId, value);
     }
 }
-async function createOrLoadRuntimeSession(client, resumeSessionId, cwd) {
+async function createOrLoadRuntimeSession(client, resumeSessionId, cwd, nativeSession) {
     if (resumeSessionId) {
         if (client.supportsResumeSession()) {
-            const resumed = await client.resumeSession(resumeSessionId, cwd);
+            const resumed = await client.resumeSession(resumeSessionId, cwd, nativeSession);
             return {
                 sessionId: resumeSessionId,
                 agentSessionId: resumed.agentSessionId,
@@ -346,7 +347,7 @@ async function createOrLoadRuntimeSession(client, resumeSessionId, cwd) {
         if (!client.supportsLoadSession()) {
             throw new Error(`Agent does not support session/resume or session/load; cannot resume session ${resumeSessionId}`);
         }
-        const loaded = await client.loadSession(resumeSessionId, cwd);
+        const loaded = await client.loadSession(resumeSessionId, cwd, nativeSession);
         return {
             sessionId: resumeSessionId,
             agentSessionId: loaded.agentSessionId,
@@ -460,8 +461,25 @@ export class AcpRuntimeManager {
             record: result.record,
         };
     }
+    async describeNativeSession(input) {
+        const { agentCommand, agentArgv } = normalizeAgentCommandInput(this.options.agentRegistry.resolve(input.agent));
+        const client = this.createClient({ agentCommand, agentArgv, cwd: input.cwd ?? this.options.cwd,
+            permissionMode: "deny-all", nonInteractivePermissions: "deny" });
+        try {
+            return await withTimeout((async () => {
+                await client.start();
+                return await client.describeNativeSession(input.sessionId);
+            })(), this.options.timeoutMs);
+        }
+        finally {
+            await client.close();
+        }
+    }
     async ensureSession(input) {
         const cwd = path.resolve(input.cwd?.trim() || this.options.cwd);
+        if (input.nativeSession && (input.resumeSessionId !== input.nativeSession.id || cwd !== input.nativeSession.cwd || input.sessionOptions !== undefined)) {
+            throw new Error("Native opening requires the exact ID/workspace and forbids creation options.");
+        }
         const { agentCommand, agentArgv } = normalizeAgentCommandInput(this.options.agentRegistry.resolve(input.agent));
         const existing = await this.options.sessionStore.load(input.sessionKey);
         if (input.mode === "persistent" &&
@@ -471,6 +489,13 @@ export class AcpRuntimeManager {
                 agentCommand,
                 resumeSessionId: input.resumeSessionId,
             })) {
+            if (input.nativeSession) {
+                requireNativeSessionBinding(existing.acpx?.native_session, input.nativeSession);
+                if (existing.acpx?.session_options || existing.acpx?.desired_mode_id || existing.acpx?.desired_config_options)
+                    throw new Error("Native opening cannot reuse creation settings.");
+            }
+            else if (existing.acpx?.native_session)
+                throw new Error("An opened native session cannot become an owned worker.");
             // sessionOptions on a reused record are intentionally ignored: system
             // prompts are fixed at newSession time; callers who need a different
             // prompt must use a distinct sessionKey or close the prior record.
@@ -495,7 +520,7 @@ export class AcpRuntimeManager {
         let keepClientOpen = false;
         try {
             await client.start();
-            const session = await createOrLoadRuntimeSession(client, input.resumeSessionId, cwd);
+            const session = await createOrLoadRuntimeSession(client, input.resumeSessionId, cwd, input.nativeSession);
             const record = await this.createAndSaveRuntimeRecord({
                 input,
                 client,
@@ -545,6 +570,8 @@ export class AcpRuntimeManager {
         }
         applyLifecycleSnapshotToRecord(record, client.getAgentLifecycleSnapshot());
         persistSessionOptions(record, input.sessionOptions);
+        if (input.nativeSession)
+            record.acpx = { ...record.acpx, native_session: { ...input.nativeSession } };
         await this.options.sessionStore.save(record);
         return record;
     }
@@ -642,6 +669,8 @@ export class AcpRuntimeManager {
             turn = await this.prepareRuntimeTurn(task);
             const { sessionId, resumed, loadError } = await this.connectRuntimeTurn(task, turn);
             await this.resolveRuntimeTurnReady(task, turn, resumed, loadError);
+            if (this.closingActiveRecords.has(turn.record.acpxRecordId))
+                throw new Error("Session disconnected before prompt submission.");
             if (this.cancelRuntimeTurnBeforePrompt(task)) {
                 return;
             }
@@ -723,6 +752,7 @@ export class AcpRuntimeManager {
     }
     buildRuntimeTurnController(task, turn) {
         return {
+            disconnect: () => turn.client.close(),
             hasActivePrompt: () => turn.client.hasActivePrompt(),
             requestCancelActivePrompt: async () => await this.requestRuntimeTurnCancel(task, turn),
             setSessionMode: async (modeId) => {
@@ -995,6 +1025,17 @@ export class AcpRuntimeManager {
     async cancel(handle) {
         const controller = this.activeControllers.get(handle.acpxRecordId ?? handle.sessionKey);
         await controller?.requestCancelActivePrompt();
+    }
+    async disconnect(handle) {
+        const recordId = handle.acpxRecordId ?? handle.sessionKey;
+        // Set before awaiting storage: a concurrently starting turn must not submit its prompt.
+        this.closingActiveRecords.add(recordId);
+        const record = await this.requireRecord(recordId);
+        await this.activeControllers.get(record.acpxRecordId)?.disconnect();
+        await this.closePendingPersistentClient(record.acpxRecordId);
+        record.closed = true;
+        record.closedAt = isoNow();
+        await this.options.sessionStore.save(record);
     }
     async close(handle, options = {}) {
         const record = await this.requireRecord(handle.acpxRecordId ?? handle.sessionKey);

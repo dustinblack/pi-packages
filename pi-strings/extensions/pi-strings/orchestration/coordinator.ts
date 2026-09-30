@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { appendFile, chmod, mkdir, realpath } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type { Profile, RequestRecord, RuntimeHandle, RuntimePort, RuntimeStatus, RuntimeTerminal, RuntimeTurn, StringsResponse, TurnUsage, UsageBreakdown, UsageCost, WorkerKind, WorkerRecord, WorktreeIdentity } from "../domain/types.js";
+import type { Profile, RequestRecord, RuntimeHandle, RuntimePort, RuntimeStatus, RuntimeTerminal, RuntimeTurn, StringsResponse, TurnUsage, UsageBreakdown, UsageCost, WorkerKind, WorkerRecord, WorktreeIdentity, NativeSessionDescription, SessionOrigin } from "../domain/types.js";
 import { failure, StringsError } from "../domain/errors.js";
 import { loadProfiles } from "../domain/config.js";
 import { requireCwdUnowned, requireIsolatedWriter, requireWriterUnowned } from "../domain/worktree.js";
@@ -22,8 +22,10 @@ interface CoordinatorTerminal {
 
 type Action = Record<string, unknown> & { action: string };
 
-interface LiveWorker { record: WorkerRecord; runtime: RuntimePort; turn?: RuntimeTurn; deadline?: NodeJS.Timeout }
-type RuntimeFactory = (cwd: string, stateDir: string, profile: Profile) => RuntimePort;
+interface LiveWorker { record: WorkerRecord; runtime: RuntimePort; turn?: RuntimeTurn; deadline?: NodeJS.Timeout; stopObservation?: () => void }
+type RuntimeFactory = (cwd: string, stateDir: string, profile: Profile, origin?: SessionOrigin) => RuntimePort;
+const ownedSessionKey = (session: SessionProvenance) => JSON.stringify([session.agent, session.profileName, session.role, session.cwd, session.sessionId]);
+const nativeSessionKey = (agent: string, native: NativeSessionDescription) => JSON.stringify([agent.toLowerCase(), native.scope, native.id]);
 
 export function resumeIdentityMatches(provenance: SessionProvenance, profile: Profile, cwd: string, profileName: string): boolean {
   return provenance.agent === profile.agent && provenance.role === profile.role && provenance.cwd === cwd && provenance.profileName === profileName;
@@ -54,7 +56,7 @@ export class Coordinator {
   constructor(private readonly parentCwd: string, options: CoordinatorOptions = {}) {
     this.stateDir = options.stateDir ?? join(process.env.PI_AGENT_DIR ?? join(homedir(), ".pi", "agent"), "pi-strings");
     this.stateStore = new StateStore(this.stateDir);
-    this.runtimeFactory = options.runtimeFactory ?? ((cwd, stateDir, profile) => new AcpxRuntimePort(cwd, stateDir, profile));
+    this.runtimeFactory = options.runtimeFactory ?? ((cwd, stateDir, profile, origin) => new AcpxRuntimePort(cwd, stateDir, profile, origin));
     this.profiles = options.profiles;
   }
 
@@ -115,31 +117,46 @@ export class Coordinator {
   private async initializeState(): Promise<void> {
     await this.stateStore.acquire();
     const [state, profiles] = await Promise.all([this.stateStore.load(), this.getProfiles()]);
-    for (const session of state.sessions ?? []) this.sessions.set(session.sessionId, session);
+    for (const session of state.sessions ?? []) this.sessions.set(ownedSessionKey(session), session);
     for (const request of state.requests) {
       if (request.status === "running") {
         request.status = "failed";
         request.finishedAt = new Date().toISOString();
-        request.failure = { code: "PARENT_PROCESS_LOST", message: "The owning Pi process exited before this request reached a terminal result.", retryable: true };
+        request.failure = { code: "PARENT_PROCESS_LOST", message: "Pi exited before this request reached a terminal result.", retryable: request.delivery === undefined };
+        if (request.delivery !== undefined) request.delivery = "unknown";
       }
       this.requests.set(request.id, request);
     }
     for (const stored of state.workers) {
-      const configuredProfile = profiles[stored.profileName];
+      const opened = stored.origin === "opened";
+      const configuredProfile = opened ? undefined : profiles[stored.profileName];
       const direct = stored.profileName.startsWith("direct:") && stored.handle.agent ? directProfile(stored.handle.agent, stored.role, stored.tools) : undefined;
       const baseProfile = configuredProfile ?? direct ?? { agent: stored.handle.agent ?? "unavailable", role: stored.role, tools: [], timeoutMs: 900_000, cancellationGraceMs: 5_000, maxOutputBytes: 256_000 };
       const restoredProfile: Profile = stored.handle.agent && stored.handle.agent !== baseProfile.agent ? { ...baseProfile, agent: stored.handle.agent } : baseProfile;
       const profile: Profile = stored.model ? { ...restoredProfile, model: stored.model } : restoredProfile;
       const wasActive = stored.status === "running" || stored.status === "spawning" || stored.status === "closing" || stored.activeRequestId !== undefined;
       const status = wasActive ? "failed" : stored.status;
-      const record: WorkerRecord = { ...stored, profile, role: profile.role, status };
+      const record: WorkerRecord = { ...stored, origin: stored.origin ?? "created", profile, role: profile.role, status };
       delete record.activeRequestId;
       if (record.role === "writer") {
         if (record.worktree) requireWriterUnowned([...this.workers.values()].map(worker => worker.record), record.worktree);
         else requireCwdUnowned([...this.workers.values()].map(worker => worker.record), record.cwd);
       }
-      const runtime = this.runtimeFactory(record.cwd, this.stateDir, profile);
-      if (!configuredProfile && !direct) {
+      const runtime = this.runtimeFactory(record.cwd, this.stateDir, profile, record.origin);
+      if (opened) {
+        if (!record.native || !runtime.openSession || !runtime.describeNativeSession || !runtime.disconnect) {
+          record.status = "failed";
+        } else if (!wasActive && record.status === "idle") {
+          try {
+            const native = await runtime.describeNativeSession(profile.agent, record.native.id);
+            this.requireSameNative(record.native, native);
+            record.handle = await runtime.openSession({ name: record.name, agent: profile.agent, native, handle: record.handle });
+            record.native = native;
+          } catch { record.status = "failed"; }
+        }
+      } else if (!resumeIdentityMatches({ sessionId: stored.handle.backendSessionId ?? stored.handle.agentSessionId ?? "", agent: stored.handle.agent ?? profile.agent, role: stored.role, cwd: stored.cwd, profileName: stored.profileName }, profile, record.cwd, record.profileName)) {
+        record.status = "failed";
+      } else if (!configuredProfile && !direct) {
         record.status = "failed";
       } else if (!wasActive && (record.status === "idle" || record.status === "failed")) {
         const resumeSessionId = record.handle.backendSessionId ?? record.handle.agentSessionId;
@@ -155,7 +172,10 @@ export class Coordinator {
         }
       }
       const sessionId = record.handle.backendSessionId ?? record.handle.agentSessionId;
-      if (sessionId && !this.sessions.has(sessionId)) this.sessions.set(sessionId, { sessionId, agent: profile.agent, profileName: record.profileName, role: profile.role, cwd: record.cwd });
+      if (sessionId && !opened) {
+        const provenance = { sessionId, agent: profile.agent, profileName: record.profileName, role: profile.role, cwd: record.cwd };
+        this.sessions.set(ownedSessionKey(provenance), provenance);
+      }
       this.workers.set(record.name, { record, runtime });
     }
     await this.persist();
@@ -179,6 +199,13 @@ export class Coordinator {
     await this.initializePromise.catch(() => undefined);
     if (this.initialized) {
       for (const worker of this.workers.values()) {
+        if (worker.record.origin === "opened") {
+          const active = Boolean(worker.turn);
+          try { await this.disconnectOpened(worker, "coordinator shutdown"); }
+          catch { worker.record.status = "failed"; }
+          if (active) worker.record.status = "failed";
+          continue;
+        }
         if (worker.turn) {
           try { await this.cancelWorker(worker, "coordinator shutdown", false); } catch { /* terminal state is persisted below */ }
         }
@@ -212,6 +239,9 @@ export class Coordinator {
     const agentInput = optionalString(input.agent);
     if (!NAME.test(name)) throw new StringsError("WORKER_NAME_INVALID", `Invalid worker name: ${name}`);
     if (this.workers.has(name)) throw new StringsError("WORKER_EXISTS", `Worker ${name} already exists.`);
+    if (input.resumeSessionId !== undefined) throw new StringsError("INPUT_INVALID", "Use sessionId for native opening; resumeSessionId is no longer a public parameter.");
+    const nativeId = optionalString(input.sessionId);
+    if (nativeId) return this.openNative(input, name, agentInput ?? "pi", nativeId);
     const profiles = await this.getProfiles();
     let profileName: string;
     let configuredProfile: Profile | undefined;
@@ -232,17 +262,10 @@ export class Coordinator {
     const worktree = await this.admitWriter(profile, cwd);
     await mkdir(this.stateDir, { recursive: true, mode: 0o700 });
     const runtime = this.runtimeFactory(cwd, this.stateDir, profile);
-    const resumeSessionId = typeof input.resumeSessionId === "string" ? input.resumeSessionId : undefined;
-    if (resumeSessionId) {
-      const provenance = this.sessions.get(resumeSessionId);
-      if (!provenance) throw new StringsError("RESUME_PROVENANCE_UNKNOWN", "Resume requires coordinator-owned session provenance.");
-      const owner = [...this.workers.values()].find(candidate => candidate.record.handle.backendSessionId === resumeSessionId || candidate.record.handle.agentSessionId === resumeSessionId);
-      if (owner) throw new StringsError("SESSION_IN_USE", `Session ${resumeSessionId} is already owned by worker ${owner.record.name}.`);
-      if (!resumeIdentityMatches(provenance, profile, cwd, profileName)) throw new StringsError("RESUME_IDENTITY_MISMATCH", "Resume requires the original agent, role, profile, and cwd.");
-    }
+    const executionEnvironment = optionalString(input.executionEnvironment);
     let handle: RuntimeHandle | undefined;
     try {
-      handle = await runtime.ensureSession({ name, agent: profile.agent, cwd, profile, ...(resumeSessionId ? { resumeSessionId } : {}) });
+      handle = await runtime.ensureSession({ name, agent: profile.agent, cwd, profile, ...(executionEnvironment ? { executionEnvironment } : {}) });
       if (profile.model) await this.requireSelectedModel(runtime, handle, profile.model);
     } catch (error) {
       if (handle) await runtime.close(handle, "model selection failed", true).catch(() => undefined);
@@ -253,9 +276,49 @@ export class Coordinator {
     }
     if (!handle) throw new StringsError("SESSION_INIT_FAILED", `Worker ${name} did not return a runtime session handle.`);
     const now = new Date().toISOString();
-    const record: WorkerRecord = { name, profileName, profile, role: profile.role, ...(profile.model ? { model: profile.model } : {}), status: "idle", cwd, ...(worktree ? { worktree } : {}), handle: { ...handle, agent: profile.agent, profileName, role: profile.role, cwd }, createdAt: now, updatedAt: now };
+    const record: WorkerRecord = { origin: "created", name, profileName, profile, role: profile.role, ...(profile.model ? { model: profile.model } : {}), status: "idle", cwd, ...(worktree ? { worktree } : {}), handle: { ...handle, agent: profile.agent, profileName, role: profile.role, cwd }, createdAt: now, updatedAt: now };
     const sessionId = record.handle.backendSessionId ?? record.handle.agentSessionId;
-    if (sessionId) this.sessions.set(sessionId, { sessionId, agent: profile.agent, profileName, role: profile.role, cwd });
+    if (sessionId) {
+      const provenance = { sessionId, agent: profile.agent, profileName, role: profile.role, cwd };
+      this.sessions.set(ownedSessionKey(provenance), provenance);
+    }
+    this.workers.set(name, { record, runtime });
+    await this.persist();
+    return { ok: true, action: "spawn", details: this.publicWorker(record) };
+  }
+
+  private requireSameNative(expected: NativeSessionDescription, actual: NativeSessionDescription): void {
+    if (expected.id !== actual.id || expected.scope !== actual.scope || expected.cwd !== actual.cwd || expected.executionEnvironment !== actual.executionEnvironment) {
+      throw new StringsError("SESSION_IDENTITY_CHANGED", "Native identity, storage/account scope, workspace, or executor changed.");
+    }
+  }
+
+  private async openNative(input: Action, name: string, agent: string, sessionId: string): Promise<StringsResponse> {
+    for (const key of ["profile", "role", "tools", "model", "thinking", "executionEnvironment"]) {
+      if (input[key] !== undefined) throw new StringsError("OPEN_OVERRIDE_FORBIDDEN", `Opening preserves native settings; ${key} is creation-only.`);
+    }
+    const profile = directProfile(agent, "writer", undefined);
+    const runtime = this.runtimeFactory(this.parentCwd, this.stateDir, profile, "opened");
+    if (!runtime.describeNativeSession || !runtime.openSession || !runtime.disconnect) throw new StringsError("NATIVE_OPEN_UNSUPPORTED", "The adapter cannot yet verify native opening and disconnect.");
+    const native = await runtime.describeNativeSession(agent, sessionId);
+    if (native.id !== sessionId) throw new StringsError("SESSION_IDENTITY_CHANGED", "Adapter returned a different native ID.");
+    if (input.cwd !== undefined && await realpath(requiredString(input.cwd, "cwd")) !== native.cwd) throw new StringsError("SESSION_WORKSPACE_MISMATCH", "cwd does not match the native workspace.");
+    for (const worker of this.workers.values()) {
+      const duplicate = worker.record.native
+        ? nativeSessionKey(worker.record.profile.agent, worker.record.native) === nativeSessionKey(agent, native)
+        : worker.record.profile.agent.toLowerCase() === agent.toLowerCase() && (worker.record.handle.agentSessionId ?? worker.record.handle.backendSessionId) === sessionId;
+      if (duplicate) throw new StringsError("SESSION_IN_USE", `Native session is already bound to ${worker.record.name}.`);
+    }
+    if (native.executionEnvironment === "local") await this.admitWriter(profile, native.cwd);
+    const handle = await runtime.openSession({ name, agent, native });
+    if (handle.agentSessionId !== sessionId) {
+      await runtime.disconnect(handle);
+      throw new StringsError("SESSION_IDENTITY_CHANGED", "Runtime did not verify the requested native ID.");
+    }
+    const now = new Date().toISOString();
+    const record: WorkerRecord = { origin: "opened", native, name, profileName: `direct:${agent}`, profile,
+      role: native.executionEnvironment === "local" ? "writer" : "read-only", status: "idle", cwd: native.cwd,
+      handle: { ...handle, agent, cwd: native.cwd }, createdAt: now, updatedAt: now };
     this.workers.set(name, { record, runtime });
     await this.persist();
     return { ok: true, action: "spawn", details: this.publicWorker(record) };
@@ -265,8 +328,14 @@ export class Coordinator {
     const worker = this.getWorker(requiredString(input.name, "name"));
     if (worker.record.status !== "idle") throw new StringsError("WORKER_BUSY", `Worker ${worker.record.name} is ${worker.record.status}.`);
     if (worker.record.role === "writer") this.revalidateWriter(worker);
-    const prompt = requiredString(input.prompt, "prompt");
-    const requestedModel = input.model === undefined ? worker.record.profile.model : optionalModel(input.model);
+    const opened = worker.record.origin === "opened";
+    const prompt = opened ? requiredPrompt(input.prompt) : requiredString(input.prompt, "prompt");
+    if (opened) {
+      if (input.model !== undefined || input.predecessorRequestId !== undefined) throw new StringsError("OPEN_OVERRIDE_FORBIDDEN", "Opened sessions do not accept model overrides or automatic reassignment.");
+      const native = await worker.runtime.describeNativeSession!(worker.record.profile.agent, worker.record.native!.id);
+      this.requireSameNative(worker.record.native!, native);
+    }
+    const requestedModel = opened ? undefined : input.model === undefined ? worker.record.profile.model : optionalModel(input.model);
     if (requestedModel) await this.requireSelectedModel(worker.runtime, worker.record.handle, requestedModel);
     const timeoutMs = optionalPositive(input.requestTimeoutMs, worker.record.profile.timeoutMs);
     const requestId = `req_${randomUUID()}`;
@@ -284,11 +353,12 @@ export class Coordinator {
     const attempt = [...this.requests.values()].filter(candidate => candidate.lineageId === lineageId).reduce((highest, candidate) => Math.max(highest, candidate.attempt ?? 0), 0) + 1;
     const record: RequestRecord = { id: requestId, workerName: worker.record.name, status: "running", startedAt: new Date().toISOString(), output: "", truncated: false, eventPath, lineageId, attempt, ...(requestedModel ? { requestedModel } : {}), ...(predecessorRequestId ? { predecessorRequestId } : {}) };
     if (predecessor) predecessor.supersededBy = requestId;
+    if (opened) record.delivery = "unknown";
     this.requests.set(requestId, record);
     worker.record.status = "running";
     worker.record.activeRequestId = requestId;
     worker.record.updatedAt = new Date().toISOString();
-    const decorated = this.decoratePrompt(worker.record.profile, prompt);
+    const decorated = opened ? prompt : this.decoratePrompt(worker.record.profile, prompt);
     let turn: RuntimeTurn;
     try {
       turn = worker.runtime.startTurn({ handle: worker.record.handle, prompt: decorated, requestId, timeoutMs });
@@ -303,8 +373,9 @@ export class Coordinator {
     }
     worker.turn = turn;
     void turn.result.then(() => this.terminalSignals.add(requestId), () => this.terminalSignals.add(requestId));
+    const observationEnd = new Promise<void>(resolve => { worker.stopObservation = resolve; });
     const completion = this.runRequest(worker, record, turn, prompt, timeoutMs, requestedModel);
-    this.completions.set(requestId, completion);
+    this.completions.set(requestId, opened ? Promise.race([completion, observationEnd]) : completion);
     await this.persist();
     return { ok: true, action: "send", details: { requestId, worker: worker.record.name, status: "running", lineageId, attempt, ...(requestedModel ? { requestedModel } : {}), session: worker.record.handle.backendSessionId ?? worker.record.handle.agentSessionId, decoratedPromptSuffix: decorated.slice(prompt.length) } };
   }
@@ -323,8 +394,9 @@ export class Coordinator {
 
   private async runRequest(worker: LiveWorker, request: RequestRecord, firstTurn: RuntimeTurn, prompt: string, timeoutMs: number, requestedModel?: string): Promise<void> {
     const profile = worker.record.profile;
-    const maxAttempts = profile.maxAttempts ?? 1;
-    const fallback = profile.fallbackModels ?? [];
+    const opened = worker.record.origin === "opened";
+    const maxAttempts = opened ? 1 : profile.maxAttempts ?? 1;
+    const fallback = opened ? [] : profile.fallbackModels ?? [];
     const retryEnabled = maxAttempts > 1 || fallback.length > 0;
     const deadline = Date.now() + timeoutMs;
     const onDeadline = async (): Promise<void> => {
@@ -333,7 +405,12 @@ export class Coordinator {
       request.status = "timed_out";
       request.finishedAt = new Date().toISOString();
       request.stopReason = "timed_out";
-      request.failure = { code: "TURN_TIMEOUT", message: `Coordinator deadline exceeded after ${timeoutMs}ms.`, retryable: true };
+      request.failure = { code: "TURN_TIMEOUT", message: `Coordinator deadline exceeded after ${timeoutMs}ms.`, retryable: !opened };
+      if (opened) {
+        worker.stopObservation?.();
+        await this.persist();
+        return; // Stop waiting; the native turn still owns its execution lifetime.
+      }
       worker.record.status = "failed";
       await this.persist();
       if (turn) {
@@ -360,7 +437,7 @@ export class Coordinator {
             request.status = "timed_out";
             request.finishedAt = new Date().toISOString();
             request.stopReason = "timed_out";
-            request.failure = { code: "TURN_TIMEOUT", message: `Coordinator deadline exceeded after ${timeoutMs}ms.`, retryable: true };
+            request.failure = { code: "TURN_TIMEOUT", message: `Coordinator deadline exceeded after ${timeoutMs}ms.`, retryable: !opened };
             worker.record.status = "failed";
           }
           break;
@@ -421,6 +498,8 @@ export class Coordinator {
       delete worker.record.activeRequestId;
       worker.record.updatedAt = new Date().toISOString();
       delete worker.turn;
+      worker.stopObservation?.();
+      delete worker.stopObservation;
       this.completions.delete(request.id);
       await this.persist();
     }
@@ -442,7 +521,7 @@ export class Coordinator {
       const eventDrain = (async () => {
         try {
           for await (const event of turn.events) {
-            if (event.type === "tool") {
+            if (event.type === "tool" && worker.record.origin === "created") {
               const isNewCall = !event.toolCallId || !seenToolCallIds.has(event.toolCallId);
               if (event.toolCallId) {
                 seenToolCallIds.add(event.toolCallId);
@@ -509,14 +588,14 @@ export class Coordinator {
       this.applyTerminal(worker, request, terminal as RuntimeTerminal);
       const usage = mergeUsage(request.usage, (terminal as RuntimeTerminal).usage);
       if (usage) request.usage = usage;
-      request.acceptance = parseAcceptanceReport(request.output);
+      if (worker.record.origin === "created") request.acceptance = parseAcceptanceReport(request.output);
       if (!closeSettled || !streamSettled) worker.record.status = "failed";
       return undefined;
     } catch (error) {
       if (request.status === "running") {
         request.status = "failed";
         request.finishedAt = new Date().toISOString();
-        request.failure = { code: "TRANSPORT_FAILED", message: error instanceof Error ? error.message : String(error), retryable: true };
+        request.failure = { code: "TRANSPORT_FAILED", message: error instanceof Error ? error.message : String(error), retryable: worker.record.origin === "created" };
         worker.record.status = "failed";
       }
       return undefined;
@@ -524,6 +603,14 @@ export class Coordinator {
   }
 
   private applyTerminal(worker: LiveWorker, request: RequestRecord, terminal: RuntimeTerminal): void {
+    if (worker.record.origin === "opened") {
+      request.providerOutcome = terminal.status;
+      if (terminal.status === "completed") request.delivery = "accepted";
+      if (request.status !== "running") {
+        if (worker.record.status === "running") worker.record.status = terminal.status === "failed" ? "failed" : "idle";
+        return;
+      }
+    }
     if (request.status !== "running") return;
     request.finishedAt = new Date().toISOString();
     if (terminal.status === "completed" && request.cancellationRequestedAt) {
@@ -538,7 +625,7 @@ export class Coordinator {
       request.failure = {
         code: terminal.error.code ?? (isTimeout ? "TURN_TIMEOUT" : "RUNTIME_FAILED"),
         message: terminal.error.message,
-        retryable: terminal.error.retryable ?? isTimeout,
+        retryable: worker.record.origin === "opened" ? false : terminal.error.retryable ?? isTimeout,
         ...(terminal.error.detailCode ? { detailCode: terminal.error.detailCode } : {}),
       };
     }
@@ -570,14 +657,17 @@ export class Coordinator {
 
   private async status(input: Action): Promise<StringsResponse> {
     const worker = this.getWorker(requiredString(input.name, "name"));
-    const status = await this.readModelStatus(worker.runtime, worker.record.handle);
+    const status = worker.record.origin === "opened"
+      ? await worker.runtime.getStatus?.(worker.record.handle)
+      : await this.readModelStatus(worker.runtime, worker.record.handle);
     return {
       ok: true,
       action: "status",
       details: {
+        ...this.publicWorker(worker.record),
         worker: worker.record.name,
-        currentModelId: status.currentModelId,
-        availableModelIds: [...status.availableModelIds],
+        currentModelId: status?.currentModelId,
+        availableModelIds: status?.availableModelIds ?? [],
       },
     };
   }
@@ -602,7 +692,7 @@ export class Coordinator {
     if (status.currentModelId === model) return;
     if (!runtime.setConfigOption) throw new StringsError("MODEL_SELECTION_UNSUPPORTED", "The worker runtime does not support model selection.");
     try {
-      await runtime.setConfigOption({ handle, key: "model", value: model });
+      await runtime.setConfigOption({ handle, key: status.modelConfigId ?? "model", value: model });
       status = await this.readModelStatus(runtime, handle);
     } catch (error) {
       if (error instanceof StringsError) throw error;
@@ -646,9 +736,19 @@ export class Coordinator {
     if (request) request.cancellationRequestedAt = new Date().toISOString();
     await this.persist();
     const cancelAcknowledged = await settlesWithin(turn.cancel(reason), worker.record.profile.cancellationGraceMs).catch(() => false);
-    const completion = this.completions.get(requestId);
+    const completion = worker.record.origin === "opened" ? turn.result.then(() => undefined) : this.completions.get(requestId);
     const settled = cancelAcknowledged && (!completion || await settlesWithin(completion, worker.record.profile.cancellationGraceMs));
     if (!settled) {
+      if (worker.record.origin === "opened") {
+        if (request?.status === "running") {
+          request.status = "failed";
+          request.finishedAt = new Date().toISOString();
+          request.failure = { code: "CANCEL_UNCONFIRMED", message: "Stop was requested but provider completion is unconfirmed.", retryable: false };
+        }
+        worker.stopObservation?.();
+        await this.persist();
+        throw new StringsError("CANCEL_UNCONFIRMED", "Native stop remains unconfirmed; no destructive cleanup was attempted.");
+      }
       if (request?.status === "running") {
         request.status = "cancelled";
         request.finishedAt = new Date().toISOString();
@@ -679,8 +779,35 @@ export class Coordinator {
     return { requestId, escalated: false };
   }
 
+  private async disconnectOpened(worker: LiveWorker, reason: string): Promise<void> {
+    const request = worker.record.activeRequestId ? this.requests.get(worker.record.activeRequestId) : undefined;
+    if (request?.status === "running") {
+      request.status = "failed";
+      request.finishedAt = new Date().toISOString();
+      request.failure = { code: "PARTICIPATION_CLOSED", message: `${reason}; native delivery/result may be unknown.`, retryable: false };
+    }
+    worker.stopObservation?.();
+    if (worker.deadline) { clearTimeout(worker.deadline); delete worker.deadline; }
+    if (worker.turn) await worker.turn.closeStream(reason);
+    if (!worker.runtime.disconnect) throw new StringsError("DISCONNECT_UNSUPPORTED", "Runtime has no disconnect-only operation.");
+    const settled = await settlesWithin(worker.runtime.disconnect(worker.record.handle), worker.record.profile.cancellationGraceMs);
+    if (!settled) throw new StringsError("DISCONNECT_TIMEOUT", "Local disconnect has not settled.");
+    await this.persist();
+  }
+
   private async close(input: Action): Promise<StringsResponse> {
     const worker = this.getWorker(requiredString(input.name, "name"));
+    if (worker.record.origin === "opened") {
+      if (input.discardPersistentState === true) throw new StringsError("OPEN_OVERRIDE_FORBIDDEN", "Disconnect cannot discard a native session.");
+      worker.record.status = "closing";
+      try { await this.disconnectOpened(worker, "op_close"); }
+      catch (error) { worker.record.status = "failed"; await this.persist(); throw error; }
+      worker.record.status = "closed";
+      const details = this.publicWorker(worker.record);
+      this.workers.delete(worker.record.name);
+      await this.persist();
+      return { ok: true, action: "close", details };
+    }
     if (worker.record.status === "running" && input.force !== true) throw new StringsError("WORKER_BUSY", "Use force=true to close an active worker.");
     let alreadyClosed = false;
     if (worker.turn) {
@@ -727,7 +854,12 @@ export class Coordinator {
   }
 
   private getWorker(name: string): LiveWorker { const worker = this.workers.get(name); if (!worker) throw new StringsError("WORKER_NOT_FOUND", `Unknown worker: ${name}`); return worker; }
-  private publicWorker(record: WorkerRecord): Record<string, unknown> { return { name: record.name, profile: record.profileName, agent: record.profile.agent, role: record.role, ...(record.model ? { model: record.model } : {}), status: record.status, cwd: record.cwd, activeRequestId: record.activeRequestId, session: record.handle.backendSessionId ?? record.handle.agentSessionId }; }
+  private publicWorker(record: WorkerRecord): Record<string, unknown> { return {
+    name: record.name, origin: record.origin, agent: record.profile.agent,
+    ...(record.origin === "created" ? { profile: record.profileName, role: record.role } : { policy: "provider-native", native: record.native }),
+    ...(record.model ? { model: record.model } : {}), status: record.status, cwd: record.cwd, activeRequestId: record.activeRequestId,
+    session: record.handle.backendSessionId ?? record.handle.agentSessionId, nativeSessionId: record.native?.id ?? record.handle.agentSessionId,
+  }; }
 }
 
 const DIRECT_READ_TOOLS = ["read", "grep", "find", "ls"];
@@ -765,6 +897,10 @@ function safeUtf8Prefix(chunk: Buffer, maxBytes: number): Buffer {
 }
 function isTerminal(status: RequestRecord["status"]): boolean { return status === "completed" || status === "cancelled" || status === "timed_out" || status === "failed"; }
 function requiredString(value: unknown, name: string): string { if (typeof value !== "string" || value.trim() === "") throw new StringsError("INPUT_INVALID", `${name} is required.`); return value.trim(); }
+function requiredPrompt(value: unknown): string {
+  if (typeof value !== "string" || value.trim() === "") throw new StringsError("INPUT_INVALID", "prompt is required.");
+  return value;
+}
 function optionalPositive(value: unknown, fallback: number): number { if (value === undefined) return fallback; if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) throw new StringsError("INPUT_INVALID", "timeoutMs must be positive."); return value; }
 function isRequestedModelUnsupported(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;

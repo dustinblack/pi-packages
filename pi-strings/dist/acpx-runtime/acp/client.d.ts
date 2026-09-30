@@ -1,4 +1,5 @@
 import { type AnyMessage, type InitializeResponse, type ListSessionsRequest, type ListSessionsResponse, type PromptResponse, type SetSessionConfigOptionResponse, type SessionConfigOption } from "@agentclientprotocol/sdk";
+import { type NativeSessionBinding, type NativeSessionDescription } from "./native-session.js";
 import { buildSpawnCommandOptions } from "../spawn-command-options.js";
 import type { AcpClientOptions, NonInteractivePermissionPolicy, PermissionMode, PermissionStats, PromptInput } from "../types.js";
 import { buildQoderAcpCommandArgs, resolveAgentCloseAfterStdinEndMs, resolveClaudeCodeSettingSources, shouldIgnoreNonJsonAgentOutputLine } from "./agent-command.js";
@@ -7,6 +8,7 @@ import { type SessionModelState } from "./model-support.js";
 export { buildSpawnCommandOptions };
 export { buildAgentSpawnOptions, buildQoderAcpCommandArgs, resolveAgentCloseAfterStdinEndMs, resolveClaudeCodeSettingSources, shouldIgnoreNonJsonAgentOutputLine, };
 type LoadSessionOptions = {
+    nativeSession?: NativeSessionBinding;
     suppressReplayUpdates?: boolean;
     replayIdleMs?: number;
     replayDrainTimeoutMs?: number;
@@ -104,9 +106,10 @@ export declare class AcpClient {
     private handleInitializeFailure;
     private createTappedStream;
     createSession(cwd?: string): Promise<SessionCreateResult>;
-    loadSession(sessionId: string, cwd?: string): Promise<SessionLoadResult>;
+    describeNativeSession(sessionId: string): Promise<NativeSessionDescription>;
+    loadSession(sessionId: string, cwd?: string, nativeSession?: NativeSessionBinding): Promise<SessionLoadResult>;
     loadSessionWithOptions(sessionId: string, cwd?: string, options?: LoadSessionOptions): Promise<SessionLoadResult>;
-    resumeSession(sessionId: string, cwd?: string): Promise<SessionResumeResult>;
+    resumeSession(sessionId: string, cwd?: string, nativeSession?: NativeSessionBinding): Promise<SessionResumeResult>;
     private applySessionUpdateSuppression;
     private restoreSessionUpdateSuppression;
     prompt(sessionId: string, prompt: PromptInput | string): Promise<PromptResponse>;

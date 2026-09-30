@@ -9,6 +9,8 @@ import type {
   SessionRecord,
 } from "../../types.js";
 import type { SessionAgentOptions } from "../engine/session-options.js";
+import type { NativeSessionBinding, NativeSessionDescription } from "../../acp/native-session.js";
+export type { NativeSessionBinding, NativeSessionDescription } from "../../acp/native-session.js";
 
 export type { SessionAgentOptions, SystemPromptOption } from "../engine/session-options.js";
 
@@ -48,6 +50,7 @@ export type AcpRuntimeEnsureInput = {
   agent: string;
   mode: AcpRuntimeSessionMode;
   resumeSessionId?: string;
+  nativeSession?: NativeSessionBinding;
   cwd?: string;
   /**
    * Per-session agent options applied when a fresh ACP session is created.
@@ -257,6 +260,8 @@ export interface AcpRuntimeTurn {
 }
 
 export interface AcpRuntime {
+  describeNativeSession(input: { agent: string; sessionId: string; cwd?: string }): Promise<NativeSessionDescription>;
+  disconnect(input: { handle: AcpRuntimeHandle }): Promise<void>;
   ensureSession(input: AcpRuntimeEnsureInput): Promise<AcpRuntimeHandle>;
   startTurn(input: AcpRuntimeTurnInput): AcpRuntimeTurn;
   /**

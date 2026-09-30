@@ -1,5 +1,8 @@
 import { DEFAULT_AGENT_NAME } from "./agent-registry.js";
 import { AcpRuntimeManager } from "./runtime/engine/manager.js";
+import type { NativeSessionDescription } from "./acp/native-session.js";
+export type { NativeSessionBinding, NativeSessionDescription } from "./acp/native-session.js";
+export { NativeSessionDescriptionSchema } from "./acp/native-session.js";
 import type { AcpAgentRegistry, AcpRuntime, AcpRuntimeCapabilities, AcpRuntimeDoctorReport, AcpRuntimeEnsureInput, AcpRuntimeEvent, AcpRuntimeHandle, AcpRuntimeOptions, AcpRuntimeStatus, AcpRuntimeTurnInput, AcpSessionStore } from "./runtime/public/contract.js";
 import { createFileSessionStore } from "./runtime/public/file-session-store.js";
 export { DEFAULT_AGENT_NAME, createFileSessionStore };
@@ -35,6 +38,14 @@ export declare class AcpxRuntime implements AcpxRuntimeLike {
     isHealthy(): boolean;
     probeAvailability(): Promise<void>;
     doctor(): Promise<AcpRuntimeDoctorReport>;
+    describeNativeSession(input: {
+        agent: string;
+        sessionId: string;
+        cwd?: string;
+    }): Promise<NativeSessionDescription>;
+    disconnect(input: {
+        handle: AcpRuntimeHandle;
+    }): Promise<void>;
     ensureSession(input: AcpRuntimeEnsureInput): Promise<AcpRuntimeHandle>;
     startTurn(input: AcpRuntimeTurnInput): {
         requestId: string;

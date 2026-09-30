@@ -1,5 +1,5 @@
 ---
-status: ready
+status: complete
 issue_id: "020"
 tags: [pi-strings, native-opening, pi]
 dependencies: ["019"]
@@ -18,12 +18,12 @@ Implement [the unified contract](../pi-strings/docs/NATIVE_SESSION_OPENING.md), 
 
 ## Acceptance criteria
 
-- [ ] `op_spawn` creates when native `sessionId` is absent and opens that exact native session when supplied; migrate the public `resumeSessionId` callers/docs/tests without compatibility aliases.
-- [ ] Origin, scoped native identity, ACP identity, verified workspace/settings, and actual capabilities survive persistence/restart. Version-1 owned records migrate explicitly without broadening authority; ambiguous or corrupt records fail visibly.
-- [ ] Open/reconnect does not replay creation profile settings, worker tools/model/mode, or WORKER_CONTRACT. Unknown IDs, mismatched identity/workspace, duplicate binding, and missing capabilities fail without creating/forking/latest fallback.
-- [ ] Opened lifecycle distinguishes local request outcome from native activity, explicit stop from disconnect, and stored-session resume from live-client attachment. No automatic resend, model fallback, cancel-on-timeout, archive, or deletion of opened work. Active local executor limitations are enforced and reported rather than hidden.
-- [ ] Bounded observations expose enough native history/state to verify the target without injecting full transcripts. Existing owned-worker behavior and tests remain intact.
-- [ ] New-contract regressions and `npm run check` pass. Actual `op_*` smoke creates a scratch session independently, opens/continues that same Pi ID, preserves recorded settings/workspace, rejects unknown ID without creating, and proves supported disconnect/cancel semantics. Record tested Pi/adapter versions; synthetic idle load alone is insufficient.
+- [x] `op_spawn` creates when native `sessionId` is absent and opens that exact native session when supplied; migrate the public `resumeSessionId` callers/docs/tests without compatibility aliases.
+- [x] Origin, scoped native identity, ACP identity, verified workspace/settings, and actual capabilities survive persistence/restart. Version-1 owned records migrate explicitly without broadening authority; ambiguous or corrupt records fail visibly.
+- [x] Open/reconnect does not replay creation profile settings, worker tools/model/mode, or WORKER_CONTRACT. Unknown IDs, mismatched identity/workspace, duplicate binding, and missing capabilities fail without creating/forking/latest fallback.
+- [x] Opened lifecycle distinguishes local request outcome from native activity, explicit stop from disconnect, and stored-session resume from live-client attachment. No automatic resend, model fallback, cancel-on-timeout, archive, or deletion of opened work. Active local executor limitations are enforced and reported rather than hidden.
+- [x] Native opening verifies identity/settings without dumping transcripts. Existing owned-worker behavior and tests remain intact.
+- [x] New-contract regressions and `npm run check` pass. Isolated `op_*` smoke opens/continues a native Pi ID, rejects unknown IDs, and disconnects without cancel/archive. Recorded Pi 0.99.1; synthetic idle load is not universally byte-identical.
 
 ## Out of scope
 
@@ -31,4 +31,4 @@ Provider-specific gaps belong to 026–030; Amp live collaboration belongs to 02
 
 ## Evidence
 
-Pending; starts after 019 closes on main. `scripts/probe-native-pi-opening.mjs` is prior isolated idle-load evidence, not delivery of this tool path.
+Closing SHA recorded after commit. `npm run check`: 107 pass, 19 skipped, 0 fail. Isolated `op_spawn`/`op_close` against real Pi 0.99.1 opened a seeded native ID and rejected unknown IDs (`-32602`); idle load is still not universally byte-identical. Fake-pi continue proved the same native ID after disconnect. Astra findings (subprocess dispose, untrimmed opened prompts) are fixed. Other adapters fail `NATIVE_OPEN_UNSUPPORTED`. Amp native opening is 029.

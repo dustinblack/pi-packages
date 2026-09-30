@@ -11,7 +11,8 @@
 | Model control | Coordinator tests cover `op_status`, direct send-time selection, direct spawn-time unavailable-model cleanup, configured-profile agent override, `requestedModel` request provenance, and explicit unavailable/unsupported failures. Restart coverage preserves direct tools, agent role, and creation-time model. ACPX runtime tests verify `getStatus().models.currentModelId` and `availableModelIds`. |
 | Stall/turn budget | Coordinator tests cover repeated distinct identical-call cancellation, legitimate parallel calls with distinct completed inputs, max-turn budget cancellation, and multiple streaming updates for one `toolCallId` counting once. Runtime tests verify ACPX call identity survives normalization and final inputs contribute only a one-way fingerprint, not raw logged data. |
 | Shared/worktree isolation | `tests/worktree.test.ts` covers `requireCwdUnowned` (shared default) and `requireWriterUnowned` (worktree opt-in). Coordinator tests cover shared writer in parent checkout, duplicate cwd rejection, and worktree admission. |
-| Persistence | `tests/state-store.test.ts` covers atomic private state, schema corruption, strict rejection of legacy `waiting` and `questions`, lease ownership, and usage/acceptance/model-provenance/attempt round-trip. |
+| Persistence | `tests/state-store.test.ts` covers atomic private state, schema corruption, strict rejection of legacy `waiting` and `questions`, lease ownership, and usage/acceptance/model-provenance/attempt round-trip. Version 1 owned records migrate to origin `created`; version 2 opened records require native identity. |
+| Native opening | `tests/native-opening.test.ts` covers exact-ID open, override/duplicate/mismatch rejection, untrimmed prompts, observation timeout without cancel, disconnect versus cancel, v1/v2 migration, and unsupported adapters. `tests/native-pi-continue.test.ts` continues the same fake-Pi native ID after disconnect. `scripts/probe-native-pi-opening.mjs` exercises real Pi 0.99.1 idle open/close. |
 | Runtime contract | `tests/acpx-contract.test.ts` covers the vendored ACPX PR #468 session continuity/reconnect, cancellation, native permission-policy settlement, lack of native steering, and `normalize` usage extraction from status events. `tests/pi-acp-runtime.test.ts` covers Pi through `AcpxRuntimePort` and session continuity. |
 | Policy | `tests/extension.test.ts` covers native ACPX `approve-reads` routing for read-only and writer roles; `tests/acpx-contract.test.ts` proves native read approval and mutation denial settle without prompting. pi-strings passes ACPX-native options and adds no provider-specific permission callbacks or matching. |
 | Integration | `tests/integration/*.test.ts` remains prerequisite-gated for configured Pi/Codex/OpenCode executables and models. Skips are reported explicitly. |
@@ -39,7 +40,7 @@ This ledger describes the current implementation, not the retired interaction de
 | 15 | Steering terminal race. | Not applicable | Retired surface; no production steering port |
 | 16 | Process framing, stale lease, and restart classification. | Proven | Existing adapter/process tests; hosted execution is opt-in |
 | 17 | Role permission routing is native ACPX: both use `approve-reads`; read-only workers auto-approve reads/searches and default-deny other permission requests, while writers default-approve explicit mutations. | Proven | Extension routing and ACPX contract tests; ACPX owns matching and precedence |
-| 18 | Resume rejects agent, role, profile, or cwd mismatch and accepts matching provenance. | Proven | Coordinator resume tests |
+| 18 | Public `resumeSessionId` is rejected; native `sessionId` opens exact identity or fails unsupported. Owned reconnect remains internal. | Proven | Coordinator and native-opening tests |
 | 19 | Child question/reply interaction. | Not applicable | Questions/replies are removed from the product and state schema |
 | 20 | Pending-question expiry after parent loss. | Not applicable | Legacy question state is rejected as `STATE_CORRUPT` |
 
@@ -49,4 +50,5 @@ This ledger describes the current implementation, not the retired interaction de
 2. ACPX is the only production runtime. The port passes timeout `0`; coordinator deadlines own `timed_out` transitions and worker quarantine.
 3. ACPX permission policy is authoritative at the configured layer. Profile tool lists, cwd, and provider-native sandbox behavior are not universal guarantees.
 4. Event results are authoritative after terminal completion; stream loss before terminal remains transport failure.
-5. State version 1 is intentionally strict and does not accept obsolete waiting/question authority data.
+5. State version 2 stores origin. Version 1 owned records migrate as `created` only; opened records cannot be inferred from an old ID. Legacy waiting/question data remains `STATE_CORRUPT`.
+6. Native opening is identity/settings/lifecycle, not a transcript dump. History stays in the provider session.

@@ -151,9 +151,11 @@ export class SessionManager {
   private sessions = new Map<string, PiAcpSession>()
   private readonly store = new SessionStore()
 
-  /** Dispose all sessions and their underlying pi subprocesses. */
-  disposeAll(): void {
-    for (const [id] of this.sessions) this.close(id)
+  /** Dispose all sessions and wait for their pi subprocesses to exit. */
+  async disposeAll(): Promise<void> {
+    const procs = [...this.sessions.values()].map(session => session.proc)
+    this.sessions.clear()
+    await Promise.all(procs.map(proc => proc.terminate()))
   }
 
   /** Get a registered session if it exists (no throw). */

@@ -29,7 +29,7 @@ import { getAuthMethods } from './auth.js'
 import { SessionManager, type PiAcpSession } from './session.js'
 import { SessionStore } from './session-store.js'
 import { PiRpcProcess } from '../pi-rpc/process.js'
-import { listPiSessions, findPiSession } from './pi-sessions.js'
+import { listPiSessions, findPiSession, describePiSession } from './pi-sessions.js'
 import { normalizePiAssistantText, normalizePiMessageText } from './translate/pi-messages.js'
 import { toolResultToText } from './translate/pi-tools.js'
 import {
@@ -128,8 +128,8 @@ export class PiAcpAgent implements ACPAgent {
   private readonly store = new SessionStore()
   private readonly restoringSessions = new Map<string, Promise<PiAcpSession>>()
 
-  dispose(): void {
-    this.sessions.disposeAll()
+  dispose(): Promise<void> {
+    return this.sessions.disposeAll()
   }
 
   // Remember recent session cwd and use it as the default filter.
@@ -236,6 +236,16 @@ export class PiAcpAgent implements ACPAgent {
     }
   }
 
+  async extMethod(method: string, params: Record<string, unknown>): Promise<Record<string, unknown>> {
+    if (method !== 'pi-strings/session/describe') throw RequestError.methodNotFound(method)
+    if (typeof params.sessionId !== 'string' || !params.sessionId) throw RequestError.invalidParams('sessionId is required')
+    const native = describePiSession(params.sessionId)
+    if (!native) throw RequestError.invalidParams(`Unknown sessionId: ${params.sessionId}`)
+    const { sessionFile: _file, ...identity } = native
+    return { ...identity, executionEnvironment: 'local', attachment: 'stored-session',
+      disconnectEffect: 'stops-local-executor', concurrentNativeClients: 'unsupported', activity: 'unknown' }
+  }
+
   async initialize(params: InitializeRequest): Promise<InitializeResponse> {
     // We currently only support ACP protocol version 1.
     const supportedVersion = 1
@@ -254,6 +264,7 @@ export class PiAcpAgent implements ACPAgent {
         supportsTerminalAuthMeta: (params as any)?.clientCapabilities?._meta?.['terminal-auth'] === true
       }),
       agentCapabilities: {
+        _meta: { 'pi-strings/native-session': 1 },
         loadSession: true,
         mcpCapabilities: { http: false, sse: false },
         promptCapabilities: {
@@ -933,6 +944,16 @@ export class PiAcpAgent implements ACPAgent {
       throw RequestError.invalidParams(`cwd must be an absolute path: ${params.cwd}`)
     }
 
+    const binding = params._meta?.['pi-strings/native-session'] as { id?: unknown; scope?: unknown; cwd?: unknown } | undefined
+    const native = binding ? describePiSession(params.sessionId) : undefined
+    if (binding) {
+      if (!native) throw RequestError.invalidParams(`Unknown sessionId: ${params.sessionId}`)
+      if (binding.id !== native.id || binding.scope !== native.scope || binding.cwd !== native.cwd || realpathSync(params.cwd) !== native.cwd) {
+        throw RequestError.invalidParams('Native session identity or workspace changed')
+      }
+      if (process.env.PI_STRINGS_WORKER === '1') throw RequestError.invalidParams('Native opening cannot apply worker launch settings')
+      this.store.upsert({ sessionId: native.id, cwd: native.cwd, sessionFile: native.sessionFile })
+    }
     this.lastSessionCwd = params.cwd
 
     const stored = this.findStoredSession(params.sessionId)
@@ -955,8 +976,16 @@ export class PiAcpAgent implements ACPAgent {
       sessionFile: stored.sessionFile
     })
 
-    // Replay full conversation history.
-    const data = (await proc.getMessages()) as any
+    if (native) {
+      const state = await proc.getState() as { sessionId?: string; sessionFile?: string }
+      if (state.sessionId !== native.id || !state.sessionFile || realpathSync(state.sessionFile) !== native.sessionFile) {
+        this.sessions.close(params.sessionId)
+        throw RequestError.invalidParams('Pi loaded a different native session')
+      }
+    }
+
+    // Native opening preserves history in Pi; it must not export it into the coordinator.
+    const data = (native ? {} : await proc.getMessages()) as any
     const messages = Array.isArray(data?.messages) ? data.messages : []
 
     for (const m of messages) {
@@ -1059,6 +1088,7 @@ export class PiAcpAgent implements ACPAgent {
       models,
       modes,
       _meta: {
+        ...(native ? { agentSessionId: native.id, 'pi-strings/native-session': { id: native.id, scope: native.scope, cwd: native.cwd } } : {}),
         piAcp: {
           startupInfo: null
         }

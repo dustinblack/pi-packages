@@ -9,7 +9,7 @@ dependencies: []
 
 ## Where we are
 
-trunk: 020 — common create/open implementation; 019 closed by approved main commit382b9e9
+trunk: 029 — Amp native T-ID opening; 020 closed on main
 tangents: 020 common/Pi core, 026–029 primary providers, 030 remaining17 coverage; 021–024 Amp collaboration gates
 
 ## Findings
@@ -22,7 +22,7 @@ tangents: 020 common/Pi core, 026–029 primary providers, 030 remaining17 cover
 ## Children
 
 - [019](019-complete-amp-participant-boundary.md) — complete — contract/proof, commit382b9e9
-- [020](020-ready-amp-readonly-participant.md) — ready — common create/open + native Pi vertical slice
+- [020](020-complete-amp-readonly-participant.md) — complete — common create/open + native Pi vertical slice
 - [026](026-ready-codex-native-opening.md), [027](027-ready-claude-native-opening.md), [028](028-ready-opencode-native-opening.md) — ready — Codex, Claude, OpenCode delivery
 - [029](029-ready-amp-native-opening.md) — ready — Amp local/Orb creation and native opening/observation
 - [030](030-ready-remaining-native-provider-coverage.md) — ready — remaining17 capability investigation and provider delivery children; not delivery by itself

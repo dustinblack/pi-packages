@@ -13,7 +13,7 @@ interface ToolRegistration {
 }
 
 export default function piStrings(pi: ExtensionAPI): void {
-  if (process.env.PI_STRINGS_WORKER === "1") return;
+  if (process.env.PI_STRINGS_WORKER === "1" || process.env.PI_STRINGS_OPENED === "1") return;
   const coordinator = new Coordinator(process.cwd());
   pi.on("session_shutdown", async () => {
     await coordinator.shutdown();
@@ -33,8 +33,8 @@ export default function piStrings(pi: ExtensionAPI): void {
 
   register({
     name: "op_spawn",
-    label: "Spawn worker",
-    description: `Create or restore a named worker directly from an ACP agent (agent defaults to pi) or from an optional reusable profile. The name must match ${NAME_PATTERN}; one live writer per canonical cwd is enforced; worktree profiles must target a linked worktree via cwd; resumeSessionId restores only when agent, role, profile, and cwd match the original session. Direct workers default to safe read-only tools; optional model is validated against live ACPX discovery before admission.`,
+    label: "Create or open session",
+    description: `Create a worker, or open an exact provider-native sessionId without taking ownership. Agent defaults to pi; name matches ${NAME_PATTERN}. Opening preserves native settings and workspace: no profile, role, tools, model, or executionEnvironment overrides. Capability gaps fail explicitly; native opening is currently implemented for Pi. Stored-session resume is not live-terminal attachment. Local disconnect stops this adapter's executor, not another native client. Creation uses the existing worker policy and optional advertised executionEnvironment.`,
     parameters: Type.Object({
       name: Type.String(),
       profile: Type.Optional(Type.String()),
@@ -42,15 +42,16 @@ export default function piStrings(pi: ExtensionAPI): void {
       role: Type.Optional(Type.Union([Type.Literal("read-only"), Type.Literal("writer")])),
       tools: Type.Optional(Type.Array(Type.String())),
       cwd: Type.Optional(Type.String()),
-      resumeSessionId: Type.Optional(Type.String()),
+      sessionId: Type.Optional(Type.String()),
+      executionEnvironment: Type.Optional(Type.String()),
       model: Type.Optional(Type.String()),
     }, { additionalProperties: false }),
     action: "spawn",
   });
   register({
     name: "op_status",
-    label: "Worker model status",
-    description: "Discover the current and available model IDs for a live worker through ACPX getStatus. Discovery must be advertised by the runtime; unsupported discovery is an explicit error.",
+    label: "Session status",
+    description: "Report session origin, verified native identity/capabilities when opened, and advertised model IDs. Native activity may be unknown; local request state is not shared-thread completion.",
     parameters: Type.Object({
       name: Type.String(),
     }, { additionalProperties: false }),
@@ -59,7 +60,7 @@ export default function piStrings(pi: ExtensionAPI): void {
   register({
     name: "op_send",
     label: "Send turn",
-    description: `Start one turn on a worker. The prompt is decorated with the worker's role and acceptance contracts; the appended decoration is returned as decoratedPromptSuffix. An optional model is discovered and selected before this turn; unavailable or unsupported models fail explicitly. Returns status "running" plus a requestId; do not send again until the request is terminal (use op_wait). requestTimeoutMs bounds the entire request (default: the profile's timeoutMs). predecessorRequestId reassigns from a cancelled, failed, or timed-out request whose worker has been closed.`,
+    description: `Start a turn. Created workers receive role/acceptance decoration and allow explicit model selection/reassignment. Opened sessions receive the exact text, retain native settings, and never automatically retry. requestTimeoutMs ends local observation for opened work without cancelling it; the session stays busy until its turn settles. Returns a requestId for op_wait/op_result. Do not send to a session concurrently used by another native client unless its capabilities support it.`, 
     parameters: Type.Object({
       name: Type.String(),
       prompt: Type.String(),
@@ -113,7 +114,7 @@ export default function piStrings(pi: ExtensionAPI): void {
   register({
     name: "op_close",
     label: "Close worker",
-    description: "Close a worker and its session. discardPersistentState:true prevents later resume; force:true closes an active worker; a failed close leaves a persisted failed worker so cleanup can be retried.",
+    description: "Created workers: force closes active work; discardPersistentState prevents resume. Opened sessions: disconnect local participation only, without cancel/archive/delete RPCs; discard is forbidden. Check native.disconnectEffect: Pi disconnect terminates this adapter's local executor, so active work may stop and its outcome remains unknown. Failed cleanup retains the binding.",
     parameters: Type.Object({
       name: Type.String(),
       force: Type.Optional(Type.Boolean()),

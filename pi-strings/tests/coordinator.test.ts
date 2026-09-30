@@ -793,7 +793,7 @@ test("resume identity validation rejects every identity dimension", async () => 
   assert.equal(resumeIdentityMatches(provenance, { ...base }, "/repo", "other"), false);
 });
 
-test("resume rejects a mismatched agent before starting adapter work", async () => {
+test("removed public adapter-resume parameter is rejected before adapter work", async () => {
   const stateDir = await mkdtemp(join(tmpdir(), "pi-strings-resume-"));
   const profiles = {
     pi: { agent: "pi", role: "read-only" as const, tools: ["read"], timeoutMs: 10_000, cancellationGraceMs: 100, maxOutputBytes: 4_096 },
@@ -809,17 +809,17 @@ test("resume rejects a mismatched agent before starting adapter work", async () 
     await coordinator.execute({ action: "close", name: "source" });
     const mismatch = await coordinator.execute({ action: "spawn", name: "wrong-agent", profile: "codex", cwd: process.cwd(), resumeSessionId: session });
     assert.equal(mismatch.ok, false);
-    if (!mismatch.ok) assert.equal(mismatch.error.code, "RESUME_IDENTITY_MISMATCH");
+    if (!mismatch.ok) assert.equal(mismatch.error.code, "INPUT_INVALID");
     const profileMismatch = await coordinator.execute({ action: "spawn", name: "wrong-profile", profile: "piAlt", cwd: process.cwd(), resumeSessionId: session });
     assert.equal(profileMismatch.ok, false);
-    if (!profileMismatch.ok) assert.equal(profileMismatch.error.code, "RESUME_IDENTITY_MISMATCH");
+    if (!profileMismatch.ok) assert.equal(profileMismatch.error.code, "INPUT_INVALID");
     const cwdMismatch = await coordinator.execute({ action: "spawn", name: "wrong-cwd", profile: "pi", cwd: "/tmp", resumeSessionId: session });
     assert.equal(cwdMismatch.ok, false);
-    if (!cwdMismatch.ok) assert.equal(cwdMismatch.error.code, "RESUME_IDENTITY_MISMATCH");
+    if (!cwdMismatch.ok) assert.equal(cwdMismatch.error.code, "INPUT_INVALID");
     assert.equal(runtime.ensureCalls, 1);
     const unknown = await coordinator.execute({ action: "spawn", name: "unknown", profile: "pi", cwd: process.cwd(), resumeSessionId: "unknown-session" });
     assert.equal(unknown.ok, false);
-    if (!unknown.ok) assert.equal(unknown.error.code, "RESUME_PROVENANCE_UNKNOWN");
+    if (!unknown.ok) assert.equal(unknown.error.code, "INPUT_INVALID");
   } finally { await coordinator.shutdown(); }
 });
 

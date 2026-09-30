@@ -1,8 +1,9 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { AcpxRuntime, createAgentRegistry, createFileSessionStore, type AcpRuntimeEvent, type AcpRuntimeHandle } from "../../../dist/acpx-runtime/runtime.js";
+import { AcpxRuntime, createAgentRegistry, createFileSessionStore, type AcpRuntimeEvent, type AcpRuntimeHandle, type NativeSessionDescription } from "../../../dist/acpx-runtime/runtime.js";
 import type { NormalizedEvent, Profile, RuntimeHandle, RuntimePort, RuntimeStatus, RuntimeTerminal, RuntimeTurn, TurnUsage } from "../domain/types.js";
+import { StringsError } from "../domain/errors.js";
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const adapterEntry = resolve(packageRoot, "dist/pi-acp.js");
@@ -43,9 +44,11 @@ function fromHandle(handle: RuntimeHandle): AcpRuntimeHandle { return { ...handl
 export class AcpxRuntimePort implements RuntimePort {
   private readonly runtime: AcpxRuntime;
 
-  constructor(cwd: string, stateDir: string, profile: Profile) {
-    const piAdapterArgv = [process.execPath, adapterEntry, "--pi-strings-worker", "--pi-tools-json", JSON.stringify(profile.tools)];
-    if (profile.thinking) piAdapterArgv.push("--pi-thinking", profile.thinking);
+  constructor(cwd: string, stateDir: string, profile: Profile, origin: "created" | "opened" = "created") {
+    const piAdapterArgv = origin === "opened"
+      ? [process.execPath, adapterEntry, "--pi-strings-opened"]
+      : [process.execPath, adapterEntry, "--pi-strings-worker", "--pi-tools-json", JSON.stringify(profile.tools)];
+    if (origin === "created" && profile.thinking) piAdapterArgv.push("--pi-thinking", profile.thinking);
     const runtimeOptions = {
       cwd,
       sessionStore: createFileSessionStore({ stateDir: resolve(stateDir, "acpx") }),
@@ -67,7 +70,9 @@ export class AcpxRuntimePort implements RuntimePort {
       // waiting on readline. Writers remain usable without an interactive
       // operator; read-only workers auto-approve reads/searches and deny the
       // rest. No provider-specific callback or matcher is involved.
-      permissionPolicy: profile.role === "writer"
+      permissionPolicy: origin === "opened"
+        ? { defaultAction: "deny" as const }
+        : profile.role === "writer"
         ? { defaultAction: "approve" as const }
         : { autoApprove: ["read", "search"], defaultAction: "deny" as const },
       // Coordinator deadlines are authoritative; ACPX must not terminate turns independently.
@@ -76,7 +81,31 @@ export class AcpxRuntimePort implements RuntimePort {
     this.runtime = new AcpxRuntime(runtimeOptions);
   }
 
-  async ensureSession(input: { name: string; agent: string; cwd: string; profile: Profile; resumeSessionId?: string }): Promise<RuntimeHandle> {
+  async describeNativeSession(agent: string, sessionId: string): Promise<NativeSessionDescription> {
+    try { return await this.runtime.describeNativeSession({ agent, sessionId }); }
+    catch (error) {
+      const rpc = error as { code?: number; data?: unknown };
+      if (rpc.code === -32601) throw new StringsError("NATIVE_OPEN_UNSUPPORTED", "This adapter does not yet advertise verified native opening.");
+      throw new StringsError("NATIVE_LOOKUP_FAILED", typeof rpc.data === "string" ? rpc.data : error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  async openSession(input: { name: string; agent: string; native: NativeSessionDescription; handle?: RuntimeHandle }): Promise<RuntimeHandle> {
+    const { id, scope, cwd } = input.native;
+    const handle = await this.runtime.ensureSession({
+      sessionKey: input.handle?.sessionKey ?? `pi-strings:opened:${input.name}:${randomUUID()}`,
+      agent: input.agent, mode: "persistent", cwd, resumeSessionId: id, nativeSession: { id, scope, cwd },
+    });
+    if (handle.agentSessionId !== id) {
+      await this.runtime.disconnect({ handle });
+      throw new Error("Runtime did not verify the requested native identity.");
+    }
+    return toHandle(handle);
+  }
+
+  disconnect(handle: RuntimeHandle): Promise<void> { return this.runtime.disconnect({ handle: fromHandle(handle) }); }
+
+  async ensureSession(input: { name: string; agent: string; cwd: string; profile: Profile; resumeSessionId?: string; executionEnvironment?: string }): Promise<RuntimeHandle> {
     const handle = await this.runtime.ensureSession({
       sessionKey: `pi-strings:${input.name}`,
       agent: input.agent,
@@ -88,7 +117,20 @@ export class AcpxRuntimePort implements RuntimePort {
         ...(input.agent === "pi" ? { allowedTools: input.profile.tools } : {}),
       },
     });
-    if (input.agent === "codex") await this.runtime.setMode?.({ handle, mode: input.profile.role === "writer" ? "agent" : "read-only" });
+    try {
+      if (input.executionEnvironment) {
+        const status = await this.runtime.getStatus({ handle });
+        const options = status.details?.configOptions as Array<{ id: string; options?: Array<{ value?: string; options?: Array<{ value: string }> }> }> | undefined;
+        const option = options?.find(option => option.id === "execution-environment");
+        const values = option?.options?.flatMap(option => option.options?.map(value => value.value) ?? (option.value ? [option.value] : [])) ?? [];
+        if (!values.includes(input.executionEnvironment)) throw new Error(`Execution environment is not advertised: ${input.executionEnvironment}`);
+        await this.runtime.setConfigOption({ handle, key: "execution-environment", value: input.executionEnvironment });
+      }
+      if (input.agent === "codex") await this.runtime.setMode?.({ handle, mode: input.profile.role === "writer" ? "agent" : "read-only" });
+    } catch (error) {
+      await this.runtime.close({ handle, reason: "creation configuration failed", discardPersistentState: true }).catch(() => undefined);
+      throw error;
+    }
     // Amp exposes its own permission + effort config options (Default/Bypass and
     // low/medium/high/ultra) via ACP config options rather than ACP session modes,
     // so no setMode call here; the adapter default (Default permissions) is used.
@@ -98,7 +140,10 @@ export class AcpxRuntimePort implements RuntimePort {
   async getStatus(handle: RuntimeHandle): Promise<RuntimeStatus> {
     const status = await this.runtime.getStatus({ handle: fromHandle(handle) });
     if (!status.models) return { modelDiscoverySupported: false, availableModelIds: [] };
+    const configOptions = status.details?.configOptions as Array<{ id: string; category?: string }> | undefined;
+    const modelConfigId = configOptions?.find(option => option.category === "model")?.id;
     return {
+      ...(modelConfigId ? { modelConfigId } : {}),
       modelDiscoverySupported: true,
       ...(status.models.currentModelId ? { currentModelId: status.models.currentModelId } : {}),
       availableModelIds: [...status.models.availableModelIds],
