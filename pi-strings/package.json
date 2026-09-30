@@ -22,6 +22,7 @@
     "extensions/",
     "skills/",
     "vendor/acpx/",
+    "vendor/amp-plugin/",
     "vendor/pi-acp/LICENSE",
     "CHANGELOG.md",
     "LICENSE",

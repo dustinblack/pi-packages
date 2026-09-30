@@ -29,18 +29,22 @@ The proposed deployment is project/Orb-scoped, exact-thread allowlisted, short-l
 
 ## Acceptance criteria
 
-- [ ] Design and implement the smallest provider-backed bridge through the existing Amp adapter surface; no separate pi-strings tool family.
-- [ ] Observation accepts only an exact allowlisted thread, returns bounded provider messages/state and source IDs, and reports stale, missing, or disconnected data as unknown.
-- [ ] Append and steer are separate explicit operations. Each carries an exact thread ID, approved text, request ID, and delivery state. Missing receipts or callback loss remain unknown; no automatic retry.
-- [ ] Cancel is an explicit remote-stop operation only. Timeout, `op_close`, plugin disposal, or bridge failure never invokes it implicitly. Unconfirmed stop remains unknown.
-- [ ] Provider lifecycle IDs are preserved for correlation. The bridge never infers completion from idle state, the last assistant message, or another contributor's response.
-- [ ] Visibility, multiplayer TTL, participant roster, identity synthesis, archive/delete, and human-only approvals remain unavailable.
-- [ ] Security review, deterministic contract tests, and a user-approved scratch deployment pass before claiming delivery.
+- [x] Design and implement the smallest provider-backed bridge through the existing Amp adapter surface; no separate pi-strings tool family.
+- [x] Observation accepts only an exact allowlisted thread, returns bounded provider messages/state and source IDs, and reports stale, missing, or disconnected data as unknown.
+- [x] Append and steer are separate explicit operations. Each carries an exact thread ID, approved text, request ID, and delivery state. Missing receipts or callback loss remain unknown; no automatic retry.
+- [x] Cancel is an explicit remote-stop operation only. Timeout, `op_close`, plugin disposal, or bridge failure never invokes it implicitly. Unconfirmed stop remains unknown.
+- [x] Provider lifecycle IDs are preserved for correlation. The bridge never infers completion from idle state, the last assistant message, or another contributor's response.
+- [x] Visibility, multiplayer TTL, participant roster, identity synthesis, archive/delete, and human-only approvals remain unavailable.
+- [ ] Security review, deterministic contract tests, and a user-approved **Orb** scratch deployment pass before claiming full delivery. The local scratch deployment and deterministic tests pass; the Orb deployment is blocked until the provider loads a project-scoped plugin.
 
 ## Out of scope
 
-Visibility changes, multiplayer enable/disable, workspace administration, participant attribution, automatic retries, private HTTP/WebSocket APIs, permanent webhooks, and deployment to a team thread. No plugin installation or remote mutation occurs until the design is separately approved.
+Visibility changes, multiplayer enable/disable, workspace administration, participant attribution, automatic retries, private HTTP/WebSocket APIs, permanent webhooks, and deployment to a team thread. The project/Orb plugin is opt-in and must be separately configured with an exact allowlist and short-lived credential.
 
 ## Evidence
 
-User selected the narrower **work controls only** scope: bounded reads, append/steer, and explicit cancel. Visibility and multiplayer access changes are excluded. Implementation must follow completed todo 023's least-authority design and preserve the common `op_*` interface.
+User selected the narrower **work controls only** scope: bounded reads, append/steer, and explicit cancel. Visibility and multiplayer access changes are excluded. Implementation follows completed todo 023's least-authority design and preserves the common `op_*` interface.
+
+`vendor/amp-plugin/pi-strings-bridge.ts` provides the project-scoped provider plugin. `extensions/pi-strings/runtime/amp-plugin-bridge.ts`, `Coordinator`, and `extensions/pi-strings/index.ts` expose `op_observe`, `op_append`, `op_steer`, and `op_cancel_remote`. The bridge uses a provider-supported portal URL, exact T-ID allowlist, bearer token, bounded recent-message API, and explicit unknown-delivery handling. No private Amp HTTP/WebSocket API is used.
+
+Deterministic tests pass in `tests/amp-plugin-bridge.test.ts` and `tests/amp-controls.test.ts`. A user-authorized local Amp scratch deployment proved observe, append, steer, and cancel end to end. A no-project Orb scratch attempt reached the provider portal but returned `502: sandbox is running but port is not open`; the workspace plugin was not loaded. Full delivery therefore remains blocked on a recognized Amp project-scoped plugin deployment, not on the pi-strings control contract.

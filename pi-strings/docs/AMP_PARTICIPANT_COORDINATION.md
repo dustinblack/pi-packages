@@ -4,11 +4,11 @@
 
 Research complete; the user approved staged implementation with delegated parallel work. The selected role is **participant/coordinator**: Pi contributes to selected existing Amp threads while humans and Amp remain in control. This is not an autonomous supervisor or a voice/video bot. Amp owns participant identity, presence, queueing, and cross-user attribution; pi-strings does not build or certify a second participant layer. The durable plan is [todo 018](../../todos/018-ready-amp-participant-coordination.md). The common ACPX path now has a vendored Amp adapter for local/Orb creation and exact T-ID opening; live authenticated account, executor-preservation, and mutation proofs remain gated.
 
-The [unified native-opening contract](NATIVE_SESSION_OPENING.md) supersedes the separate participant-extension proposal: every agent integration must support creating new sessions and opening existing provider-native threads through the same tool surface. Amp local/Orb execution is a provider configuration choice. Investigate and extend adapter capabilities first; preserve explicit lifecycle authority rather than treating every opened thread as a Pi-owned worker. CLI/plugin research below remains evidence, not a decision to bypass ACP or deploy another extension.
+The [unified native-opening contract](NATIVE_SESSION_OPENING.md) supersedes the separate participant-extension proposal: every agent integration must support creating new sessions and opening existing provider-native threads through the same tool surface. Amp local/Orb execution is a provider configuration choice. Investigate and extend adapter capabilities first; preserve explicit lifecycle authority rather than treating every opened thread as a Pi-owned worker. The work-control bridge remains one provider integration on the same `op_*` surface, not another extension or tool family.
 
 Research used Amp CLI `0.0.1790692375-ga7bdff`, published SDK `0.1.0-20260918210405-g81edbf0`, and `amp-acp` source at commit `e35216d4fd3258445ac8b3ac5db7ef4ce3a40af9` (package version `0.10.0`). Public documentation can change independently of these versions.
 
-No remote prompts, multiplayer changes, account changes, plugin installations, or agent launches were performed. Read-only commands used the existing CLI authentication. No private thread contents or credentials are included here.
+No team-thread prompts or multiplayer/account changes were performed. A temporary user-authorized local scratch plugin was loaded and exercised; no persistent plugin or credential was left behind. No private thread contents or credentials are included here.
 
 ## The objects are different
 
@@ -39,10 +39,10 @@ The documentation differs on whether enabling multiplayer first shares a private
 | Send and stream output | Same command plus `--stream-json` | Documented. This is a sending operation, not a passive watch command. |
 | Continue through SDK | `execute({ prompt, options: { continue: threadId, executor: 'orb', noArchiveAfterExecute: true } })` | Documented and verified in SDK source. Spawns the Amp CLI; not a separate network transport. |
 | Enable/disable multiplayer | `amp threads share multiplayer on/off/ttl`; SDK `threads.setMultiplayer(...)` | Help and API verified, operation not run. SDK documents owner-only management. |
-| Read and observe an exact thread from a plugin | `amp.threads.get(threadID).messages(...)`, `.state.get()`, `.state.subscribe(...)` | Present in installed Plugin API and public reference. Requires a plugin host; not a standalone external SDK function. |
-| Queue or steer from a plugin | `.appendUserMessage(message, { steer: true })` | Documented. Steering prioritizes the queued message at the next dequeue point; not instantaneous interruption. |
-| Wait from a plugin | `.waitForResponse({ timeoutMs })` | Documented thread-state wait, not per-message response correlation. |
-| Stop remote work | Plugin `.cancel()` | Explicitly stops the thread's current turn. Not appropriate for detach or routine Pi shutdown. |
+| Read and observe an exact thread from a plugin | `amp.threads.get(threadID).messages(...)`, `.state.get()`, `.state.subscribe(...)` | Present in installed Plugin API and public reference. The project-scoped bridge now exposes bounded `op_observe`; it requires an allowlisted plugin host and portal URL. |
+| Queue or steer from a plugin | `.appendUserMessage(message, { steer: true })` | The project-scoped bridge now exposes separate `op_append` and `op_steer`. Steering prioritizes the queued message at the next dequeue point; not instantaneous interruption. |
+| Wait from a plugin | `.waitForResponse({ timeoutMs })` | Documented thread-state wait, not per-message response correlation. Not used as a completion receipt. |
+| Stop remote work | Plugin `.cancel()` | The project-scoped bridge now exposes explicit `op_cancel_remote`. Accepted means the provider API accepted the request; Pi does not infer that the turn has finished. |
 | Lifecycle evidence | Plugin `agent.start` / `agent.end` | Expose the triggering message ID; `agent.end` includes status and messages. Candidate for correlation, not yet proven across concurrent contributors. |
 | Delegate within Amp | Native agent-to-agent tools; plugin `Agent.createThread(...)` | Documented. Child threads have independent workspaces; messages do not transfer files or commits. |
 | Voice/video Space participation | Web/app controls | No supported bot/media API found in the inspected CLI, SDK, plugin reference, or External API schema. This is a research limit, not proof that no internal API exists. |
@@ -97,7 +97,7 @@ const subscription = thread.state.subscribe(state => { /* consume observation */
 subscription.unsubscribe()
 ```
 
-These calls run inside Amp's plugin host. A Pi integration needs a defined bridge to that host; importing `@ampcode/plugin` alone does not supply a live connection. No plugin bridge was installed or tested during this research.
+These calls run inside Amp's plugin host. A Pi integration needs a defined bridge to that host; importing `@ampcode/plugin` alone does not supply a live connection. The project-scoped bridge is implemented and tested locally; an Orb deployment still requires a recognized Amp project to load the plugin.
 
 Useful contracts:
 
@@ -108,7 +108,7 @@ Useful contracts:
 - `agent.start` and `agent.end`: carry the triggering message ID. [INFERENCE] A target-side plugin can help establish request lineage, but whether and where it must run needs a live experiment.
 - Human-required approval dialogs remain human-required. A coordinator must not answer them by impersonating a contributor.
 
-An Orb plugin can register a durable webhook that wakes the Orb. This is optional, not a prerequisite for a desktop participant. Webhook delivery is at least once and not strictly ordered; HTTP 200 means queued, not completed. Webhook URLs are credentials. Do not add a webhook or permanent service before the basic participant workflow demonstrates a need.
+An Orb plugin can register a durable webhook that wakes the Orb, but the work-control bridge does not depend on an undocumented webhook response path. The implemented project plugin serves a short-lived authenticated control endpoint through the provider-supported `amp orb portal`; it uses the documented plugin thread APIs and no private Amp HTTP/WebSocket route. Webhook delivery remains at least once and not strictly ordered; webhook URLs are credentials. Do not install the bridge globally or point it at a team thread without explicit authorization.
 
 ### 3. External REST API: not the execution control plane
 
@@ -154,7 +154,7 @@ Serialize Pi's own submissions per thread, but do not mistake that local seriali
 1. **Read-only participant.** Bind a selected existing Orb and read bounded state/history; detach without affecting it. Prove exact-ID preservation, account scope, and no new prompt or executor attachment. Current probes prove CLI reads only; this Orb-specific gate is still open.
 2. **One approved contribution.** In an owner-approved scratch Orb, send a unique marker and observe both CLI and web evidence. Prove the same remote thread processes it, no local executor is registered, and remote settings remain unchanged.
 3. **Provider-owned multiplayer behavior.** Do not reproduce participant presence, queueing, or cross-user attribution in pi-strings. Test only Pi's own observer disconnect, restart, timeout, and ambiguous-delivery behavior when required by 029. Amp remains responsible for the shared thread's participant and response lineage.
-4. **Richer plugin bridge, only if needed.** Prove native state subscription, explicit steering, and lifecycle correlation with the target thread. Confirm permission expiry fails closed and human-only approvals remain human-only. Specify host placement, authentication, and disposal before deployment.
+4. **Richer plugin bridge.** The project-scoped bridge is implemented for bounded observation, append, steer, and explicit cancel. Deterministic tests and a local scratch deployment pass. Full Orb delivery still requires a recognized Amp project to load the plugin; confirm portal authentication, allowlist enforcement, disposal, and human-only approvals before claiming that gate closed.
 5. **Cross-thread handoff.** Transfer only approved evidence between two selected threads and verify provenance and file-transfer semantics. Do not infer that sending a thread link copied its files or commits.
 
 Implementation starts with the common create/open contract and Pi vertical slice (020), then Amp native admission/observation (029), then these contribution gates (021–024). The Amp adapter slice is implemented; live provider evidence is still required before closing 029. Provider-specific capabilities live in the adapter and flow through ACPX. Preserve existing owned-worker behavior while adding explicit opened-session policy to the same Coordinator.
@@ -164,7 +164,7 @@ Implementation starts with the common create/open contract and Pi vertical slice
 - Cross-user CLI/SDK write authorization for an already-active multiplayer thread.
 - Exact busy-thread queueing and streamed-result correlation for `-ox` continuation.
 - Remote behavior when a streaming CLI is interrupted or loses its connection.
-- The native CLI path has no bounded passive transcript or per-thread event cursor: `amp threads export` is unbounded, and `amp top` provides snapshots rather than a transcript subscription.
+- The native CLI path has no bounded passive transcript or per-thread event cursor: `amp threads export` is unbounded, and `amp top` provides snapshots rather than a transcript subscription. The plugin bridge supplies bounded reads only when its project-scoped host and portal are configured.
 - Native message receipt/idempotency for remote sends; the plugin append API also returns no receipt.
 - Whether plugin state/history reads across threads require any executor attachment or wake, and the least-privilege bridge deployment location.
 - Supported Space media/bot APIs; none found in the inspected public interfaces.

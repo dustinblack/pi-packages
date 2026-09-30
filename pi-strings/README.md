@@ -8,7 +8,7 @@ Reliable multi-agent orchestration for [Pi](https://github.com/earendil-works/pi
 
 - The main Pi is the only orchestrator. Workers cannot recursively launch workers.
 - One persistent worker session has at most one active turn; different workers may run concurrently.
-- A normal `send` starts a turn. After terminal completion, another ordinary `send` continues the same persistent session. There is no in-flight steering, question, or reply product surface.
+- A normal `send` starts a turn. After terminal completion, another ordinary `send` continues the same persistent session. Amp's optional opened-thread bridge additionally exposes provider-native append, steer, observe, and explicit remote cancel; these controls are not generic ACP worker steering.
 - **Shared checkout is the default for writers.** One live writer per canonical cwd; a second writer in the same cwd is rejected. Worktree isolation is an opt-in compatibility mode (`isolation: "worktree"`), not a requirement. Future stronger isolation may use CoW temp copies.
 - Workers can be spawned directly from any ACP agent (`agent` defaults to `pi`) with safe read-only defaults, or from an optional configured profile. All roles use ACPX's native permission controls: reads/searches are auto-approved, and mutation requests settle without an unanswered prompt.
 - ACPX is the only production runtime and permission layer. pi-strings passes ACPX-native permission options; it does not implement provider-specific callbacks or custom permission matching.
@@ -29,20 +29,24 @@ Provider write-tool behavior differs: Codex (Guardian Review) and Amp (`apply_pa
 
 ## Agent tools
 
-The extension registers eight `op_*` tools with strict per-tool schemas:
+The extension registers twelve `op_*` tools with strict per-tool schemas:
 
 - `op_spawn` — create a worker, or open an existing native session with `sessionId`; opening preserves native settings and verifies identity for Pi and Amp. Amp native opens may accept `cwd` and an `executionEnvironment: "local" | "orb"` hint when provider metadata cannot identify the executor
 - `op_status` — report origin, native identity/capabilities, and advertised model IDs
 - `op_send` — start an ordinary turn; created workers may select a model and receive role decoration, opened sessions receive the exact text and never retry
+- `op_observe` — read bounded recent state/messages from an opened Amp T-ID through the opt-in project plugin bridge
+- `op_append` — append an explicitly approved message to an opened Amp T-ID
+- `op_steer` — queue an explicitly approved steering message on an opened Amp T-ID
+- `op_cancel_remote` — explicitly request remote cancellation on an opened Amp T-ID; disconnect and timeout never invoke it implicitly
 - `op_wait` — wait for one, the first (`mode: "any"`), or all (`mode: "all"`) selected turns using a fixed snapshot (`waitTimeoutMs` bounds the call, default 300000)
 - `op_result` — inspect retained output and terminal status
-- `op_list` — inspect workers and requests (optional `names` projection)
+- `op_list` — inspect workers, requests, and Amp control records (optional `names` projection)
 - `op_cancel` — cooperatively cancel an active turn, with bounded escalation
 - `op_close` — created workers may discard persistent state; opened sessions disconnect locally without cancel/archive/delete RPCs
 
 Requests expose attempt lineage for cancel-and-reassign flows. Run `npm run test:integration` for explicit prerequisite skips, or `npm run test:e2e` with configured credentials and models for real provider gates.
 
-See [`docs/AGENT_GUIDE.md`](docs/AGENT_GUIDE.md) for operating recipes, [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for lifecycle and policy boundaries, and [`TEST_COVERAGE.md`](TEST_COVERAGE.md) for the current acceptance ledger.
+See [`docs/AGENT_GUIDE.md`](docs/AGENT_GUIDE.md) for operating recipes, [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for lifecycle and policy boundaries, [`docs/AMP_PLUGIN_WORK_CONTROLS.md`](docs/AMP_PLUGIN_WORK_CONTROLS.md) for the opt-in Amp bridge, and [`TEST_COVERAGE.md`](TEST_COVERAGE.md) for the current acceptance ledger.
 
 ## Configuration
 
