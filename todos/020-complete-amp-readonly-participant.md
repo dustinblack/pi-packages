@@ -31,4 +31,4 @@ Provider-specific gaps belong to 026–030; Amp live collaboration belongs to 02
 
 ## Evidence
 
-Closing SHA recorded after commit. `npm run check`: 107 pass, 19 skipped, 0 fail. Isolated `op_spawn`/`op_close` against real Pi 0.99.1 opened a seeded native ID and rejected unknown IDs (`-32602`); idle load is still not universally byte-identical. Fake-pi continue proved the same native ID after disconnect. Astra findings (subprocess dispose, untrimmed opened prompts) are fixed. Other adapters fail `NATIVE_OPEN_UNSUPPORTED`. Amp native opening is 029.
+Closed by user-approved main-branch commit `574fe77` (`feat(strings): open native Pi sessions through op_spawn`). `npm run check`: 107 pass, 19 skipped, 0 fail. Isolated `op_spawn`/`op_close` against real Pi 0.99.1 opened a seeded native ID and rejected unknown IDs (`-32602`); idle load is still not universally byte-identical. Fake-pi continue proved the same native ID after disconnect. Astra findings (subprocess dispose, untrimmed opened prompts) are fixed. Other adapters fail `NATIVE_OPEN_UNSUPPORTED`. Amp native opening is 029.
