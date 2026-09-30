@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { Message, Model } from "@earendil-works/pi-ai";
 import type { MomStore } from "./sidecar.ts";
-import type { AdvisorRecord, SessionAdvisor } from "./advisor.ts";
+import type { AdvisorScreenRecord, SessionAdvisor } from "./advisor.ts";
 import { branchCheckpoints, emptyUsage, graphChange, loadState, noticeKey, sumUsage, type Checkpoint, type CursorFailure, type SkippedGap, type Usage } from "./checkpoint.ts";
 import { LiveFeed, renderEvent, renderEvents, suffix, type Cut, type FeedEvent } from "./feed.ts";
 import type { CompactionReview } from "./compaction.ts";
@@ -49,6 +49,8 @@ export class Mom {
 	/** Delivered risks remain unresolved until a sourced resolution record closes them. */
 	readonly unresolvedNotices = new Set<string>();
 	usage = emptyUsage();
+	/** Last screening receipt (screened or unavailable); never part of Mom's model usage. */
+	screen?: AdvisorScreenRecord;
 	error?: string;
 	busy = false;
 	more = false;
@@ -80,6 +82,7 @@ export class Mom {
 		this.enabled = state.enabled;
 		this.unresolvedNotices.clear(); for (const key of state.unresolvedNotices) this.unresolvedNotices.add(key);
 		this.usage = state.usage ?? emptyUsage();
+		this.screen = state.screen;
 		this.error = state.error;
 		this.failure = state.failure; this.gaps = state.gaps;
 		await this.feed.restore(state.failure?.through ?? state.coverageCut ?? this.checkpoint?.cut);
@@ -97,7 +100,7 @@ export class Mom {
 			.filter(item => item.id !== cutoverCheckpointId);
 	}
 
-	detail() { return { failureState: this.failure, skippedEvidence: this.gaps, sessionUsage: this.usage }; }
+	detail() { return { failureState: this.failure, skippedEvidence: this.gaps, sessionUsage: this.usage, screen: this.screen }; }
 
 	readGraph(options: { nodes?: string[]; depth?: number; checkpoint?: string } = {}) {
 		let checkpoint = this.checkpoint, checkpointId = this.checkpointId;
@@ -131,7 +134,7 @@ export class Mom {
 		this.controller = new AbortController();
 		const started = performance.now();
 		let attempt = emptyUsage();
-		let advisor: AdvisorRecord | undefined;
+		let screen: AdvisorScreenRecord | undefined;
 		this.host.changed();
 		try {
 			let newer: StagedBatch | undefined;
@@ -184,6 +187,45 @@ export class Mom {
 			this.waitingForWorkers = false;
 			if (!batch.events.length && !question && !compactionReview) { this.coveredRevision = batch.revision; this.staged = undefined; return undefined; }
 			this.error = undefined;
+			// The map is current state; the session log is history. Include only one boundary
+			// event so a short assent can resolve the preceding proposal, then use evidence tools.
+			const prior = this.feed.events.slice(0, batch.startIndex).findLast((e) => e.actor === "lead" && Boolean(e.text) && ["assistant", "tool_call"].includes(e.kind));
+			const unresolved = new Set(this.unresolvedNotices);
+			if (this.checkpoint?.note) unresolved.add(noticeKey(this.checkpoint.note));
+			// One binary whole-batch screen decides whether Mom's model wakes at all. Only an ordinary
+			// settled update with a saved map is eligible. Bootstrap, explicit question/refresh,
+			// correction, compaction, and failed or skipped-gap recovery are mandatory bypasses.
+			const mandatory = Boolean(question) || refresh || Boolean(compactionReview) ||
+				batch.events.some(event => event.correction === true) ||
+				Boolean(this.failure) || Boolean(batch.retryGapId);
+			if (this.host.advisor && !mandatory && this.checkpoint) {
+				const advisor = this.host.advisor, screenStarted = performance.now();
+				try {
+					screen = await advisor.screen({ current: this.graph, newEvidence: renderEvents(batch.events),
+						contextBeforeBatch: prior ? renderEvent(prior) : null, pendingMore: batch.more,
+						unresolvedProcessRisks: [...unresolved] },
+						AbortSignal.any([this.controller.signal, ...(signal ? [signal] : [])]));
+				} catch (error) {
+					// An aborted screen is a stale update, not a classifier verdict.
+					if (this.controller.signal.aborted || signal?.aborted) throw error;
+					screen = { status: "unavailable", model: advisor.model, error: String(error),
+						latencyMs: Math.round(performance.now() - screenStarted) };
+				}
+				this.valid(batch.cut);
+				this.screen = screen;
+				if (screen.status === "screened" && !screen.wake) {
+					// No movement: accept this batch as unchanged current state. Coverage advances
+					// atomically while the graph, unfinished work, pending notice, and unresolved
+					// risks are retained exactly as they are, and Mom's model makes no call.
+					if (!this.checkpointId) throw new Error("Mom cannot advance evidence coverage without a saved sidecar checkpoint.");
+					try { await this.host.store.append("map", { base: this.checkpointId, cut: batch.cut, failure: null, screen }); }
+					catch (error) { throw new Error(`Mom could not advance her state beside the session: ${String(error)}`); }
+					this.checkpoint = { ...this.checkpoint!, cut: batch.cut, at: Date.now() };
+					this.coveredRevision = batch.revision;
+					this.committed = batch.endIndex; this.staged = newer; this.queued = undefined;
+					return undefined;
+				}
+			}
 			const [provider, ...id] = this.host.model.split("/");
 			const model = this.host.ctx.modelRegistry.find(provider, id.join("/"));
 			if (!model) throw new Error(`Mom model unavailable: ${this.host.model}. No fallback selected.`);
@@ -195,11 +237,6 @@ export class Mom {
 			let emptySearch: string | undefined;
 			let searchRetryOnly = false;
 			const original = this.feed.events.find((e) => e.actor === "lead" && e.kind === "user");
-			// The map is current state; the session log is history. Include only one boundary
-			// event so a short assent can resolve the preceding proposal, then use evidence tools.
-			const prior = this.feed.events.slice(0, batch.startIndex).findLast((e) => e.actor === "lead" && Boolean(e.text) && ["assistant", "tool_call"].includes(e.kind));
-			const unresolved = new Set(this.unresolvedNotices);
-			if (this.checkpoint?.note) unresolved.add(noticeKey(this.checkpoint.note));
 			const messages: Message[] = [{ role: "user", timestamp: Date.now(), content: JSON.stringify({
 				original: original ? { ref: original.ref, text: original.text } : null,
 				graph: this.graph, contextBeforeBatch: prior ? renderEvent(prior) : null,
@@ -260,27 +297,6 @@ export class Mom {
 						continue;
 					}
 					this.valid(batch.cut);
-					if (!question && this.host.advisor && !advisor) {
-						const reviewStarted = performance.now();
-						try {
-							const review = await this.host.advisor.review({ current: this.graph, proposed: next.graph,
-								newEvidence: renderEvents(batch.events), pendingMore: batch.more },
-								AbortSignal.any([this.controller.signal, ...(signal ? [signal] : [])]));
-							const reexamined = review.action !== "accept" || review.needsReanalysis >= this.host.advisor.threshold;
-							advisor = { ...review, reexamined };
-							if (reexamined) {
-								if (callsRemaining === 0) throw new Error("Mom's advisor requested reconsideration, but the five-call update budget is exhausted.");
-								messages.push(reply, { role: "toolResult", toolCallId: operation.id, toolName: operation.name, isError: true,
-									content: [{ type: "text", text: `Candidate not saved. A probabilistic session-level advisor requested one deeper reconsideration (p=${review.needsReanalysis.toFixed(3)}; likely action=${review.action}; action probabilities=${JSON.stringify(review.probabilities)}). Review the whole account for material expansion, contraction, path change, or reorganization. This is advice, not a gate or per-message checklist. ${callsRemaining} model call${callsRemaining === 1 ? "" : "s"} remain; keep the candidate unchanged if the session evidence still supports it.` }], timestamp: Date.now() });
-								continue;
-							}
-						} catch (error) {
-							if (this.controller.signal.aborted || signal?.aborted) throw error;
-							advisor = { status: "unavailable", model: this.host.advisor.model, error: String(error),
-								latencyMs: Math.round(performance.now() - reviewStarted), reexamined: false };
-						}
-					}
-					this.valid(batch.cut);
 					attempt.elapsedMs = Math.round(performance.now() - started);
 					const acceptedAt = Date.now(), acceptedUsage = sumUsage(this.usage, attempt);
 					// A graph-identical acceptance still advances durable evidence coverage. Keep
@@ -302,16 +318,15 @@ export class Mom {
 					if (material) {
 						const checkpoint: Checkpoint = { sessionId: this.host.ctx.sessionManager.getSessionId(),
 							graph: next.graph, change: graphChange(this.checkpoint?.graph ?? this.initialGraph, next.graph),
-							note: effectiveNote, unfinished: next.unfinished, cut: batch.cut, at: acceptedAt, model: this.host.model,
-							...(advisor ? { advisor } : {}) };
+							note: effectiveNote, unfinished: next.unfinished, cut: batch.cut, at: acceptedAt, model: this.host.model };
 						let record;
-						try { record = await this.host.store.append("map", { snapshot: checkpoint, failure: null, ...gapUpdate, ...resolutionUpdate }); }
+						try { record = await this.host.store.append("map", { snapshot: checkpoint, failure: null, ...gapUpdate, ...resolutionUpdate, ...(screen ? { screen } : {}) }); }
 						catch (error) { throw new Error(`Mom could not write her state beside the session: ${String(error)}`); }
 						this.checkpoint = checkpoint; this.checkpointId = record.id;
 						this.checkpoints.push({ id: record.id, data: checkpoint });
 					} else {
 						if (!this.checkpointId) throw new Error("Mom cannot advance evidence coverage without a saved sidecar checkpoint.");
-						try { await this.host.store.append("map", { base: this.checkpointId, cut: batch.cut, failure: null, ...gapUpdate, ...resolutionUpdate }); }
+						try { await this.host.store.append("map", { base: this.checkpointId, cut: batch.cut, failure: null, ...gapUpdate, ...resolutionUpdate, ...(screen ? { screen } : {}) }); }
 						catch (error) { throw new Error(`Mom could not advance her state beside the session: ${String(error)}`); }
 						this.checkpoint = { ...this.checkpoint!, cut: batch.cut, at: acceptedAt };
 					}

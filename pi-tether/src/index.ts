@@ -26,10 +26,10 @@ const AGENT_DIR = process.env.PI_CODING_AGENT_DIR ?? join(homedir(), ".pi", "age
 export default function piTether(pi: ExtensionAPI) {
 	pi.registerFlag("mom-model", { description: "Exact provider/model for Mom; never inherits or silently substitutes the lead model", type: "string", default: DEFAULT_MODEL });
 	pi.registerFlag("mom-interval-ms", { description: "Minimum spacing between background Mom updates (milliseconds)", type: "string", default: "15000" });
-	pi.registerFlag("mom-advisor-url", { description: "Optional LAN System One endpoint for session-level review; empty disables it", type: "string", default: "" });
-	pi.registerFlag("mom-advisor-model", { description: "System One model used to review Mom's proposed account", type: "string", default: "kev-latest" });
-	pi.registerFlag("mom-advisor-threshold", { description: "Probability that triggers one deeper Mom reconsideration", type: "string", default: "0.70" });
-	pi.registerFlag("mom-advisor-timeout-ms", { description: "Session-level advisor timeout in milliseconds", type: "string", default: "1500" });
+	pi.registerFlag("mom-advisor-url", { description: "Optional LAN System One endpoint that screens settled batches before Mom wakes; empty disables it", type: "string", default: "" });
+	pi.registerFlag("mom-advisor-model", { description: "System One model used to screen settled batches", type: "string", default: "kev-latest" });
+	pi.registerFlag("mom-advisor-threshold", { description: "Screen probability at or above which Mom's model wakes", type: "string", default: "0.25" });
+	pi.registerFlag("mom-advisor-timeout-ms", { description: "Session-level screening timeout in milliseconds", type: "string", default: "1500" });
 	let ctx: ExtensionContext | undefined;
 	let mom: Mom | undefined;
 	let ready: Promise<void> = Promise.resolve();
@@ -175,7 +175,7 @@ export default function piTether(pi: ExtensionAPI) {
 		const advisorUrl = String(pi.getFlag("mom-advisor-url") ?? "").trim();
 		const instance: Mom = new Mom({ ctx: context, model: String(pi.getFlag("mom-model") ?? DEFAULT_MODEL),
 			...(advisorUrl ? { advisor: new SystemOneAdvisor({ url: advisorUrl, model: String(pi.getFlag("mom-advisor-model") ?? "kev-latest"),
-				threshold: Number(pi.getFlag("mom-advisor-threshold") ?? 0.7), timeoutMs: Number(pi.getFlag("mom-advisor-timeout-ms") ?? 1500) }) } : {}),
+				threshold: Number(pi.getFlag("mom-advisor-threshold") ?? 0.25), timeoutMs: Number(pi.getFlag("mom-advisor-timeout-ms") ?? 1500) }) } : {}),
 			// Durable state lives beside the session transcript, never inside it.
 			store: store = new SidecarStore(() => context.sessionManager.getSessionFile(), context.sessionManager.getSessionId()),
 			current: () => token === epoch && mom === instance && context.sessionManager.getSessionId() === ctx?.sessionManager.getSessionId(),

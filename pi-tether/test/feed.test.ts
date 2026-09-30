@@ -40,6 +40,7 @@ test("the bounded feed keeps dialog direction verbatim while tool payloads and M
 	assert.match(rendered, /Which approach\?\n- Bounded\nNo extra work/);
 	assert.match(rendered, /Bounded\. Keep recall\./);
 	assert.match(rendered, /Keep  all\nspacing\./);
+	assert.equal(events.find(event => event.ref === "s:d")?.correction, true, "user-command corrections are explicit direction");
 	assert(!JSON.stringify(events).includes("RAW_SECRET_TOOL_PAYLOAD"));
 	assert.deepEqual(extractEvents(s, { ...entry("mom", "Mom's view"), message: { role: "custom", customType: "pi-tether.mom-notice", content: "Do not recursively observe this." } }), []);
 });

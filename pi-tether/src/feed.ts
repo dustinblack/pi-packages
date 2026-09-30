@@ -20,6 +20,8 @@ export interface FeedEvent {
 	status?: string;
 	parentRef?: string | null;
 	fromRef?: string;
+	/** A user-command correction; it is explicit direction and bypasses pre-wake screening. */
+	correction?: true;
 }
 export interface Stream {
 	key: string;
@@ -78,7 +80,7 @@ export function extractEvents(stream: Pick<Stream, "key" | "actor">, e: Entry): 
 	const emit = (value: Omit<FeedEvent, "ref" | "at" | "actor">, block?: number) => {
 		events.push({ ref: block === undefined ? ref : `${ref}:b${block}`, at: e.timestamp, actor: stream.actor, ...value });
 	};
-	if (isCorrection(e)) { emit({ kind: "user", text: textBlocks(e.content) }); return events; }
+	if (isCorrection(e)) { emit({ kind: "user", text: textBlocks(e.content), correction: true }); return events; }
 	if (["compaction", "context_edit", "branch_summary"].includes(e.type)) {
 		emit({ kind: e.type, fromRef: e.fromId ? `${stream.key}:${e.fromId}` : undefined });
 		return events; // Original history remains available; never substitute a generated summary.

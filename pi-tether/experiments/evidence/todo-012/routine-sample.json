@@ -1,0 +1,472 @@
+{
+  "schemaVersion": 1,
+  "measuredAt": "2026-09-30T04:45:12.158Z",
+  "method": "Sampled one-event routine feed windows through the production SystemOneAdvisor; no Mom/Luna calls.",
+  "endpoint": "http://192.168.1.52:9999/v1/systemone",
+  "model": "kev-latest",
+  "threshold": 0.7,
+  "timeoutMs": 15000,
+  "inputs": {
+    "rawPredictionsSha256": "98ab81d79a84bb3186f053a8e791b0b26b8c734d990c3a51384fd4b3d89fb219",
+    "packetSha256": "33ba9eda3bc94d08661c4d96db3e1f76d8edbd290208b82c709d6beca3368ebd"
+  },
+  "summary": {
+    "windows": 30,
+    "wakesAvoided": 30,
+    "wakesKept": 0,
+    "unavailableFailOpen": 0,
+    "screened": 30
+  },
+  "results": [
+    {
+      "id": "routine-sample:pi-packages:s0:59d9cb35",
+      "corpus": "pi-packages",
+      "caseId": "pi-pivot-01",
+      "eventRef": "s0:59d9cb35",
+      "eventKind": "tool_result",
+      "status": "screened",
+      "needsUpdate": 0.25,
+      "wake": false,
+      "latencyMs": 587,
+      "usage": {
+        "input": 1461,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:pi-packages:wdb8db2a6d18d:6d71bb38",
+      "corpus": "pi-packages",
+      "caseId": "pi-pivot-01",
+      "eventRef": "wdb8db2a6d18d:6d71bb38",
+      "eventKind": "tool_result",
+      "status": "screened",
+      "needsUpdate": 0.23,
+      "wake": false,
+      "latencyMs": 612,
+      "usage": {
+        "input": 1504,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:pi-packages:s0:7057a0c5:b2",
+      "corpus": "pi-packages",
+      "caseId": "pi-pivot-01",
+      "eventRef": "s0:7057a0c5:b2",
+      "eventKind": "tool_call",
+      "status": "screened",
+      "needsUpdate": 0.27,
+      "wake": false,
+      "latencyMs": 555,
+      "usage": {
+        "input": 1469,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:pi-packages:s0:338ca5ee:b3",
+      "corpus": "pi-packages",
+      "caseId": "pi-pivot-01",
+      "eventRef": "s0:338ca5ee:b3",
+      "eventKind": "tool_call",
+      "status": "screened",
+      "needsUpdate": 0.23,
+      "wake": false,
+      "latencyMs": 550,
+      "usage": {
+        "input": 1464,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:pi-packages:s0:87edf51f:b0",
+      "corpus": "pi-packages",
+      "caseId": "pi-pivot-01",
+      "eventRef": "s0:87edf51f:b0",
+      "eventKind": "tool_call",
+      "status": "screened",
+      "needsUpdate": 0.25,
+      "wake": false,
+      "latencyMs": 545,
+      "usage": {
+        "input": 1460,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:pi-packages:s0:67a2c062",
+      "corpus": "pi-packages",
+      "caseId": "pi-pivot-01",
+      "eventRef": "s0:67a2c062",
+      "eventKind": "tool_result",
+      "status": "screened",
+      "needsUpdate": 0.24,
+      "wake": false,
+      "latencyMs": 624,
+      "usage": {
+        "input": 1470,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:pi-packages:s0:cbc62214:b1",
+      "corpus": "pi-packages",
+      "caseId": "pi-pivot-01",
+      "eventRef": "s0:cbc62214:b1",
+      "eventKind": "tool_call",
+      "status": "screened",
+      "needsUpdate": 0.24,
+      "wake": false,
+      "latencyMs": 548,
+      "usage": {
+        "input": 1466,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:pi-packages:s0:2a8e92a8",
+      "corpus": "pi-packages",
+      "caseId": "pi-pivot-01",
+      "eventRef": "s0:2a8e92a8",
+      "eventKind": "tool_result",
+      "status": "screened",
+      "needsUpdate": 0.26,
+      "wake": false,
+      "latencyMs": 544,
+      "usage": {
+        "input": 1465,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:pi-packages:w163a280dab32:c565e4d1",
+      "corpus": "pi-packages",
+      "caseId": "pi-pivot-01",
+      "eventRef": "w163a280dab32:c565e4d1",
+      "eventKind": "tool_result",
+      "status": "screened",
+      "needsUpdate": 0.27,
+      "wake": false,
+      "latencyMs": 570,
+      "usage": {
+        "input": 1505,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:pi-packages:s0:2b8acff3:b4",
+      "corpus": "pi-packages",
+      "caseId": "pi-pivot-01",
+      "eventRef": "s0:2b8acff3:b4",
+      "eventKind": "tool_call",
+      "status": "screened",
+      "needsUpdate": 0.23,
+      "wake": false,
+      "latencyMs": 543,
+      "usage": {
+        "input": 1462,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:pi-packages:s0:90ca672a:b0",
+      "corpus": "pi-packages",
+      "caseId": "pi-assent-01",
+      "eventRef": "s0:90ca672a:b0",
+      "eventKind": "tool_call",
+      "status": "screened",
+      "needsUpdate": 0.24,
+      "wake": false,
+      "latencyMs": 694,
+      "usage": {
+        "input": 1838,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:pi-packages:s0:651b1e29",
+      "corpus": "pi-packages",
+      "caseId": "pi-assent-01",
+      "eventRef": "s0:651b1e29",
+      "eventKind": "tool_result",
+      "status": "screened",
+      "needsUpdate": 0.24,
+      "wake": false,
+      "latencyMs": 804,
+      "usage": {
+        "input": 1844,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:pi-packages:we90eb82ce6eb:41c1f42c:b1",
+      "corpus": "pi-packages",
+      "caseId": "pi-assent-01",
+      "eventRef": "we90eb82ce6eb:41c1f42c:b1",
+      "eventKind": "tool_call",
+      "status": "screened",
+      "needsUpdate": 0.26,
+      "wake": false,
+      "latencyMs": 775,
+      "usage": {
+        "input": 1885,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:pi-packages:s0:b607d3fe",
+      "corpus": "pi-packages",
+      "caseId": "pi-assent-01",
+      "eventRef": "s0:b607d3fe",
+      "eventKind": "tool_result",
+      "status": "screened",
+      "needsUpdate": 0.24,
+      "wake": false,
+      "latencyMs": 767,
+      "usage": {
+        "input": 1838,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:pi-packages:s0:7dc1acc4:b4",
+      "corpus": "pi-packages",
+      "caseId": "pi-assent-01",
+      "eventRef": "s0:7dc1acc4:b4",
+      "eventKind": "tool_call",
+      "status": "screened",
+      "needsUpdate": 0.23,
+      "wake": false,
+      "latencyMs": 763,
+      "usage": {
+        "input": 1837,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:pi-packages:wf7fed72712bf:568b5fc0",
+      "corpus": "pi-packages",
+      "caseId": "pi-assent-01",
+      "eventRef": "wf7fed72712bf:568b5fc0",
+      "eventKind": "tool_result",
+      "status": "screened",
+      "needsUpdate": 0.26,
+      "wake": false,
+      "latencyMs": 810,
+      "usage": {
+        "input": 1877,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:pi-packages:wf7fed72712bf:43830b0d:b1",
+      "corpus": "pi-packages",
+      "caseId": "pi-assent-01",
+      "eventRef": "wf7fed72712bf:43830b0d:b1",
+      "eventKind": "tool_call",
+      "status": "screened",
+      "needsUpdate": 0.26,
+      "wake": false,
+      "latencyMs": 727,
+      "usage": {
+        "input": 1882,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:pi-packages:s0:78382316",
+      "corpus": "pi-packages",
+      "caseId": "pi-conflict-01",
+      "eventRef": "s0:78382316",
+      "eventKind": "tool_result",
+      "status": "screened",
+      "needsUpdate": 0.28,
+      "wake": false,
+      "latencyMs": 1164,
+      "usage": {
+        "input": 2459,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:buzz:s0:a01f30c3:b2",
+      "corpus": "buzz",
+      "caseId": "buzz-pivot-01",
+      "eventRef": "s0:a01f30c3:b2",
+      "eventKind": "tool_call",
+      "status": "screened",
+      "needsUpdate": 0.38,
+      "wake": false,
+      "latencyMs": 520,
+      "usage": {
+        "input": 794,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:buzz:s0:9890458c",
+      "corpus": "buzz",
+      "caseId": "buzz-pivot-01",
+      "eventRef": "s0:9890458c",
+      "eventKind": "assistant",
+      "status": "screened",
+      "needsUpdate": 0.32,
+      "wake": false,
+      "latencyMs": 547,
+      "usage": {
+        "input": 721,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:buzz:s0:34c44d69",
+      "corpus": "buzz",
+      "caseId": "buzz-assent-01",
+      "eventRef": "s0:34c44d69",
+      "eventKind": "assistant",
+      "status": "screened",
+      "needsUpdate": 0.13,
+      "wake": false,
+      "latencyMs": 507,
+      "usage": {
+        "input": 1134,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:buzz:s0:7e3b3040",
+      "corpus": "buzz",
+      "caseId": "buzz-conflict-01",
+      "eventRef": "s0:7e3b3040",
+      "eventKind": "assistant",
+      "status": "screened",
+      "needsUpdate": 0.41,
+      "wake": false,
+      "latencyMs": 517,
+      "usage": {
+        "input": 1257,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:buzz:s0:c774b062",
+      "corpus": "buzz",
+      "caseId": "buzz-conflict-01",
+      "eventRef": "s0:c774b062",
+      "eventKind": "tool_result",
+      "status": "screened",
+      "needsUpdate": 0.31,
+      "wake": false,
+      "latencyMs": 597,
+      "usage": {
+        "input": 1213,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:buzz:s0:7a57504a",
+      "corpus": "buzz",
+      "caseId": "buzz-conflict-01",
+      "eventRef": "s0:7a57504a",
+      "eventKind": "assistant",
+      "status": "screened",
+      "needsUpdate": 0.18,
+      "wake": false,
+      "latencyMs": 458,
+      "usage": {
+        "input": 1227,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:buzz:s0:f3f51bf5:b1",
+      "corpus": "buzz",
+      "caseId": "buzz-conflict-01",
+      "eventRef": "s0:f3f51bf5:b1",
+      "eventKind": "tool_call",
+      "status": "screened",
+      "needsUpdate": 0.31,
+      "wake": false,
+      "latencyMs": 458,
+      "usage": {
+        "input": 1210,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:buzz:s0:01584805:b2",
+      "corpus": "buzz",
+      "caseId": "buzz-conflict-01",
+      "eventRef": "s0:01584805:b2",
+      "eventKind": "tool_call",
+      "status": "screened",
+      "needsUpdate": 0.29,
+      "wake": false,
+      "latencyMs": 467,
+      "usage": {
+        "input": 1215,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:buzz:s0:35f3f770",
+      "corpus": "buzz",
+      "caseId": "buzz-conflict-01",
+      "eventRef": "s0:35f3f770",
+      "eventKind": "assistant",
+      "status": "screened",
+      "needsUpdate": 0.35,
+      "wake": false,
+      "latencyMs": 476,
+      "usage": {
+        "input": 1213,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:buzz:s0:fca29975",
+      "corpus": "buzz",
+      "caseId": "buzz-conflict-01",
+      "eventRef": "s0:fca29975",
+      "eventKind": "assistant",
+      "status": "screened",
+      "needsUpdate": 0.28,
+      "wake": false,
+      "latencyMs": 458,
+      "usage": {
+        "input": 1220,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:buzz:s0:6cd3b091",
+      "corpus": "buzz",
+      "caseId": "buzz-return-01",
+      "eventRef": "s0:6cd3b091",
+      "eventKind": "assistant",
+      "status": "screened",
+      "needsUpdate": 0.32,
+      "wake": false,
+      "latencyMs": 514,
+      "usage": {
+        "input": 1337,
+        "output": 21
+      }
+    },
+    {
+      "id": "routine-sample:buzz:s0:cf895f29",
+      "corpus": "buzz",
+      "caseId": "buzz-return-01",
+      "eventRef": "s0:cf895f29",
+      "eventKind": "tool_result",
+      "status": "screened",
+      "needsUpdate": 0.28,
+      "wake": false,
+      "latencyMs": 510,
+      "usage": {
+        "input": 1342,
+        "output": 21
+      }
+    }
+  ]
+}

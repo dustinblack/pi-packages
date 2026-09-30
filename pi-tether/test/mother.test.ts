@@ -2,16 +2,16 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
 import { setup, replacement, input, isMomRequest, deferred, readSidecar } from "./fixture.ts";
+import { CORRECTION } from "../src/feed.ts";
 import { SidecarStore } from "../src/sidecar.ts";
 import { CONTEXT_LIMIT } from "../src/mother.ts";
 import { MOM_PROMPT } from "../src/contract.ts";
+import type { SessionScreenInput } from "../src/advisor.ts";
 
 const checkpoints = async (h: Awaited<ReturnType<typeof setup>>) => (await readSidecar(h)).filter(r => r.type === "map" && r.data.snapshot);
 const stateHash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
-const advisorReview = (needsReanalysis: number, action: "accept" | "expand" = "accept") => ({ status: "reviewed" as const, model: "kev-test",
-	needsReanalysis, signals: { expand: needsReanalysis, contract: 0.02, redirect: 0.03, reorganize: 0.03 },
-	action, probabilities: { accept: action === "accept" ? 0.9 : 0.02, expand: action === "expand" ? 0.9 : 0.02, contract: 0.02, redirect: 0.03, reorganize: 0.03 },
-	confidence: 0.9, usage: { input: 20, output: 2 }, latencyMs: 3 });
+const screenResult = (needsUpdate: number, threshold = 0.7, latencyMs = 4) => ({ status: "screened" as const, model: "kev-test",
+	needsUpdate, wake: needsUpdate >= threshold, usage: { input: 24, output: 3 }, latencyMs });
 
 test("fresh Mom contexts checkpoint automatically observed narrative and recover without replay calls", { timeout: 15000 }, async () => {
 	const h = await setup();
@@ -42,39 +42,247 @@ test("fresh Mom contexts checkpoint automatically observed narrative and recover
 	} finally { mom.close(); await h.close(); }
 });
 
-test("a low session-level review accepts Mom's draft without extra analysis", { timeout: 15000 }, async () => {
-	const h = await setup(); let reviews = 0;
-	const mom = h.createMom({ advisor: { model: "kev-test", threshold: 0.7, async review(input) {
-		reviews++; assert.match(input.newEvidence, /Preserve this goal/); return advisorReview(0.12);
-	} } });
-	try {
-		await h.runtime.session.prompt("Preserve this goal."); await mom.open(); await mom.update();
-		assert.equal(reviews, 1); assert.equal(h.requests().length, 1);
-		assert.equal(mom.checkpoint?.advisor?.status, "reviewed");
-		assert.equal(mom.checkpoint?.advisor?.reexamined, false);
-	} finally { mom.close(); await h.close(); }
-});
-
-test("a non-accept session-level decision triggers exactly one deeper Mom reconsideration", { timeout: 15000 }, async () => {
-	const h = await setup(); let reviews = 0;
-	const mom = h.createMom({ advisor: { model: "kev-test", threshold: 0.7, async review() { reviews++; return advisorReview(0.31, "expand"); } } });
-	try {
-		await h.runtime.session.prompt("Preserve this goal."); await mom.open(); await mom.update();
-		assert.equal(reviews, 1); assert.equal(h.requests().length, 2, "advisor can add only one Mom call");
-		assert.match(JSON.stringify(h.requests()[1].messages), /probabilistic session-level advisor requested one deeper reconsideration/);
-		assert.equal(mom.checkpoint?.advisor?.reexamined, true);
-		assert.equal(mom.usage.calls, 2);
-	} finally { mom.close(); await h.close(); }
-});
-
-test("advisor failure is recorded but cannot block an otherwise valid Mom update", { timeout: 15000 }, async () => {
+test("without a configured advisor every settled update behaves exactly as before", { timeout: 15000 }, async () => {
 	const h = await setup();
-	const mom = h.createMom({ advisor: { model: "kev-test", threshold: 0.7, async review() { throw new Error("advisor offline"); } } });
+	const mom = h.createMom();
 	try {
 		await h.runtime.session.prompt("Preserve this goal."); await mom.open(); await mom.update();
 		assert.equal(h.requests().length, 1);
-		assert.equal(mom.checkpoint?.advisor?.status, "unavailable");
-		assert.match(mom.checkpoint?.advisor?.status === "unavailable" ? mom.checkpoint.advisor.error : "", /advisor offline/);
+		assert.equal(mom.detail().screen, undefined, "an unconfigured advisor leaves no screen receipt");
+		await h.runtime.session.prompt("Add routine progress to the same goal."); await mom.update();
+		assert.equal(h.requests().length, 2, "unconfigured behavior still wakes Mom's model on every settled update");
+		assert.equal(mom.detail().screen, undefined);
+		assert.deepEqual(h.errors, []); assert.deepEqual(h.api.errors, []);
+	} finally { mom.close(); await h.close(); }
+});
+
+test("a no-movement screen accepts the batch as unchanged state with zero Mom model calls", { timeout: 15000 }, async () => {
+	const h = await setup(); const screens: SessionScreenInput[] = [];
+	const advisor = { model: "kev-test", threshold: 0.7, async screen(value: SessionScreenInput) {
+		screens.push(value); return screenResult(0.12);
+	} };
+	let mom = h.createMom({ advisor });
+	try {
+		await h.runtime.session.prompt("Preserve this goal."); await mom.open(); await mom.update();
+		assert.equal(screens.length, 0, "bootstrap without a saved map never screens");
+		assert.equal(h.requests().length, 1);
+		const first = mom.checkpoint!, firstId = mom.checkpointId, graphHash = stateHash(first.graph);
+		await h.runtime.session.prompt("Routine mechanical progress on the same goal.");
+		await mom.update();
+		assert.equal(screens.length, 1, "one whole-batch screen per settled update");
+		assert.match(screens[0].newEvidence, /Routine mechanical progress/);
+		assert.match(screens[0].contextBeforeBatch ?? "", /lead assistant/);
+		assert.equal(screens[0].pendingMore, false);
+		assert.deepEqual(screens[0].unresolvedProcessRisks, []);
+		assert.deepEqual(screens[0].current, first.graph, "the screen sees the saved current map");
+		assert.equal(h.requests().length, 1, "a screened-out batch makes zero Mom model calls");
+		assert.equal(stateHash(mom.checkpoint!.graph), graphHash, "the graph is retained unchanged");
+		assert.equal(mom.checkpointId, firstId, "coverage layers over the same snapshot instead of duplicating it");
+		assert.equal(mom.checkpoint!.note, first.note, "the pending notice is retained");
+		assert.deepEqual(mom.checkpoint!.unfinished, first.unfinished, "unfinished work is retained");
+		const receipt = mom.detail().screen;
+		if (!receipt || receipt.status !== "screened") throw new Error("expected a screened receipt");
+		assert.equal(receipt.wake, false); assert.equal(receipt.model, "kev-test");
+		assert.deepEqual(receipt.usage, { input: 24, output: 3 }); assert.equal(receipt.latencyMs, 4);
+		const records = await readSidecar(h);
+		const progress = records.filter(r => r.type === "map" && r.data.cut && !r.data.snapshot);
+		assert.equal(progress.length, 1, "one compact cursor patch, no new snapshot");
+		assert.equal(progress[0].data.base, firstId);
+		assert.equal(progress[0].data.screen.status, "screened");
+		assert.equal(progress[0].data.screen.wake, false);
+		assert.deepEqual(progress[0].data.screen.usage, { input: 24, output: 3 });
+		assert.equal(progress[0].data.screen.latencyMs, 4);
+		assert.equal(records.filter(r => r.type === "usage").length, 1, "screen usage never enters Mom's model usage stream");
+		const acceptedCut = structuredClone(mom.checkpoint!.cut);
+		mom.close(); await h.runtime.session.reload(); mom = h.createMom({ advisor }); await mom.open();
+		assert.deepEqual(mom.checkpoint?.cut, acceptedCut, "coverage advanced durably across cold reopen");
+		assert.equal(stateHash(mom.checkpoint!.graph), graphHash, "the retained graph is cold-stable");
+		const coldReceipt = mom.detail().screen;
+		if (!coldReceipt || coldReceipt.status !== "screened") throw new Error("the screen receipt must survive cold reopen");
+		assert.equal(coldReceipt.wake, false);
+		const calls = h.requests().length;
+		await mom.update();
+		assert.equal(h.requests().length, calls, "durable coverage is not replayed");
+		assert.equal(screens.length, 1, "no pending batch means no second screen");
+	} finally { mom.close(); await h.close(); }
+});
+
+test("a movement screen wakes Mom's model exactly once and keeps its receipt with the map", { timeout: 15000 }, async () => {
+	const h = await setup(); let screens = 0;
+	const mom = h.createMom({ advisor: { model: "kev-test", threshold: 0.7, async screen() {
+		screens++; return screenResult(0.93, 0.7, 11);
+	} } });
+	try {
+		await h.runtime.session.prompt("Preserve this goal."); await mom.open(); await mom.update();
+		assert.equal(screens, 0); assert.equal(h.requests().length, 1);
+		await h.runtime.session.prompt("Change the goal to a different purpose."); await mom.update();
+		assert.equal(screens, 1, "one screen per settled batch");
+		assert.equal(h.requests().length, 2, "movement costs exactly one Mom model call");
+		const receipt = mom.detail().screen;
+		if (!receipt || receipt.status !== "screened") throw new Error("expected a screened receipt");
+		assert.equal(receipt.wake, true); assert.equal(receipt.needsUpdate, 0.93);
+		const snapshot = (await readSidecar(h)).filter(r => r.type === "map" && r.data.snapshot).at(-1)!;
+		assert.equal(snapshot.data.screen.status, "screened");
+		assert.equal(snapshot.data.screen.wake, true);
+		assert.equal(snapshot.data.screen.latencyMs, 11);
+		assert.equal(mom.usage.calls, 2, "the screen never adds or replaces a Mom model call");
+		assert.equal((await readSidecar(h)).filter(r => r.type === "usage").length, 2, "Mom's own usage stream is untouched by screening");
+	} finally { mom.close(); await h.close(); }
+});
+
+test("an unavailable, malformed, or timed-out screen fails open without a fake success", { timeout: 30000 }, async () => {
+	for (const reason of ["Mom advisor is offline.", "Mom advisor returned an invalid screen answer.", "TimeoutError: the operation timed out"]) {
+		const h = await setup(); let screens = 0;
+		const mom = h.createMom({ advisor: { model: "kev-test", threshold: 0.7, async screen() {
+			screens++; throw new Error(reason);
+		} } });
+		try {
+			await h.runtime.session.prompt("Preserve this goal."); await mom.open(); await mom.update();
+			await h.runtime.session.prompt("Routine progress after the screen failed."); await mom.update();
+			assert.equal(screens, 1);
+			assert.equal(h.requests().length, 2, "an unavailable screen never blocks a valid update");
+			const receipt = mom.detail().screen;
+			if (!receipt || receipt.status !== "unavailable") throw new Error(`${reason} must be reported as unavailable, never as screened`);
+			assert.ok(receipt.error.includes(reason));
+			assert(receipt.latencyMs >= 0);
+			const stored = (await readSidecar(h)).filter(r => r.type === "map" && r.data.screen?.status === "unavailable").at(-1);
+			assert.equal(stored?.data.screen.status, "unavailable", "the fail-open receipt is durable and diagnosable");
+		} finally { mom.close(); await h.close(); }
+	}
+});
+
+test("bootstrap, explicit questions, refresh, and user corrections all bypass the screen", { timeout: 30000 }, async () => {
+	const h = await setup(); let screens = 0;
+	const advisor = { model: "kev-test", threshold: 0.7, async screen() {
+		screens++; return screenResult(0.99);
+	} };
+	let mom = h.createMom({ advisor });
+	h.api.onUnscripted((request) => {
+		if (!isMomRequest(request)) return { text: "Lead continued." };
+		const body = input(request);
+		return replacement(request, body.question ? { answer: `The goal stands. [src:${body.original.ref}]` } : {});
+	});
+	try {
+		await h.runtime.session.prompt("Preserve this goal."); await mom.open(); await mom.update();
+		assert.equal(screens, 0, "bootstrap without a saved map never screens");
+		assert.match(String(await mom.update("Why preserve the goal?")), /goal stands/);
+		assert.equal(screens, 0, "an explicit question is never suppressed");
+		await h.runtime.session.prompt("Routine progress covered by an explicit refresh.");
+		await mom.update(undefined, undefined, 0, true);
+		assert.equal(screens, 0, "an explicit refresh is never suppressed");
+		await h.runtime.session.prompt("Routine progress behind an explicit user correction.");
+		h.runtime.session.sessionManager.appendCustomMessageEntry(CORRECTION, "Keep the original goal after the correction.", true, { origin: "user-command" });
+		mom.close(); mom = h.createMom({ advisor }); await mom.open();
+		await mom.update();
+		assert.equal(screens, 0, "an explicit correction survives reload and is never suppressed");
+		await h.runtime.session.prompt("Routine progress on an ordinary settled boundary.");
+		await mom.update();
+		assert.equal(screens, 1, "only the ordinary settled batch screens");
+	} finally { mom.close(); await h.close(); }
+});
+
+test("pending failed-update and skipped-gap recovery are never screened", { timeout: 30000 }, async () => {
+	const h = await setup(); let screens = 0, reject = true;
+	const mom = h.createMom({ advisor: { model: "kev-test", threshold: 0.7, async screen() {
+		screens++; return screenResult(0.99);
+	} } });
+	try {
+		await h.runtime.session.prompt("Preserve this goal."); await mom.open(); await mom.update();
+		assert.equal(screens, 0, "bootstrap bypass");
+		h.api.onUnscripted((request) => {
+			if (!isMomRequest(request)) return { text: "Lead continued." };
+			const ref = input(request).original.ref;
+			return reject ? replacement(request, { unfinished: [{ node: "main", label: "Main purpose", disposition: "carried", target: "main", sources: [ref] }] })
+				: replacement(request);
+		});
+		await h.runtime.session.prompt("This range will fail deterministically.");
+		await assert.rejects(() => mom.update(), /closes no endeavor/);
+		assert.equal(screens, 1, "the ordinary batch screened before Mom's model ran");
+		assert.equal(mom.failure?.failures, 1);
+		await h.runtime.session.prompt("Newer evidence forces the pending recovery.");
+		const calls = h.requests().length;
+		await assert.rejects(() => mom.update(), /closes no endeavor/);
+		assert.equal(screens, 1, "a pending failed-update recovery is never screened");
+		assert.equal(h.requests().length, calls + 2, "recovery runs without a screen");
+		assert.equal(mom.gaps.length, 1);
+		reject = false;
+		await mom.update(undefined, undefined, 0, true);
+		assert.equal(screens, 1, "skipped-gap recovery is never screened");
+		assert.equal(mom.gaps.length, 0);
+	} finally { mom.close(); await h.close(); }
+});
+
+test("an aborted screen stops the update before any Mom call or state write", { timeout: 15000 }, async () => {
+	const h = await setup(), arrived = deferred();
+	const mom = h.createMom({ advisor: { model: "kev-test", threshold: 0.7, async screen(_value: SessionScreenInput, signal?: AbortSignal) {
+		arrived.resolve();
+		await new Promise<void>((_done, fail) => {
+			const abort = () => fail(new Error("screen aborted"));
+			if (signal?.aborted) abort(); else signal?.addEventListener("abort", abort, { once: true });
+		});
+		return screenResult(0.05);
+	} } });
+	try {
+		await h.runtime.session.prompt("Preserve this goal."); await mom.open(); await mom.update();
+		const before = mom.checkpoint, controller = new AbortController();
+		await h.runtime.session.prompt("Routine progress under an aborted screen.");
+		const work = mom.update(undefined, controller.signal);
+		await arrived.promise;
+		controller.abort();
+		await assert.rejects(() => work, /screen aborted/);
+		assert.equal(mom.checkpoint, before, "an aborted screen publishes nothing");
+		assert.equal(h.requests().length, 1, "an aborted screen never reaches Mom's model");
+		assert.equal((await readSidecar(h)).filter(r => r.type === "map" && r.data.cut && !r.data.snapshot).length, 0);
+	} finally { mom.close(); await h.close(); }
+});
+
+test("a screen that resolves after the session went stale cannot publish a checkpoint", { timeout: 15000 }, async () => {
+	const h = await setup(), gate = deferred<void>(), arrived = deferred(); let current = true;
+	const mom = h.createMom({ current: () => current, advisor: { model: "kev-test", threshold: 0.7, async screen() {
+		arrived.resolve(); await gate.promise; return screenResult(0.05);
+	} } });
+	try {
+		await h.runtime.session.prompt("Preserve the old branch."); await mom.open(); await mom.update();
+		const before = mom.checkpoint;
+		await h.runtime.session.prompt("Routine progress on a superseded branch.");
+		const work = mom.update();
+		await arrived.promise; current = false; gate.resolve();
+		await assert.rejects(() => work, /superseded/);
+		assert.equal(mom.checkpoint, before, "a stale screen never moves coverage");
+		assert.equal((await readSidecar(h)).filter(r => r.type === "map" && r.data.cut && !r.data.snapshot).length, 0);
+		assert.equal(h.requests().length, 1, "a stale screen never reaches Mom's model");
+	} finally { gate.resolve(); mom.close(); await h.close(); }
+});
+
+test("a failed cursor write after a no-movement screen retains evidence and never runs Mom", { timeout: 15000 }, async () => {
+	const h = await setup(); let fail = false; const screens: SessionScreenInput[] = [];
+	const durable = () => new SidecarStore(() => h.parent, h.runtime.session.sessionManager.getSessionId());
+	const mom = h.createMom({ advisor: { model: "kev-test", threshold: 0.7, async screen(value: SessionScreenInput) {
+		screens.push(value); return screenResult(0.12);
+	} }, store: {
+		load: async () => durable().load(),
+		append: async (type, data) => {
+			if (fail && type === "map" && data.base !== undefined) throw new Error("Injected cursor failure");
+			return durable().append(type, data);
+		},
+	} });
+	try {
+		await h.runtime.session.prompt("Preserve this goal."); await mom.open(); await mom.update();
+		const before = mom.checkpoint;
+		await h.runtime.session.prompt("Routine progress whose cursor write fails."); fail = true;
+		await assert.rejects(() => mom.update(), /could not advance her state beside the session.*Injected cursor failure/);
+		assert.equal(mom.checkpoint, before, "coverage did not move on a failed write");
+		assert.equal(screens.length, 1);
+		assert.equal(h.requests().length, 1, "a storage failure is not a classifier failure: Mom's model still makes no call");
+		assert.equal((await readSidecar(h)).filter(r => r.type === "map" && r.data.cut && !r.data.snapshot).length, 0);
+		fail = false;
+		await mom.update();
+		assert.equal(h.requests().length, 1, "the retained batch re-screens instead of waking Mom");
+		assert.equal(screens.length, 2);
+		assert.match(screens[1].newEvidence, /cursor write fails/, "the unconsumed batch is retried intact");
+		const progress = (await readSidecar(h)).filter(r => r.type === "map" && r.data.cut && !r.data.snapshot);
+		assert.equal(progress.length, 1, "the retried batch lands exactly one cursor record");
+		assert.equal(progress[0].data.screen.wake, false);
 	} finally { mom.close(); await h.close(); }
 });
 

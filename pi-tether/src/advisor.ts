@@ -1,46 +1,41 @@
 import type { WorkGraph } from "./graph.ts";
 
-export const ADVISOR_ACTIONS = ["accept", "expand", "contract", "redirect", "reorganize"] as const;
-export const ADVISOR_DIMENSIONS = ["expand", "contract", "redirect", "reorganize"] as const;
-export type AdvisorAction = typeof ADVISOR_ACTIONS[number];
-export type AdvisorDimension = typeof ADVISOR_DIMENSIONS[number];
 export interface AdvisorUsage { input: number; output: number }
-export interface AdvisorReview {
-	status: "reviewed";
+/** One settled whole-batch screening question; never a per-message record. */
+export interface SessionScreenInput {
+	current: WorkGraph;
+	newEvidence: string;
+	contextBeforeBatch: string | null;
+	pendingMore: boolean;
+	unresolvedProcessRisks: string[];
+}
+export interface AdvisorScreen {
+	status: "screened";
 	model: string;
-	needsReanalysis: number;
-	signals: Record<AdvisorDimension, number>;
-	action: AdvisorAction;
-	probabilities: Record<AdvisorAction, number>;
-	confidence: number;
+	needsUpdate: number;
+	/** `needsUpdate >= threshold`. Only this verdict can keep Mom's model asleep. */
+	wake: boolean;
 	usage: AdvisorUsage;
 	latencyMs: number;
-	reexamined: boolean;
 }
-export interface AdvisorUnavailable {
+/** Fail-open receipt: no verdict was produced, and no verdict is pretended. */
+export interface AdvisorScreenUnavailable {
 	status: "unavailable";
 	model: string;
 	error: string;
 	latencyMs: number;
-	reexamined: false;
 }
-export type AdvisorRecord = AdvisorReview | AdvisorUnavailable;
-export interface SessionReviewInput {
-	current: WorkGraph;
-	proposed: WorkGraph;
-	newEvidence: string;
-	pendingMore: boolean;
-}
+export type AdvisorScreenRecord = AdvisorScreen | AdvisorScreenUnavailable;
 export interface SessionAdvisor {
 	readonly model: string;
 	readonly threshold: number;
-	review(input: SessionReviewInput, signal?: AbortSignal): Promise<Omit<AdvisorReview, "reexamined">>;
+	screen(input: SessionScreenInput, signal?: AbortSignal): Promise<AdvisorScreen>;
 }
 
 const MAX_RESPONSE_BYTES = 16 * 1024;
 const MAX_REQUEST_BYTES = 96 * 1024;
 const DEFAULT_TIMEOUT_MS = 1500;
-const DEFAULT_THRESHOLD = 0.7;
+const DEFAULT_THRESHOLD = 0.25;
 
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
 const probability = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
@@ -74,26 +69,13 @@ async function boundedText(response: Response): Promise<string> {
 	return text + decoder.decode();
 }
 
-function parseReview(value: unknown, latencyMs: number): Omit<AdvisorReview, "reexamined"> {
+function parseScreen(value: unknown, latencyMs: number, threshold: number): AdvisorScreen {
 	if (!record(value) || typeof value.model !== "string" || !record(value.answers) || !record(value.usage)) throw new Error("Mom advisor returned an invalid response.");
-	const action = value.answers.map_action;
-	if (!record(action) || action.type !== "choice" || typeof action.choice !== "string" || !ADVISOR_ACTIONS.includes(action.choice as AdvisorAction) ||
-		!probability(action.confidence) || !record(action.probabilities)) throw new Error("Mom advisor returned invalid review answers.");
-	const signals = {} as Record<AdvisorDimension, number>;
-	for (const key of ADVISOR_DIMENSIONS) {
-		const answer = value.answers[`needs_${key}`];
-		if (!record(answer) || answer.type !== "noul" || !probability(answer.noul)) throw new Error("Mom advisor returned invalid review answers.");
-		signals[key] = answer.noul;
-	}
-	const probabilities = {} as Record<AdvisorAction, number>;
-	for (const key of ADVISOR_ACTIONS) {
-		const score = action.probabilities[key];
-		if (!probability(score)) throw new Error("Mom advisor returned invalid action probabilities.");
-		probabilities[key] = score;
-	}
+	const answer = value.answers.needs_update;
+	if (!record(answer) || answer.type !== "noul" || !probability(answer.noul)) throw new Error("Mom advisor returned an invalid screen answer.");
 	if (!nonnegativeInteger(value.usage.input_tokens) || !nonnegativeInteger(value.usage.output_tokens)) throw new Error("Mom advisor returned invalid usage.");
-	return { status: "reviewed", model: value.model, needsReanalysis: Math.max(...Object.values(signals)), signals, action: action.choice as AdvisorAction,
-		probabilities, confidence: action.confidence, usage: { input: value.usage.input_tokens, output: value.usage.output_tokens }, latencyMs };
+	return { status: "screened", model: value.model, needsUpdate: answer.noul, wake: answer.noul >= threshold,
+		usage: { input: value.usage.input_tokens, output: value.usage.output_tokens }, latencyMs };
 }
 
 export class SystemOneAdvisor implements SessionAdvisor {
@@ -111,28 +93,17 @@ export class SystemOneAdvisor implements SessionAdvisor {
 		catch (error) { this.configurationError = String(error); }
 	}
 
-	async review(input: SessionReviewInput, signal?: AbortSignal): Promise<Omit<AdvisorReview, "reexamined">> {
+	async screen(input: SessionScreenInput, signal?: AbortSignal): Promise<AdvisorScreen> {
 		const started = performance.now();
 		if (this.configurationError || !this.url) throw new Error(this.configurationError ?? "Mom advisor URL is unavailable.");
 		const body = JSON.stringify({
 			model: this.model,
-			state: { savedAccountBeforeUpdate: input.current, momDraftAfterUpdate: input.proposed, newEvidenceToIncorporate: input.newEvidence, pendingMore: input.pendingMore },
+			state: { current: input.current, newEvidence: input.newEvidence, contextBeforeBatch: input.contextBeforeBatch,
+				pendingMore: input.pendingMore, unresolvedProcessRisks: input.unresolvedProcessRisks },
 			questions: {
-				needs_expand: { type: "noul", instructions: "Compare newEvidenceToIncorporate with momDraftAfterUpdate. Is a material feature-level purpose, endeavor, durable permission or prohibition, user decision, unresolved choice, outcome, or return point missing from Mom's draft?",
-					criteria: { true: "Material session meaning is absent and the account should expand. Durable user control or a withheld permission is material.", false: "No material meaning is missing; omitted content is transient wording, a mechanical step, or source-level detail." } },
-				needs_contract: { type: "noul", instructions: "Does Mom's draft retain stale, duplicated, completed, or clause-level records that should be removed or folded?",
-					criteria: { true: "The account is larger than the smallest faithful feature-level map.", false: "Every retained record still materially orients future session work." } },
-				needs_redirect: { type: "noul", instructions: "Does Mom's draft put the session on the wrong purpose, focus, hierarchy path, or return route?",
-					criteria: { true: "The account points to the wrong work or loses where a tangent returns.", false: "Purpose, focus, ancestry, and return route match the session." } },
-				needs_reorganize: { type: "noul", instructions: "Should Mom reorganize multiple records because their current hierarchy obscures the session's real feature-level shape?",
-					criteria: { true: "The same facts need a materially different hierarchy, not merely different wording.", false: "The hierarchy is already a compact faithful account." } },
-				map_action: { type: "choice", instructions: "After comparing the new evidence, saved account, and Mom's draft, what treatment best fits the draft?", criteria: {
-					accept: "Save it as the smallest faithful account, including a justified no-change proposal.",
-					expand: "Add a missing feature-level endeavor, durable rule, decision, unresolved choice, outcome, or return point.",
-					contract: "Remove or fold stale, duplicated, completed, or clause-level records.",
-					redirect: "Change purpose, focus, hierarchy, or the path back from a tangent.",
-					reorganize: "Restructure multiple related records because the current account obscures the session's real shape.",
-				} },
+				needs_update: { type: "noul", instructions: "Compare newEvidence with the current work map in state.current. One binary decision: has this settled batch materially moved the session away from what the current work map already records? state.unresolvedProcessRisks are already-open process risks, not movement by themselves.",
+					criteria: { true: "Material movement: the batch changes purpose or scope, records or withdraws assent, grants or withdraws a permission or prohibition, changes a return point, or lands an outcome, or it consequentially changes or resolves an unresolved process risk — so the current map would be wrong or incomplete without Mom's update.",
+						false: "Status quo: routine mechanical progress, transient wording, or source-level detail with no material purpose, scope, assent, permission, return point, outcome, or process-risk change." } },
 			},
 		});
 		if (Buffer.byteLength(body) > MAX_REQUEST_BYTES) throw new Error("Mom advisor request exceeds 96 KiB.");
@@ -142,15 +113,15 @@ export class SystemOneAdvisor implements SessionAdvisor {
 		const text = await boundedText(response);
 		let value: unknown;
 		try { value = JSON.parse(text); } catch { throw new Error("Mom advisor returned invalid JSON."); }
-		return parseReview(value, Math.round(performance.now() - started));
+		return parseScreen(value, Math.round(performance.now() - started), this.threshold);
 	}
 }
 
-export function isAdvisorRecord(value: unknown): value is AdvisorRecord {
-	if (!record(value) || typeof value.model !== "string" || typeof value.latencyMs !== "number" || !Number.isFinite(value.latencyMs) || value.latencyMs < 0 || typeof value.reexamined !== "boolean") return false;
-	if (value.status === "unavailable") return typeof value.error === "string" && value.reexamined === false;
-	const probabilities = value.probabilities, signals = value.signals;
-	if (value.status !== "reviewed" || !probability(value.needsReanalysis) || typeof value.action !== "string" || !ADVISOR_ACTIONS.includes(value.action as AdvisorAction) ||
-		!record(probabilities) || !record(signals) || !probability(value.confidence) || !record(value.usage) || !nonnegativeInteger(value.usage.input) || !nonnegativeInteger(value.usage.output)) return false;
-	return ADVISOR_ACTIONS.every(key => probability(probabilities[key])) && ADVISOR_DIMENSIONS.every(key => probability(signals[key]));
+export function isAdvisorScreenRecord(value: unknown): value is AdvisorScreenRecord {
+	if (!record(value) || typeof value.model !== "string" || typeof value.latencyMs !== "number" ||
+		!Number.isFinite(value.latencyMs) || value.latencyMs < 0) return false;
+	if (value.status === "unavailable") return typeof value.error === "string";
+	if (value.status !== "screened" || !probability(value.needsUpdate) || typeof value.wake !== "boolean") return false;
+	if (!record(value.usage)) return false;
+	return nonnegativeInteger(value.usage.input) && nonnegativeInteger(value.usage.output);
 }

@@ -24,23 +24,25 @@ pi -e ./pi-tether/src/index.ts --mom-model openai-codex/gpt-5.6-luna --mom-inter
 
 Mom updates after a lead turn settles or a linked delegate settles, with at least 15 seconds between automatic updates by default. Message completion, individual tool results, delegate start/note events, and idleness do not wake her. A successful compaction is one additional settled boundary: it triggers exactly one bounded background review. She never starts routine inference while the lead or a linked delegate is still working. A settled update reads the complete pending user, lead, tool-metadata, and worker slice without blocking the working agent.
 
-### Optional session-level Kev/JEV review
+### Optional pre-wake Kev/JEV screen
 
-A System One advisor can cheaply review Mom's proposed account before it is saved:
+A System One screen can decide cheaply whether a settled batch materially moved the work before Mom’s model wakes:
 
 ```bash
 pi -e ./pi-tether/src/index.ts \
   --mom-advisor-url http://192.168.1.52:9999/v1/systemone \
   --mom-advisor-model kev-latest \
-  --mom-advisor-threshold 0.70 \
+  --mom-advisor-threshold 0.25 \
   --mom-advisor-timeout-ms 1500
 ```
 
-The advisor compares the saved account, Mom's draft, and the complete new evidence batch. It returns probabilities for expansion, contraction, redirection, and reorganization plus one map-action decision. A non-`accept` decision, or any review signal at or above the configured threshold, triggers exactly one deeper Mom reconsideration. Mom remains the final authority and may keep her draft. This advisor is disabled by default. Background Mom updates have a two-call ceiling and explicit questions have a five-call ceiling; explicitly enabling the advisor adds its separate review call outside those ceilings.
+The screen receives the saved map, one complete settled evidence batch, one boundary event, pending-coverage state, and currently open process risks. It answers one binary question: whether that batch materially changes purpose, scope, assent, permission, a return point, an outcome, or a consequential process risk. At or above the threshold, Mom’s model wakes and does its full synthesis. Below the threshold, Mom accepts the batch as unchanged current state, advances coverage with one compact cursor record, and makes zero Mom-model calls. The graph, unfinished work, pending notice, and unresolved risks remain unchanged. Routine progress therefore never creates message records or fragments.
 
-This is not message classification. The advisor creates no fragments, intake declarations, graph records, or hard gate. One review covers the proposed session account; an unavailable or malformed response is recorded in `/mom detail` and does not block a valid update. The endpoint is disabled when `--mom-advisor-url` is empty. Configured endpoints must use HTTP on a loopback or private IPv4 address, end in `/v1/systemone`, and may not redirect. Responses are capped at 16 KiB.
+This is disabled by default. With no configured screen, ordinary settled updates behave exactly as before. Bootstrap map creation, explicit questions, `/mom refresh`, `/mom correct`, compaction review, and failed or skipped-gap recovery are mandatory bypasses: the screen never suppresses them. An unavailable, malformed, or timed-out screen fails open to Mom’s model and records an unavailable receipt in `/mom detail`; it never pretends to have screened a batch. A failed cursor write retains the unconsumed batch instead of being treated as a classifier failure.
 
-Measured on the frozen negative-zero case with `kev-latest`: each review took about 0.5 s and 1.0–1.5k input tokens. Across six reviewed drafts it requested zero reconsiderations, including one draft that lost the “do not answer yet” hold. A separate probe flagged an unchanged draft after an explicit goal change (`redirect`, p=0.51). Draft-versus-evidence comparison is therefore unproven as a safety check; treat the advisor as a cheap path-change signal, not an omission detector.
+The endpoint guard is unchanged: HTTP only on loopback or private IPv4, path `/v1/systemone`, no redirect, 96 KiB request cap, 16 KiB response cap, and a bounded timeout. Screening receipts ride the accepting map record and remain separate from Mom’s model-usage stream. This is not a semantic safety oracle: a false negative can skip a real change from the saved map, while the original evidence remains readable in session history.
+
+The default threshold is `0.25`, calibrated on the preserved todo-008 evidence: it is the lowest score observed on the preregistered aligned-gold-horizon movement set, so all 15 gold movement windows woke Mom. On the same captured scores it avoided 11 of 30 sampled routine feed wakes; 3 of 24 material preserved-update proposals were skipped, and those are reported as eventual-consistency risk rather than claimed as caught. The previous `0.70` threshold was measured and rejected: it skipped 14 of 15 gold movement windows. Artifacts and the threshold sweep are in `pi-tether/experiments/evidence/todo-012/`.
 
 ## Commands
 
@@ -109,7 +111,7 @@ Mom never writes her state into the session transcript. Map snapshots and patche
 
 The map/notice/usage storage layout remains a clean, incompatible cutover with no migration for older record formats, including the former obligation/trigger notice shape. Before first use of that layout, delete or archive an older `<session>.mom`; the session JSONL remains untouched and continues to supply the conversation evidence. A current-format map created before the explicit `motherThread` pointer receives one narrow, version-free cutover: its existing purpose node becomes the stable root, any peer roots move beneath it without changing sources, and one atomic normalized snapshot prevents repeated conversion.
 
-A material update saves a map snapshot and consumed source positions together. When an accepted update leaves the graph, notice, and unfinished list byte-identical, Mom appends only a small map cursor patch tied to the latest snapshot; cold reload therefore does not replay accepted evidence or duplicate the graph. A cursor patch applies only to its session, base map, and selected branch. When configured, a material map snapshot also saves the session-level advisor decision. A failed state write leaves the prior durable cursor intact.
+A material update saves a map snapshot and consumed source positions together. When an accepted update leaves the graph, notice, and unfinished list byte-identical, Mom appends only a small map cursor patch tied to the latest snapshot; cold reload therefore does not replay accepted evidence or duplicate the graph. A cursor patch applies only to its session, base map, and selected branch. When configured, a material map snapshot or cursor patch saves the screen receipt that led to the acceptance. A failed state write leaves the prior durable cursor intact.
 
 A deterministic background rejection receives one repair call. The same range is not retried until a later settled boundary carries newer material, or the user requests `/mom refresh`. Two deterministic acceptance/model-output failures on that exact range create one durable visible gap and advance coverage so newer evidence is not blocked. `/mom detail` reports the failed range, open gaps, and session usage; `/mom refresh` retries the oldest gap alone against the current graph, without mixing later pending evidence, and resolves it after acceptance. Recovery uses the same 24,000-character evidence bound; an oversized legacy gap is retried as deterministic ordered chunks, atomically replacing its open record with the explicit remaining refs until none remain. Provider outages, unreadable/tampered sources, session invalidation, and sidecar write failures never advance or gap evidence.
 

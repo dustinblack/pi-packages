@@ -1,7 +1,7 @@
 import type { Cut, SessionReader } from "./feed.ts";
 import type { Notice } from "./contract.ts";
 import { PROCESS_RISK_CLASSES, processNoticeKey } from "./process-health.ts";
-import { isAdvisorRecord, type AdvisorRecord } from "./advisor.ts";
+import { isAdvisorScreenRecord, type AdvisorScreenRecord } from "./advisor.ts";
 import type { MomStore, SidecarRecord } from "./sidecar.ts";
 import { Check } from "typebox/value";
 import { checkGraph, normalizeMotherRoot, Unfinished, type WorkGraph, type UnfinishedItems } from "./graph.ts";
@@ -31,7 +31,7 @@ export function graphChange(before: { nodes: readonly { id: string; label: strin
 		retired: (before?.nodes ?? []).filter(n => !newIds.has(n.id)).map(record) };
 }
 /** One materialized map. Usage is a separate sidecar concern. */
-export interface Checkpoint { sessionId: string; graph: WorkGraph; note: Notice | null; unfinished?: UnfinishedItems; advisor?: AdvisorRecord; cut: Cut; at: number; model: string; change?: GraphChange }
+export interface Checkpoint { sessionId: string; graph: WorkGraph; note: Notice | null; unfinished?: UnfinishedItems; cut: Cut; at: number; model: string; change?: GraphChange }
 
 const record = (x: unknown): x is Record<string, any> => !!x && typeof x === "object" && !Array.isArray(x);
 const integer = (x: unknown) => typeof x === "number" && Number.isSafeInteger(x) && x >= 0;
@@ -56,7 +56,6 @@ function checkpointValue(x: unknown, allowCutover: boolean): { checkpoint: Check
 	const value = normalized.changed ? { ...x, graph: normalized.graph } : x;
 	try { checkGraph(value.graph); } catch { return undefined; }
 	if (value.unfinished !== undefined && !Check(Unfinished, value.unfinished)) return undefined;
-	if (value.advisor !== undefined && !isAdvisorRecord(value.advisor)) return undefined;
 	if (value.change !== undefined) {
 		const c = value.change;
 		if (!record(c) || (c.before !== null && !integer(c.before)) || c.after !== value.graph.nodes.length ||
@@ -74,11 +73,11 @@ export function isCheckpoint(x: unknown): x is Checkpoint { return Boolean(check
 
 export interface CursorFailure { key: string; from: Cut; through: Cut; refs: string[]; error: string; failures: number }
 export interface SkippedGap extends CursorFailure { id: string }
-export interface MomState { checkpoint?: Checkpoint; checkpointId?: string; coverageCut?: Cut; enabled: boolean; unresolvedNotices: string[]; usage?: Usage; error?: string; failure?: CursorFailure; gaps: SkippedGap[]; cutover?: boolean }
+export interface MomState { checkpoint?: Checkpoint; checkpointId?: string; coverageCut?: Cut; enabled: boolean; unresolvedNotices: string[]; usage?: Usage; error?: string; failure?: CursorFailure; gaps: SkippedGap[]; screen?: AdvisorScreenRecord; cutover?: boolean }
 
 const failureLike = (x: unknown): x is CursorFailure => record(x) && typeof x.key === "string" && cutLike(x.from) && cutLike(x.through) &&
 	Array.isArray(x.refs) && x.refs.every((ref: unknown) => typeof ref === "string") && typeof x.error === "string" && integer(x.failures);
-const mapKeys = new Set(["snapshot", "base", "cut", "enabled", "failure", "gap", "resolvedNotices"]);
+const mapKeys = new Set(["snapshot", "base", "cut", "enabled", "failure", "gap", "resolvedNotices", "screen"]);
 
 /** Full map snapshots valid for the selected branch; map patches never become history handles. */
 export function branchCheckpoints(records: readonly SidecarRecord[], branch: ReadonlySet<string>): { id: string; data: Checkpoint }[] {
@@ -115,7 +114,12 @@ export async function loadState(store: MomStore, manager: SessionReader): Promis
 			continue;
 		}
 		if (Object.keys(item.data).some(key => !mapKeys.has(key)) || !Object.keys(item.data).length) throw new Error("Invalid Mom map state in her sidecar.");
-		let branchAnchor = false, applies = false;
+		let branchAnchor = false, applies = false, screenRecord: unknown;
+		if (item.data.screen !== undefined) {
+			// Resolve this receipt against the record's own coverage anchor before later records move the cursor.
+			if (!isAdvisorScreenRecord(item.data.screen)) throw new Error("Invalid Mom screen receipt in her sidecar.");
+			screenRecord = item.data.screen;
+		}
 		if (item.data.snapshot !== undefined) {
 			branchAnchor = true;
 			const parsed = checkpointValue(item.data.snapshot, true);
@@ -166,6 +170,7 @@ export async function loadState(store: MomStore, manager: SessionReader): Promis
 			if (!branchAnchor || !Array.isArray(item.data.resolvedNotices) || !item.data.resolvedNotices.every((key: unknown) => typeof key === "string")) throw new Error("Invalid Mom process-risk resolution in her sidecar.");
 			if (applies) for (const key of item.data.resolvedNotices) unresolvedNotices.delete(key);
 		}
+		if (screenRecord !== undefined && applies) state.screen = screenRecord as AdvisorScreenRecord;
 	}
 	state.gaps = [...gaps.values()]; state.unresolvedNotices = [...unresolvedNotices];
 	return state;

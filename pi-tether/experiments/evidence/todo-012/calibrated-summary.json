@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "derivedAt": "2026-09-30T04:49:48.202Z",
+  "method": "Threshold sweep over already-captured screen scores; no new model calls.",
+  "sourceFiles": {
+    "screenReplay": "screen-replay.json",
+    "routineSample": "routine-sample.json"
+  },
+  "calibration": "Default 0.25 is the lowest captured aligned-gold-horizon score, chosen so every preregistered gold movement wakes; higher thresholds were rejected because they skipped gold movement.",
+  "thresholds": [
+    {
+      "threshold": 0.25,
+      "preservedWindows": 26,
+      "preservedWakesKept": 23,
+      "preservedWakesAvoided": 3,
+      "preservedMaterialWindows": 24,
+      "preservedMaterialMisses": 3,
+      "goldWindows": 15,
+      "goldWakesKept": 15,
+      "goldMovementMisses": 0,
+      "routineSampleWindows": 30,
+      "routineWakesAvoided": 11,
+      "routineWakesKept": 19
+    },
+    {
+      "threshold": 0.3,
+      "preservedWindows": 26,
+      "preservedWakesKept": 20,
+      "preservedWakesAvoided": 6,
+      "preservedMaterialWindows": 24,
+      "preservedMaterialMisses": 6,
+      "goldWindows": 15,
+      "goldWakesKept": 14,
+      "goldMovementMisses": 1,
+      "routineSampleWindows": 30,
+      "routineWakesAvoided": 23,
+      "routineWakesKept": 7
+    },
+    {
+      "threshold": 0.7,
+      "preservedWindows": 26,
+      "preservedWakesKept": 1,
+      "preservedWakesAvoided": 25,
+      "preservedMaterialWindows": 24,
+      "preservedMaterialMisses": 23,
+      "goldWindows": 15,
+      "goldWakesKept": 1,
+      "goldMovementMisses": 14,
+      "routineSampleWindows": 30,
+      "routineWakesAvoided": 30,
+      "routineWakesKept": 0
+    }
+  ]
+}

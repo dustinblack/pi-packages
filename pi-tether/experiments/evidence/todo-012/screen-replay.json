@@ -1,0 +1,702 @@
+{
+  "schemaVersion": 1,
+  "measuredAt": "2026-09-30T04:46:32.146Z",
+  "method": "Production SystemOneAdvisor screen against preserved todo-008 update inputs and preregistered aligned-gold-horizon windows; no Mom/Luna calls.",
+  "endpoint": "http://192.168.1.52:9999/v1/systemone",
+  "model": "kev-latest",
+  "threshold": 0.7,
+  "timeoutMs": 30000,
+  "inputs": {
+    "rawPredictionsSha256": "98ab81d79a84bb3186f053a8e791b0b26b8c734d990c3a51384fd4b3d89fb219",
+    "packetSha256": "33ba9eda3bc94d08661c4d96db3e1f76d8edbd290208b82c709d6beca3368ebd",
+    "goldSha256": "5e53fd71f0f25d30811aec8784435bab491ddf8458f31308fe218748bac527dc"
+  },
+  "summary": {
+    "preservedUpdateWindows": 26,
+    "preservedWakesAvoided": 25,
+    "preservedWakesKept": 1,
+    "preservedProposalMaterialWindows": 24,
+    "preservedProposalMaterialMisses": 23,
+    "routineFeedWindows": 0,
+    "routineWakesAvoided": 0,
+    "routineWakesKept": 0,
+    "alignedGoldWindows": 15,
+    "alignedGoldWakesKept": 1,
+    "alignedGoldMovementMisses": 14,
+    "unavailableFailOpen": 0,
+    "totalScreenCallsAttempted": 41
+  },
+  "results": [
+    {
+      "id": "update:buzz|buzz-assent-01|boundary",
+      "scope": "preserved-update",
+      "corpus": "buzz",
+      "caseId": "buzz-assent-01",
+      "phase": "boundary",
+      "proposalMaterial": true,
+      "status": "screened",
+      "needsUpdate": 0.27,
+      "wake": false,
+      "latencyMs": 424,
+      "usage": {
+        "input": 1014,
+        "output": 21
+      }
+    },
+    {
+      "id": "update:buzz|buzz-assent-01|pre-boundary",
+      "scope": "preserved-update",
+      "corpus": "buzz",
+      "caseId": "buzz-assent-01",
+      "phase": "pre-boundary",
+      "proposalMaterial": true,
+      "status": "screened",
+      "needsUpdate": 0.47,
+      "wake": false,
+      "latencyMs": 345,
+      "usage": {
+        "input": 753,
+        "output": 21
+      }
+    },
+    {
+      "id": "update:buzz|buzz-conflict-01|boundary",
+      "scope": "preserved-update",
+      "corpus": "buzz",
+      "caseId": "buzz-conflict-01",
+      "phase": "boundary",
+      "proposalMaterial": true,
+      "status": "screened",
+      "needsUpdate": 0.36,
+      "wake": false,
+      "latencyMs": 600,
+      "usage": {
+        "input": 1211,
+        "output": 21
+      }
+    },
+    {
+      "id": "update:buzz|buzz-conflict-01|pre-boundary",
+      "scope": "preserved-update",
+      "corpus": "buzz",
+      "caseId": "buzz-conflict-01",
+      "phase": "pre-boundary",
+      "proposalMaterial": true,
+      "status": "screened",
+      "needsUpdate": 0.2,
+      "wake": false,
+      "latencyMs": 787,
+      "usage": {
+        "input": 1117,
+        "output": 20
+      }
+    },
+    {
+      "id": "update:buzz|buzz-pivot-01|boundary",
+      "scope": "preserved-update",
+      "corpus": "buzz",
+      "caseId": "buzz-pivot-01",
+      "phase": "boundary",
+      "proposalMaterial": true,
+      "status": "screened",
+      "needsUpdate": 0.77,
+      "wake": true,
+      "latencyMs": 372,
+      "usage": {
+        "input": 548,
+        "output": 21
+      }
+    },
+    {
+      "id": "update:buzz|buzz-return-01|boundary",
+      "scope": "preserved-update",
+      "corpus": "buzz",
+      "caseId": "buzz-return-01",
+      "phase": "boundary",
+      "proposalMaterial": false,
+      "status": "screened",
+      "needsUpdate": 0.34,
+      "wake": false,
+      "latencyMs": 556,
+      "usage": {
+        "input": 1315,
+        "output": 21
+      }
+    },
+    {
+      "id": "update:buzz|buzz-return-01|pre-boundary",
+      "scope": "preserved-update",
+      "corpus": "buzz",
+      "caseId": "buzz-return-01",
+      "phase": "pre-boundary",
+      "proposalMaterial": true,
+      "status": "screened",
+      "needsUpdate": 0.47,
+      "wake": false,
+      "latencyMs": 996,
+      "usage": {
+        "input": 1355,
+        "output": 21
+      }
+    },
+    {
+      "id": "update:buzz|buzz-stale-01|boundary",
+      "scope": "preserved-update",
+      "corpus": "buzz",
+      "caseId": "buzz-stale-01",
+      "phase": "boundary",
+      "proposalMaterial": true,
+      "status": "screened",
+      "needsUpdate": 0.35,
+      "wake": false,
+      "latencyMs": 1031,
+      "usage": {
+        "input": 1501,
+        "output": 21
+      }
+    },
+    {
+      "id": "update:buzz|buzz-stale-01|pre-boundary",
+      "scope": "preserved-update",
+      "corpus": "buzz",
+      "caseId": "buzz-stale-01",
+      "phase": "pre-boundary",
+      "proposalMaterial": true,
+      "status": "screened",
+      "needsUpdate": 0.27,
+      "wake": false,
+      "latencyMs": 1177,
+      "usage": {
+        "input": 1668,
+        "output": 21
+      }
+    },
+    {
+      "id": "update:pi-packages|pi-assent-01|boundary",
+      "scope": "preserved-update",
+      "corpus": "pi-packages",
+      "caseId": "pi-assent-01",
+      "phase": "boundary",
+      "proposalMaterial": true,
+      "status": "screened",
+      "needsUpdate": 0.28,
+      "wake": false,
+      "latencyMs": 999,
+      "usage": {
+        "input": 1750,
+        "output": 21
+      }
+    },
+    {
+      "id": "update:pi-packages|pi-assent-01|pre-boundary",
+      "scope": "preserved-update",
+      "corpus": "pi-packages",
+      "caseId": "pi-assent-01",
+      "phase": "pre-boundary",
+      "proposalMaterial": true,
+      "status": "screened",
+      "needsUpdate": 0.5,
+      "wake": false,
+      "latencyMs": 1154,
+      "usage": {
+        "input": 1790,
+        "output": 20
+      }
+    },
+    {
+      "id": "update:pi-packages|pi-conflict-01|boundary",
+      "scope": "preserved-update",
+      "corpus": "pi-packages",
+      "caseId": "pi-conflict-01",
+      "phase": "boundary",
+      "proposalMaterial": true,
+      "status": "screened",
+      "needsUpdate": 0.46,
+      "wake": false,
+      "latencyMs": 1223,
+      "usage": {
+        "input": 2371,
+        "output": 21
+      }
+    },
+    {
+      "id": "update:pi-packages|pi-pivot-01|boundary",
+      "scope": "preserved-update",
+      "corpus": "pi-packages",
+      "caseId": "pi-pivot-01",
+      "phase": "boundary",
+      "proposalMaterial": true,
+      "status": "screened",
+      "needsUpdate": 0.61,
+      "wake": false,
+      "latencyMs": 649,
+      "usage": {
+        "input": 1274,
+        "output": 21
+      }
+    },
+    {
+      "id": "update:pi-packages|pi-return-01|boundary",
+      "scope": "preserved-update",
+      "corpus": "pi-packages",
+      "caseId": "pi-return-01",
+      "phase": "boundary",
+      "proposalMaterial": true,
+      "status": "screened",
+      "needsUpdate": 0.34,
+      "wake": false,
+      "latencyMs": 1080,
+      "usage": {
+        "input": 2239,
+        "output": 21
+      }
+    },
+    {
+      "id": "update:pi-packages|pi-return-01|pre-boundary",
+      "scope": "preserved-update",
+      "corpus": "pi-packages",
+      "caseId": "pi-return-01",
+      "phase": "pre-boundary",
+      "proposalMaterial": true,
+      "status": "screened",
+      "needsUpdate": 0.52,
+      "wake": false,
+      "latencyMs": 1406,
+      "usage": {
+        "input": 2274,
+        "output": 21
+      }
+    },
+    {
+      "id": "update:pi-packages|pi-stale-01|boundary",
+      "scope": "preserved-update",
+      "corpus": "pi-packages",
+      "caseId": "pi-stale-01",
+      "phase": "boundary",
+      "proposalMaterial": true,
+      "status": "screened",
+      "needsUpdate": 0.21,
+      "wake": false,
+      "latencyMs": 1017,
+      "usage": {
+        "input": 2606,
+        "output": 21
+      }
+    },
+    {
+      "id": "update:pi-packages|pi-stale-01|pre-boundary",
+      "scope": "preserved-update",
+      "corpus": "pi-packages",
+      "caseId": "pi-stale-01",
+      "phase": "pre-boundary",
+      "proposalMaterial": true,
+      "status": "screened",
+      "needsUpdate": 0.32,
+      "wake": false,
+      "latencyMs": 1347,
+      "usage": {
+        "input": 2403,
+        "output": 21
+      }
+    },
+    {
+      "id": "update:ssmp|ssmp-assent-01|boundary",
+      "scope": "preserved-update",
+      "corpus": "ssmp",
+      "caseId": "ssmp-assent-01",
+      "phase": "boundary",
+      "proposalMaterial": true,
+      "status": "screened",
+      "needsUpdate": 0.65,
+      "wake": false,
+      "latencyMs": 481,
+      "usage": {
+        "input": 606,
+        "output": 21
+      }
+    },
+    {
+      "id": "update:ssmp|ssmp-conflict-01|boundary",
+      "scope": "preserved-update",
+      "corpus": "ssmp",
+      "caseId": "ssmp-conflict-01",
+      "phase": "boundary",
+      "proposalMaterial": true,
+      "status": "screened",
+      "needsUpdate": 0.5,
+      "wake": false,
+      "latencyMs": 1276,
+      "usage": {
+        "input": 1306,
+        "output": 20
+      }
+    },
+    {
+      "id": "update:ssmp|ssmp-conflict-01|pre-boundary",
+      "scope": "preserved-update",
+      "corpus": "ssmp",
+      "caseId": "ssmp-conflict-01",
+      "phase": "pre-boundary",
+      "proposalMaterial": true,
+      "status": "screened",
+      "needsUpdate": 0.38,
+      "wake": false,
+      "latencyMs": 634,
+      "usage": {
+        "input": 1379,
+        "output": 21
+      }
+    },
+    {
+      "id": "update:ssmp|ssmp-pivot-01|boundary",
+      "scope": "preserved-update",
+      "corpus": "ssmp",
+      "caseId": "ssmp-pivot-01",
+      "phase": "boundary",
+      "proposalMaterial": true,
+      "status": "screened",
+      "needsUpdate": 0.44,
+      "wake": false,
+      "latencyMs": 705,
+      "usage": {
+        "input": 1074,
+        "output": 21
+      }
+    },
+    {
+      "id": "update:ssmp|ssmp-pivot-01|pre-boundary",
+      "scope": "preserved-update",
+      "corpus": "ssmp",
+      "caseId": "ssmp-pivot-01",
+      "phase": "pre-boundary",
+      "proposalMaterial": true,
+      "status": "screened",
+      "needsUpdate": 0.63,
+      "wake": false,
+      "latencyMs": 554,
+      "usage": {
+        "input": 1305,
+        "output": 21
+      }
+    },
+    {
+      "id": "update:ssmp|ssmp-return-01|boundary",
+      "scope": "preserved-update",
+      "corpus": "ssmp",
+      "caseId": "ssmp-return-01",
+      "phase": "boundary",
+      "proposalMaterial": false,
+      "status": "screened",
+      "needsUpdate": 0.37,
+      "wake": false,
+      "latencyMs": 662,
+      "usage": {
+        "input": 1408,
+        "output": 21
+      }
+    },
+    {
+      "id": "update:ssmp|ssmp-return-01|pre-boundary",
+      "scope": "preserved-update",
+      "corpus": "ssmp",
+      "caseId": "ssmp-return-01",
+      "phase": "pre-boundary",
+      "proposalMaterial": true,
+      "status": "screened",
+      "needsUpdate": 0.4,
+      "wake": false,
+      "latencyMs": 735,
+      "usage": {
+        "input": 1365,
+        "output": 20
+      }
+    },
+    {
+      "id": "update:ssmp|ssmp-stale-01|boundary",
+      "scope": "preserved-update",
+      "corpus": "ssmp",
+      "caseId": "ssmp-stale-01",
+      "phase": "boundary",
+      "proposalMaterial": true,
+      "status": "screened",
+      "needsUpdate": 0.2,
+      "wake": false,
+      "latencyMs": 804,
+      "usage": {
+        "input": 1253,
+        "output": 20
+      }
+    },
+    {
+      "id": "update:ssmp|ssmp-stale-01|pre-boundary",
+      "scope": "preserved-update",
+      "corpus": "ssmp",
+      "caseId": "ssmp-stale-01",
+      "phase": "pre-boundary",
+      "proposalMaterial": true,
+      "status": "screened",
+      "needsUpdate": 0.3,
+      "wake": false,
+      "latencyMs": 587,
+      "usage": {
+        "input": 1146,
+        "output": 20
+      }
+    },
+    {
+      "id": "gold:buzz-assent-01",
+      "scope": "aligned-gold-horizon",
+      "corpus": "buzz",
+      "caseId": "buzz-assent-01",
+      "coverage": "assent",
+      "goldLabel": "accept",
+      "movementLabel": "direction",
+      "status": "screened",
+      "needsUpdate": 0.35,
+      "wake": false,
+      "latencyMs": 546,
+      "usage": {
+        "input": 1114,
+        "output": 21
+      }
+    },
+    {
+      "id": "gold:buzz-conflict-01",
+      "scope": "aligned-gold-horizon",
+      "corpus": "buzz",
+      "caseId": "buzz-conflict-01",
+      "coverage": "conflict",
+      "goldLabel": "expand",
+      "movementLabel": "direction",
+      "status": "screened",
+      "needsUpdate": 0.4,
+      "wake": false,
+      "latencyMs": 759,
+      "usage": {
+        "input": 1235,
+        "output": 20
+      }
+    },
+    {
+      "id": "gold:buzz-pivot-01",
+      "scope": "aligned-gold-horizon",
+      "corpus": "buzz",
+      "caseId": "buzz-pivot-01",
+      "coverage": "pivot",
+      "goldLabel": "redirect",
+      "movementLabel": "direction",
+      "status": "screened",
+      "needsUpdate": 0.71,
+      "wake": true,
+      "latencyMs": 500,
+      "usage": {
+        "input": 641,
+        "output": 21
+      }
+    },
+    {
+      "id": "gold:buzz-return-01",
+      "scope": "aligned-gold-horizon",
+      "corpus": "buzz",
+      "caseId": "buzz-return-01",
+      "coverage": "return",
+      "goldLabel": "accept",
+      "movementLabel": "direction",
+      "status": "screened",
+      "needsUpdate": 0.25,
+      "wake": false,
+      "latencyMs": 688,
+      "usage": {
+        "input": 1359,
+        "output": 21
+      }
+    },
+    {
+      "id": "gold:buzz-stale-01",
+      "scope": "aligned-gold-horizon",
+      "corpus": "buzz",
+      "caseId": "buzz-stale-01",
+      "coverage": "stale",
+      "goldLabel": "contract",
+      "movementLabel": "direction",
+      "status": "screened",
+      "needsUpdate": 0.34,
+      "wake": false,
+      "latencyMs": 813,
+      "usage": {
+        "input": 1500,
+        "output": 21
+      }
+    },
+    {
+      "id": "gold:pi-assent-01",
+      "scope": "aligned-gold-horizon",
+      "corpus": "pi-packages",
+      "caseId": "pi-assent-01",
+      "coverage": "assent",
+      "goldLabel": "accept",
+      "movementLabel": "direction",
+      "status": "screened",
+      "needsUpdate": 0.3,
+      "wake": false,
+      "latencyMs": 821,
+      "usage": {
+        "input": 1749,
+        "output": 20
+      }
+    },
+    {
+      "id": "gold:pi-conflict-01",
+      "scope": "aligned-gold-horizon",
+      "corpus": "pi-packages",
+      "caseId": "pi-conflict-01",
+      "coverage": "conflict",
+      "goldLabel": "accept",
+      "movementLabel": "direction",
+      "status": "screened",
+      "needsUpdate": 0.39,
+      "wake": false,
+      "latencyMs": 1357,
+      "usage": {
+        "input": 2543,
+        "output": 21
+      }
+    },
+    {
+      "id": "gold:pi-pivot-01",
+      "scope": "aligned-gold-horizon",
+      "corpus": "pi-packages",
+      "caseId": "pi-pivot-01",
+      "coverage": "pivot",
+      "goldLabel": "reorganize",
+      "movementLabel": "direction",
+      "status": "screened",
+      "needsUpdate": 0.67,
+      "wake": false,
+      "latencyMs": 667,
+      "usage": {
+        "input": 1333,
+        "output": 21
+      }
+    },
+    {
+      "id": "gold:pi-return-01",
+      "scope": "aligned-gold-horizon",
+      "corpus": "pi-packages",
+      "caseId": "pi-return-01",
+      "coverage": "return",
+      "goldLabel": "contract",
+      "movementLabel": "direction",
+      "status": "screened",
+      "needsUpdate": 0.46,
+      "wake": false,
+      "latencyMs": 1215,
+      "usage": {
+        "input": 2352,
+        "output": 21
+      }
+    },
+    {
+      "id": "gold:pi-stale-01",
+      "scope": "aligned-gold-horizon",
+      "corpus": "pi-packages",
+      "caseId": "pi-stale-01",
+      "coverage": "stale",
+      "goldLabel": "contract",
+      "movementLabel": "direction",
+      "status": "screened",
+      "needsUpdate": 0.39,
+      "wake": false,
+      "latencyMs": 1162,
+      "usage": {
+        "input": 2639,
+        "output": 21
+      }
+    },
+    {
+      "id": "gold:ssmp-assent-01",
+      "scope": "aligned-gold-horizon",
+      "corpus": "ssmp",
+      "caseId": "ssmp-assent-01",
+      "coverage": "assent",
+      "goldLabel": "accept",
+      "movementLabel": "direction",
+      "status": "screened",
+      "needsUpdate": 0.53,
+      "wake": false,
+      "latencyMs": 488,
+      "usage": {
+        "input": 606,
+        "output": 21
+      }
+    },
+    {
+      "id": "gold:ssmp-conflict-01",
+      "scope": "aligned-gold-horizon",
+      "corpus": "ssmp",
+      "caseId": "ssmp-conflict-01",
+      "coverage": "conflict",
+      "goldLabel": "redirect",
+      "movementLabel": "direction",
+      "status": "screened",
+      "needsUpdate": 0.48,
+      "wake": false,
+      "latencyMs": 930,
+      "usage": {
+        "input": 1349,
+        "output": 21
+      }
+    },
+    {
+      "id": "gold:ssmp-pivot-01",
+      "scope": "aligned-gold-horizon",
+      "corpus": "ssmp",
+      "caseId": "ssmp-pivot-01",
+      "coverage": "pivot",
+      "goldLabel": "reorganize",
+      "movementLabel": "direction",
+      "status": "screened",
+      "needsUpdate": 0.35,
+      "wake": false,
+      "latencyMs": 900,
+      "usage": {
+        "input": 1128,
+        "output": 21
+      }
+    },
+    {
+      "id": "gold:ssmp-return-01",
+      "scope": "aligned-gold-horizon",
+      "corpus": "ssmp",
+      "caseId": "ssmp-return-01",
+      "coverage": "return",
+      "goldLabel": "redirect",
+      "movementLabel": "direction",
+      "status": "screened",
+      "needsUpdate": 0.43,
+      "wake": false,
+      "latencyMs": 793,
+      "usage": {
+        "input": 1395,
+        "output": 21
+      }
+    },
+    {
+      "id": "gold:ssmp-stale-01",
+      "scope": "aligned-gold-horizon",
+      "corpus": "ssmp",
+      "caseId": "ssmp-stale-01",
+      "coverage": "stale",
+      "goldLabel": "contract",
+      "movementLabel": "direction",
+      "status": "screened",
+      "needsUpdate": 0.3,
+      "wake": false,
+      "latencyMs": 612,
+      "usage": {
+        "input": 1304,
+        "output": 20
+      }
+    }
+  ]
+}
