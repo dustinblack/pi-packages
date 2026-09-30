@@ -70,4 +70,4 @@ Implementation, installation, deployment, webhook creation, scratch mutation, an
 
 029 identifies one concrete native gap: the CLI adapter supplies exact identity, creation, continuation, and metadata, but it does not provide a bounded passive per-thread history/event cursor. `amp threads export` is unbounded, while `amp top` supplies activity snapshots rather than a transcript subscription or request receipt. The user approved this design-only phase. No plugin bridge is installed, deployed, or connected.
 
-Design closed by user approval in commit `PENDING_COMMIT`.
+Design closed by user approval in commit `728d55d`.
