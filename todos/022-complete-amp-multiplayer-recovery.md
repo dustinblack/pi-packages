@@ -30,4 +30,4 @@ Live second-participant experiments, provider presence/roster validation, busy-t
 
 The user explicitly rejected multiplayer validation as a pi-strings requirement: participant identity and concurrent Orb behavior are functions of Amp. A read-only export of `T-01a0e96b-ca73-72bc-bf80-af444d9b2afe` showed historical device streams for Scott and Aaron, but the adapter does not promote that into a fabricated live participant contract. The common path already records exact native thread IDs, local request IDs, `delivery`, and `providerOutcome`; it does not retry or claim remote completion.
 
-Closed by user-approved scope decision in commit `PENDING_COMMIT`.
+Closed by user-approved scope decision in commit `471279e`.
