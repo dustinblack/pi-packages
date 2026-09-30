@@ -1,5 +1,5 @@
 ---
-status: ready
+status: complete
 issue_id: "019"
 tags: [pi-strings, amp, decision]
 dependencies: []
@@ -31,7 +31,7 @@ Production changes, remote contributions, plugin installation, permission change
 
 ## Evidence
 
-Uncommitted; no closing SHA exists. All decision/proof deliverables are complete, but the file remains ready until a user-approved closing commit is on main.
+Closed by user-approved main-branch commit `382b9e9` (`docs(strings): define unified native session opening`). This closes the decision/proof slice, not production native-opening support. No push performed.
 
 - [Unified contract/matrix](../pi-strings/docs/NATIVE_SESSION_OPENING.md) supersedes the separate-extension ADR. Three Codex-2 Luna recon lanes investigated internal/primary/registry adapters; source links and exact versions are in the matrix. 13 providers remain unverified, explicitly tracked by030.
 - `npm run check` baseline:96 pass,19 skipped,0 fail. Skipped live-provider/worktree cases are not claimed passed; no production behavior changed.

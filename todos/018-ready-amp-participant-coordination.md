@@ -9,7 +9,7 @@ dependencies: []
 
 ## Where we are
 
-trunk: 019 — unified contract/proof accepted by fresh review; closing commit awaits user approval; production unchanged
+trunk: 020 — common create/open implementation; 019 closed by approved main commit382b9e9
 tangents: 020 common/Pi core, 026–029 primary providers, 030 remaining17 coverage; 021–024 Amp collaboration gates
 
 ## Findings
@@ -21,7 +21,7 @@ tangents: 020 common/Pi core, 026–029 primary providers, 030 remaining17 cover
 
 ## Children
 
-- [019](019-ready-amp-participant-boundary.md) — ready — contract, evidence, fresh architecture review
+- [019](019-complete-amp-participant-boundary.md) — complete — contract/proof, commit382b9e9
 - [020](020-ready-amp-readonly-participant.md) — ready — common create/open + native Pi vertical slice
 - [026](026-ready-codex-native-opening.md), [027](027-ready-claude-native-opening.md), [028](028-ready-opencode-native-opening.md) — ready — Codex, Claude, OpenCode delivery
 - [029](029-ready-amp-native-opening.md) — ready — Amp local/Orb creation and native opening/observation
@@ -40,7 +40,7 @@ User approved provider-wide scope and delegated parallelism; rejected separate A
 
 ## Acceptance criteria
 
-- [ ] 019 closes with reviewed unified contract and all22 integrations accounted for.
+- [x] 019 closes with reviewed unified contract and all22 integrations accounted for.
 - [ ] 020–022, 024, 026–030 and the provider children created by030 close with actual acceptance evidence and main-branch commits; an unsupported error is not provider delivery.
 - [ ] 023 is explicitly approved/proven or rejected with evidence that a bridge is unnecessary.
 - [ ] Shared activity, local request state, and delivery evidence remain distinct; user-facing docs state unproven limits.

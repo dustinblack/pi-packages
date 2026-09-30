@@ -1,7 +1,7 @@
 # Create or open native sessions through one provider interface
 
 Status: user-approved direction; fresh architecture review accepted the implementation contract. Nothing in this document is a shipped API change.
-Tracked by [019](../../todos/019-ready-amp-participant-boundary.md) and [hub 018](../../todos/018-ready-amp-participant-coordination.md).
+Tracked by [019](../../todos/019-complete-amp-participant-boundary.md) and [hub 018](../../todos/018-ready-amp-participant-coordination.md).
 
 ## Decision
 
@@ -112,7 +112,7 @@ Fresh Codex-2 Astra review (`reviewer-610408d9-9283-4215-9fde-93a9aabe7cda`) acc
 - [030](../../todos/030-ready-remaining-native-provider-coverage.md): remaining17 provider delivery routes and bounded children; decision closure is not delivery of those providers.
 - [022](../../todos/022-ready-amp-multiplayer-recovery.md) and [024](../../todos/024-ready-amp-evidence-handoff.md): multiplayer/recovery and evidence handoff. [023](../../todos/023-pending-amp-plugin-bridge.md) stays conditional on a demonstrated 029/022 gap and explicit user deployment approval.
 
-File closure requires a user-approved main-branch commit. No production dependency has started merely because the design review passed.
+019 closed in user-approved main-branch commit `382b9e9`; dependent020 and030 are authorized to start. Production implementation and live provider proofs are still outstanding.
 
 ## Proof required before claiming delivery
 
