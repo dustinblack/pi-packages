@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "status": "complete",
+  "measuredAt": "2026-09-30T06:23:23.169Z",
+  "elapsedMs": 2000127,
+  "config": {
+    "model": "openai-codex/gpt-5.6-luna",
+    "intervalMs": 15000,
+    "batchChars": 24000,
+    "transportFailureLimit": 5,
+    "corpora": [
+      "pi-packages",
+      "buzz",
+      "ssmp"
+    ],
+    "maxUpdates": 120,
+    "advisor": "disabled (production default)",
+    "gitRev": "ddb46fd"
+  },
+  "mom": {
+    "replies": 132,
+    "input": 690426,
+    "output": 82961,
+    "cacheRead": 778112,
+    "cacheWrite": 0,
+    "cost": 0.25320064,
+    "costRows": 132,
+    "cacheShare": 0.5298548624550403,
+    "worstCaseUncachedCost": 0.4088230399999999
+  },
+  "lead": {
+    "replies": 1204,
+    "input": 102175945,
+    "output": 617452,
+    "cacheRead": 82762092,
+    "cacheWrite": 0,
+    "cost": 37.39009966000001,
+    "costRows": 1204,
+    "cacheShare": 0.44751254713490873
+  },
+  "leadPlusWorkers": {
+    "replies": 1248,
+    "input": 102396960,
+    "output": 630111,
+    "cacheRead": 83170284,
+    "cacheWrite": 0,
+    "cost": 38.00761086,
+    "costRows": 1248,
+    "cacheShare": 0.4481948549066127
+  },
+  "workers": {
+    "replies": 44,
+    "input": 221015,
+    "output": 12659,
+    "cacheRead": 408192,
+    "cacheWrite": 0,
+    "cost": 0.6175112,
+    "costRows": 44,
+    "cacheShare": 0.6487403986287501
+  },
+  "checks": {
+    "mom_tokens_below_lead": true,
+    "mom_billable_below_lead": true,
+    "mom_cost_below_lead": true,
+    "mom_worst_case_cost_below_lead": true,
+    "cache_share_reported": true
+  },
+  "pass": true,
+  "momReplies": 132,
+  "leadReplies": 1204,
+  "updates": 92,
+  "completedCorpora": [
+    "pi-packages",
+    "buzz",
+    "ssmp"
+  ],
+  "failures": "",
+  "deviations": [
+    "Transcript idle gaps are not slept: cache share is an upper bound; worstCaseUncachedCost is the sensitivity bound.",
+    "Compaction review payloads are not replayed (synthetic session has no compaction entries); wake counts match, input is smaller at those boundaries.",
+    "Worker settle proxy: worker-final assistant stop (receipts extracted only where present); up to 5 pi-packages delegate settles may be missed.",
+    "Trailing events without a settle are dropped, matching production's no-wake-at-session-end behavior.",
+    "One update call per settled closure, exactly like production; deterministic rejections follow production's failure-then-gap bookkeeping, and only non-deterministic failures are retried at the next closure.",
+    "Advisor/screen disabled (production default); Kev's own cost is separate and local."
+  ]
+}
