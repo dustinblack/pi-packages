@@ -30,4 +30,6 @@ Requires an owner-approved scratch thread and a second authorized participant be
 
 ## Evidence
 
-Pending; work starts after 021 closes on main and participants are available.
+Historical attribution audit completed read-only on `T-01a0e96b-ca73-72bc-bf80-af444d9b2afe`. Using the user's mapping, the export separates Scott's device stream (`device-27e6d764b11a1ed8`) from Aaron Nguyen's stream (`device-92506464331a4e9e`). Aaron's messages 125, 129, 131, and 133 each have a subsequent assistant response (126, 130, 132, and 134); message 133 is the supplied Linear update request. The thread is `thread_workspace_shared` and Orb (`sandbox`). This proves historical multi-participant ordering and response adjacency, not simultaneous presence, request-specific completion, or disconnect survival.
+
+Live multiplayer attribution remains pending until a second authorized participant is online on a scratch thread.
