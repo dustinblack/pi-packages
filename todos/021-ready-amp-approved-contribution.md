@@ -14,7 +14,7 @@ Pi sends an authorized, visibly attributed contribution to a selected remote thr
 
 ## Context
 
-Native exact-ID Orb continuation is documented but not live-proven here. Use the common `op_send` through the Amp adapter/ACPX path proven in 029, not a parallel CLI coordinator. Preserve remote settings; never decorate opened work with WORKER_CONTRACT. User approval must name the scratch Orb and message before the first send.
+Native exact-ID Orb continuation is live-proven on an existing project Orb. Use the common `op_send` through the Amp adapter/ACPX path, not a parallel CLI coordinator. Preserve remote settings; never decorate opened work with WORKER_CONTRACT. User approval must name the target and message before the first send.
 
 ## Acceptance criteria
 
@@ -33,3 +33,5 @@ Any unapproved team-thread message; permission changes; automated retry; provide
 The user explicitly authorized target `T-01a0f0b4-5330-714f-a024-0a156279b832` and marker `[Pi coordinator scratch probe] Exact-ID contribution test — no action required.`. After a read-only identity check, the common `op_spawn`/`op_send`/`op_wait`/`op_result`/`op_close` path sent exactly one request: `req_8e2e67a5-c766-4e05-83f9-e29700bf5b15`. It completed with `delivery: accepted`, `providerOutcome: completed`, one attempt, and no decoration; Amp returned `Received. This probe message needs no action, so I'm doing nothing with it.` No retry or cancellation occurred.
 
 A subsequent read-only export found exactly one occurrence at message index 10, message ID `11`, protocol message ID `M-034XcLszXd82PjgLtXorn2`, with executor metadata `sandbox` and mode `medium`. The target was closed through the provider-neutral disconnect path. This is evidence for one approved contribution, but 021 remains blocked in the planner until 029's native-opening gates are closed and does not claim busy multiplayer attribution.
+
+A new user-authorized proof used existing project Orb `T-01a0f0b4-5330-714f-a024-0a156279b832` (`max-planner`, active multiplayer), not a scratch-created thread. Exact native opening preserved `executionEnvironment: orb`; `op_send` request `req_de21924b-bbc4-478e-b550-de94870e26b2` completed with `delivery: accepted`, `providerOutcome: completed`, one attempt, and output `PI_STRINGS_EXISTING_ORB_OK`. The exported markdown shows exactly one new `## User` message and its assistant reply. No retry, cancel, multiplayer change, visibility change, or local executor was used.
