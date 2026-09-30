@@ -11,9 +11,62 @@
 import type { VertexModelConfig } from "../types.js";
 
 export const CLAUDE_MODELS: VertexModelConfig[] = [
+  // Claude 5.5 series
+  // Note: Claude 5 / 5.5 / Fable models on Vertex require provider data sharing
+  // to be enabled on the publisher model config, otherwise requests fail with HTTP 403.
+  // Fable 5.1 also requires the Advanced AI Safety Addendum in Model Garden.
+  {
+    id: "claude-opus-5-5",
+    name: "Claude Opus 5.5",
+    apiId: "claude-opus-5-5",
+    publisher: "anthropic",
+    endpointType: "maas",
+    contextWindow: 1000000,
+    maxTokens: 128000,
+    input: ["text", "image"],
+    reasoning: true,
+    tools: true,
+    cost: {
+      input: 4.00,
+      output: 20.00,
+      cacheRead: 0.20,
+      cacheWrite: 5.00,
+    },
+    costRegional: {
+      input: 4.40,
+      output: 22.00,
+      cacheRead: 0.22,
+      cacheWrite: 5.50,
+    },
+    region: "global",
+  },
+  {
+    id: "claude-sonnet-5-5",
+    name: "Claude Sonnet 5.5",
+    apiId: "claude-sonnet-5-5",
+    publisher: "anthropic",
+    endpointType: "maas",
+    contextWindow: 1000000,
+    maxTokens: 128000,
+    input: ["text", "image"],
+    reasoning: true,
+    tools: true,
+    cost: {
+      input: 2.00,
+      output: 10.00,
+      cacheRead: 0.20,
+      cacheWrite: 2.50,
+    },
+    costRegional: {
+      input: 2.20,
+      output: 11.00,
+      cacheRead: 0.22,
+      cacheWrite: 2.75,
+    },
+    region: "global",
+  },
+
   // Claude 5 series
-  // Note: Claude 5 models on Vertex require provider data sharing to be enabled
-  // on the publisher model config, otherwise requests fail with HTTP 403.
   {
     id: "claude-opus-5",
     name: "Claude Opus 5",
@@ -65,7 +118,32 @@ export const CLAUDE_MODELS: VertexModelConfig[] = [
     region: "global",
   },
 
-  // Claude Fable 5 (Mythos-class)
+  // Claude Fable (Mythos-class)
+  {
+    id: "claude-fable-5-1",
+    name: "Claude Fable 5.1",
+    apiId: "claude-fable-5-1",
+    publisher: "anthropic",
+    endpointType: "maas",
+    contextWindow: 1000000,
+    maxTokens: 128000,
+    input: ["text", "image"],
+    reasoning: true,
+    tools: true,
+    cost: {
+      input: 10.00,
+      output: 50.00,
+      cacheRead: 0.25,
+      cacheWrite: 12.50,
+    },
+    costRegional: {
+      input: 11.00,
+      output: 55.00,
+      cacheRead: 0.275,
+      cacheWrite: 13.75,
+    },
+    region: "global",
+  },
   {
     id: "claude-fable-5",
     name: "Claude Fable 5",

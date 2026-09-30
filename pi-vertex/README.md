@@ -15,9 +15,9 @@ Set your GCP project and credentials. Vertex AI models (Gemini, Claude, Llama, D
 
 ## Features
 
-- **52 models** across 4 categories:
+- **55 models** across 4 categories:
   - **Gemini** (11): 3.8 Flash, 3.7 Flash, 3.6 Flash, 3.5 Flash, 3.5 Flash-Lite, 3.1 Pro, 3.1 Flash-Lite, 3 Flash, 2.5 Pro, 2.5 Flash, 2.5 Flash-Lite
-  - **Claude** (14): Opus 5, Sonnet 5, Fable 5, Opus 4.8, Opus 4.7, Opus 4.6, Sonnet 4.6, Opus/Sonnet/Haiku 4.5, Opus 4.1, Opus 4, Sonnet 4, 3.5 Sonnet v2
+  - **Claude** (17): Opus 5.5, Sonnet 5.5, Fable 5.1, Opus 5, Sonnet 5, Fable 5, Opus 4.8, Opus 4.7, Opus 4.6, Sonnet 4.6, Opus/Sonnet/Haiku 4.5, Opus 4.1, Opus 4, Sonnet 4, 3.5 Sonnet v2
   - **Llama** (3): 4 Maverick, 4 Scout, 3.3 70B
   - **Other MaaS** (24): Grok 4.6, Grok 4.3, Grok 4.20, Grok 4.1 Fast, Gemma, Mistral, DeepSeek, Qwen, OpenAI GPT-OSS, Kimi, MiniMax, GLM 5.2, GLM
 
@@ -86,6 +86,9 @@ pi --provider vertex --model gemini-2.5-pro --version
 
 ```bash
 # Use any supported model
+pi --provider vertex --model claude-opus-5-5
+pi --provider vertex --model claude-sonnet-5-5
+pi --provider vertex --model claude-fable-5-1
 pi --provider vertex --model claude-opus-4-8
 pi --provider vertex --model grok-4.6
 pi --provider vertex --model grok-4.3
@@ -145,6 +148,9 @@ Prices shown are for the **global** endpoint. Non-global regions (us-east5, euro
 
 | Model | Context | Max Tokens | Input | Reasoning | Price global (in/out) | Price regional (in/out) |
 |-------|---------|------------|-------|-----------|----------------------|------------------------|
+| claude-opus-5-5 | 1M | 128,000 | text, image | ✅ | $4.00/$20.00 | $4.40/$22.00 |
+| claude-sonnet-5-5 | 1M | 128,000 | text, image | ✅ | $2.00/$10.00 | $2.20/$11.00 |
+| claude-fable-5-1 | 1M | 128,000 | text, image | ✅ | $10.00/$50.00 | $11.00/$55.00 |
 | claude-opus-5 | 1M | 128,000 | text, image | ✅ | $5.00/$25.00 | $5.50/$27.50 |
 | claude-sonnet-5 | 1M | 128,000 | text, image | ✅ | $2.00/$10.00 | $2.20/$11.00 |
 | claude-fable-5 | 1M | 128,000 | text, image | ✅ | $10.00/$50.00 | $11.00/$55.00 |
@@ -160,7 +166,7 @@ Prices shown are for the **global** endpoint. Non-global regions (us-east5, euro
 | claude-sonnet-4 | 200K | 64,000 | text, image | ✅ | $3.00/$15.00 | (uniform) |
 | claude-3-5-sonnet-v2 | 200K | 8,192 | text, image | ❌ | $3.00/$15.00 | (uniform) |
 
-Claude 5 models (`claude-opus-5`, `claude-sonnet-5`) require provider data sharing to be enabled on your project's publisher model config. Without it Vertex returns HTTP 403 asking you to set `PublisherModelConfig.data_sharing_enabled_provider`.
+Claude 5, 5.5, and Fable models require provider data sharing on your project's publisher model config. Without it Vertex returns HTTP 403 asking you to set `PublisherModelConfig.data_sharing_enabled_provider`. Fable 5.1 also requires the Advanced AI Safety Addendum in Model Garden.
 
 ### Llama Models
 

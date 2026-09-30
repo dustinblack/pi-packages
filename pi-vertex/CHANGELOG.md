@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.5] - 2026-09-29
+
+### Added
+- **Claude Opus 5.5** (`claude-opus-5-5`) — GA on Vertex 2026-09-22. 1M context, 128K max output, thinking, tools. $4.00/$20.00 global, 10% regional premium. Cache reads $0.20/1M (60% below Opus 5).
+- **Claude Sonnet 5.5** (`claude-sonnet-5-5`) — GA on Vertex 2026-09-28. 1M context, 128K max output, thinking, tools. Same token prices as Sonnet 5 ($2.00/$10.00 global).
+- **Claude Fable 5.1** (`claude-fable-5-1`) — GA on Vertex 2026-09-01. 1M context, 128K max output, thinking, tools. Same input/output prices as Fable 5 ($10.00/$50.00 global); cache reads $0.25/1M (75% below Fable 5's $1.00). Vertex also requires the Advanced AI Safety Addendum.
+
+API ids match Google Cloud Model Garden (`claude-opus-5-5`, `claude-sonnet-5-5`, `claude-fable-5-1`). No date suffix. Same MaaS streaming path as the rest of the Claude 5 series.
+
 ## [1.2.4] - 2026-09-23
 
 ### Fixed

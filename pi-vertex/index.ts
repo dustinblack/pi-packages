@@ -21,6 +21,7 @@
  *     GOOGLE_APPLICATION_CREDENTIALS          (optional, for service account auth)
  *
  * Usage:
+ *   pi --provider vertex --model claude-opus-5-5
  *   pi --provider vertex --model claude-opus-4-8
  *   pi --provider vertex --model grok-4.6
  *   pi --provider vertex --model grok-4.3
