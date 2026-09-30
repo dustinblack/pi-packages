@@ -41,6 +41,12 @@ test("Amp creates local and Orb sessions through the common op_* path", async ()
       assert.match(String(result.ok ? result.details.output : ""), /AMP_LOCAL_OK/);
     }
 
+    const modeled = await coordinator.execute({ action: "spawn", name: "amp-modeled", agent: "amp", cwd: root, model: "high" });
+    assert.equal(modeled.ok, true, JSON.stringify(modeled));
+    const modeledStatus = await coordinator.execute({ action: "status", name: "amp-modeled" });
+    assert.equal(modeledStatus.ok, true, JSON.stringify(modeledStatus));
+    if (modeledStatus.ok) assert.equal(modeledStatus.details.currentModelId, "high");
+
     const orb = await coordinator.execute({ action: "spawn", name: "amp-orb", agent: "amp", cwd: root, executionEnvironment: "orb" });
     assert.equal(orb.ok, true, JSON.stringify(orb));
     assert.equal(orb.ok, true);

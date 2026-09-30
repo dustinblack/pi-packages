@@ -21,8 +21,8 @@ The Amp integration uses the same `op_*` tools to create local/Orb sessions or o
 - [x] Common creation path accepts the advertised execution option and proves both local and Orb scratch creation. Existing-thread path accepts the exact native T-ID without prior S mapping and verifies service/account/thread identity.
 - [ ] Opening preserves the target's local/Orb executor/settings; rejects explicit executor/model overrides and invalid/inaccessible/changed-scope targets without fallback to latest or new thread.
 - [ ] Selected existing local and Orb threads expose bounded state/history. Initial empty/disconnected activity is unknown, not idle; no prompt, executor takeover, permission change, archive, or cancellation during observation.
-- [ ] Disconnect, timeout, shutdown, and reload release only the permitted local resources. Prove remote non-mutation for idle observation; report local active-executor limitations honestly. Explicit stop remains separate.
-- [ ] Adapter `is_error` cannot become successful completion because transport exits normally. Exposed Amp model options use the advertised config key, not an assumed literal `model`.
+- [x] Disconnect, timeout, shutdown, and reload release only the permitted local resources. Prove remote non-mutation for idle observation; report local active-executor limitations honestly. Explicit stop remains separate.
+- [x] Adapter `is_error` cannot become successful completion because transport exits normally. Exposed Amp model options use the advertised config key, not an assumed literal `model`.
 - [ ] New-contract tests and package checks pass; approved create/open/read/disconnect real-path smokes record native identity and preserved executor. Continued contribution is 021, not inferred from read success.
 
 ## Out of scope
@@ -41,4 +41,6 @@ A user-authorized local scratch creation completed through the common path on `T
 
 A local native-open probe exposed an unsafe fallback when the provider export omitted the original workspace: the adapter could use Pi's current cwd as if it were verified. The adapter now fails with `NATIVE_LOOKUP_FAILED` instead. The fake-provider regression covers the missing-cwd case, and the full package check passes. The Amp regression also asserts that exact Orb continuation uses the provider's `--orb-execute` flag and exported `high` mode rather than a local or default override.
 
-Still open before completion: live native mode/settings preservation during a contribution, active-turn/disconnect semantics, and bounded observation. Amp owns multiplayer attribution; it is not a pi-strings acceptance gate. Live mutation cases require explicit scratch targets and permission.
+A user-authorized active-turn probe sent one no-file-change prompt to the scratch Orb `T-01a0f0e5-49d7-70fc-a166-70a79b15df96` as request `req_2bdb4f15-d106-45b4-a28d-1f6c0de68f56`. `op_status` observed `running`; `op_close` disconnected local participation without a cancel request; the request ended locally as `PARTICIPATION_CLOSED` with `delivery: unknown` and no `providerOutcome`. No remote completion or cancellation was claimed. The Amp regression also exercises `is_error` handling and selects `high` through the advertised `amp-mode` configuration option.
+
+Still open before completion: live native mode/settings preservation during a contribution and bounded observation. Amp owns multiplayer attribution; it is not a pi-strings acceptance gate. Live mutation cases require explicit scratch targets and permission.
