@@ -39,4 +39,6 @@ A user-authorized scratch Orb creation completed through the common path on `T-0
 
 A user-authorized local scratch creation completed through the common path on `T-01a0f0f7-87ef-7738-bf6f-240f547b7399`, using a temporary workspace and request `req_bac16f09-fc82-45cc-b1fa-c2c742f5d090`: `executionEnvironment: local`, `status: completed`, one attempt, no repository or external action, then `op_close`. Status exposed account scope `amp://account/authenticated`, the temporary cwd, mode `medium`, and `disconnectEffect: stops-local-executor`.
 
+A local native-open probe exposed an unsafe fallback when the provider export omitted the original workspace: the adapter could use Pi's current cwd as if it were verified. The adapter now fails with `NATIVE_LOOKUP_FAILED` instead. The fake-provider regression covers the missing-cwd case, and the full package check passes.
+
 Still open before completion: native mode/settings preservation during a contribution, active-turn/disconnect semantics, and bounded observation. Amp owns multiplayer attribution; it is not a pi-strings acceptance gate. Live mutation cases require explicit scratch targets and permission.

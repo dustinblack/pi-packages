@@ -249,7 +249,7 @@ async function lookupAmpThread(id: string, cwd: string): Promise<AmpThreadLookup
   const rawExecutor = typeof meta.executorType === "string" ? meta.executorType.toLowerCase() : "";
   const executor = rawExecutor.includes("orb") || rawExecutor.includes("remote") || rawExecutor.includes("sandbox") ? "orb" : rawExecutor.includes("local") ? "local" : undefined;
   const rawCwd = typeof initial.workingDirectory === "string" ? initial.workingDirectory : tree?.uri;
-  const localCwd = rawCwd?.startsWith("file://") ? fileURLToPath(rawCwd) : undefined;
+  const localCwd = rawCwd?.startsWith("file://") ? fileURLToPath(rawCwd) : rawCwd?.startsWith("/") ? rawCwd : undefined;
   return {
     ...(typeof record.creatorUserID === "string" ? { owner: record.creatorUserID } : {}),
     ...(localCwd ? { cwd: await realpath(localCwd).catch(() => undefined) } : {}),
@@ -266,6 +266,7 @@ async function nativeDescription(id: string, requestedCwd?: string, requestedExe
   const executionEnvironment = requestedExecutor || lookup.executor || "unknown";
   if (requestedExecutor && lookup.executor && requestedExecutor !== lookup.executor) throw RequestError.invalidParams("Amp thread executor does not match the requested executionEnvironment");
   if (requestedPath && lookup.cwd && requestedPath !== lookup.cwd) throw RequestError.invalidParams("Amp thread workspace does not match cwd");
+  if (executionEnvironment === "local" && !lookup.cwd) throw RequestError.invalidParams("Amp local thread workspace metadata is unavailable; original cwd cannot be verified");
   const cwd = lookup.cwd || requestedPath || await realpath(process.cwd());
   const owner = lookup.owner || process.env.AMP_ACCOUNT_SCOPE?.trim() || "authenticated";
   return {

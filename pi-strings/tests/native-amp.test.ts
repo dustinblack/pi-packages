@@ -8,6 +8,7 @@ import { Coordinator } from "../extensions/pi-strings/orchestration/coordinator.
 const fakeAmp = new URL("./fixtures/fake-amp.mjs", import.meta.url).pathname;
 const localThread = "T-00000000-0000-0000-0000-000000000001";
 const orbThread = "T-00000000-0000-0000-0000-000000000002";
+const localWithoutCwdThread = "T-00000000-0000-0000-0000-000000000003";
 
 async function waitResult(coordinator: Coordinator, requestId: string) {
   const waited = await coordinator.execute({ action: "wait", requestId, waitTimeoutMs: 10_000 });
@@ -102,6 +103,10 @@ test("Amp opens the exact native T-ID with an explicit executor hint and never r
     const orb = await coordinator.execute({ action: "spawn", name: "existing-orb", agent: "amp", sessionId: orbThread, cwd: root, executionEnvironment: "orb" });
     assert.equal(orb.ok, true, JSON.stringify(orb));
     if (orb.ok) assert.equal((orb.details.native as { disconnectEffect?: string }).disconnectEffect, "unknown");
+
+    const missingCwd = await coordinator.execute({ action: "spawn", name: "missing-cwd", agent: "amp", sessionId: localWithoutCwdThread });
+    assert.equal(missingCwd.ok, false, JSON.stringify(missingCwd));
+    if (!missingCwd.ok) assert.equal(missingCwd.error.code, "NATIVE_LOOKUP_FAILED");
   } finally {
     await coordinator.shutdown();
     for (const [key, value] of previous) {

@@ -9,11 +9,12 @@ if (args[0] === 'threads' && args[1] === 'export') {
   const id = args[2] ?? ''
   if (!/^T-[0-9a-f-]{36}$/i.test(id)) process.exit(2)
   const orb = id.endsWith('0002')
+  const missingCwd = id.endsWith('0003')
   process.stdout.write(JSON.stringify({
     id,
     creatorUserID: 'fake-account',
     meta: { executorType: orb ? 'sandbox' : 'local-client', agentMode: orb ? 'high' : 'medium' },
-    env: { initial: { workingDirectory: process.cwd(), trees: [] } },
+    env: { initial: missingCwd ? { trees: [] } : { workingDirectory: process.cwd(), trees: [] } },
     messages: []
   }))
   process.exit(0)
