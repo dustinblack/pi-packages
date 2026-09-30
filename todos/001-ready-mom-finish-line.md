@@ -38,7 +38,7 @@ tangents: 012, 015 — ready; 014 — complete; 016 — pending decision
 - 008 — pending — labels and aligned scorer preregistration preserved; replay inconclusive/cancelled before a valid result; no production prompt change
 - 009 — complete — `be537b4` + merge `45a85e6` — lead receives pivot/assent rules only while Mom is enabled
 - 010 — complete — `d4cb4d9` + `d55f39e8` + merge `77350ec` — sidecar pruned to map, notice, and usage
-- 011 — ready — making-mom, delegates
+- 011 — ready — `bc0afa0` on `todo-011`; 126 checks pass and real-model advisory captured; main integration waits for the concurrent widget repaint edits to be committed
 - 012 — ready — making-mom, delegates
 - 013 — complete — `d6158d1`, `5722cba` + merge `94bb3bb` — search won 1/3 versus map 0/3; no production change
 - 014 — complete — `58ac5a0` — Alt+T Mom conversation; actual-terminal switch/answer/return preserves the lead transcript and draft; 112 Tether and 40 delegate checks pass
