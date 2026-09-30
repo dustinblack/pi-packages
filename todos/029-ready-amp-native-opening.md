@@ -19,11 +19,11 @@ The Amp integration uses the same `op_*` tools to create local/Orb sessions or o
 ## Acceptance criteria
 
 - [x] Common creation path accepts the advertised execution option and proves both local and Orb scratch creation. Existing-thread path accepts the exact native T-ID without prior S mapping and verifies service/account/thread identity.
-- [ ] Opening preserves the target's local/Orb executor/settings; rejects explicit executor/model overrides and invalid/inaccessible/changed-scope targets without fallback to latest or new thread.
+- [x] Opening preserves the target's local/Orb executor/settings; rejects explicit executor/model overrides and invalid/inaccessible/changed-scope targets without fallback to latest or new thread.
 - [ ] Selected existing local and Orb threads expose bounded state/history. Initial empty/disconnected activity is unknown, not idle; no prompt, executor takeover, permission change, archive, or cancellation during observation.
 - [x] Disconnect, timeout, shutdown, and reload release only the permitted local resources. Prove remote non-mutation for idle observation; report local active-executor limitations honestly. Explicit stop remains separate.
 - [x] Adapter `is_error` cannot become successful completion because transport exits normally. Exposed Amp model options use the advertised config key, not an assumed literal `model`.
-- [ ] New-contract tests and package checks pass; approved create/open/read/disconnect real-path smokes record native identity and preserved executor. Continued contribution is 021, not inferred from read success.
+- [x] New-contract tests and package checks pass; approved create/open/read/disconnect real-path smokes record native identity and preserved executor. Continued contribution is 021, not inferred from read success.
 
 ## Out of scope
 
@@ -43,4 +43,6 @@ A local native-open probe exposed an unsafe fallback when the provider export om
 
 A user-authorized active-turn probe sent one no-file-change prompt to the scratch Orb `T-01a0f0e5-49d7-70fc-a166-70a79b15df96` as request `req_2bdb4f15-d106-45b4-a28d-1f6c0de68f56`. `op_status` observed `running`; `op_close` disconnected local participation without a cancel request; the request ended locally as `PARTICIPATION_CLOSED` with `delivery: unknown` and no `providerOutcome`. No remote completion or cancellation was claimed. The Amp regression also exercises `is_error` handling and selects `high` through the advertised `amp-mode` configuration option.
 
-Still open before completion: live native mode/settings preservation during a contribution and bounded observation. Amp owns multiplayer attribution; it is not a pi-strings acceptance gate. Live mutation cases require explicit scratch targets and permission.
+A second user-authorized contribution to the same exact Orb used marker request `req_db86fbdc-9cb4-4987-bcae-b89e79577ea9`: `delivery: accepted`, `providerOutcome: completed`, one attempt, and output `settings probe received`. Post-turn metadata remained the same exact T-ID, account scope, `orb` executor, and `medium` mode; `op_close` disconnected without cancellation.
+
+Still open before completion: bounded state/history observation. The native CLI gap is documented in completed 023; no plugin is deployed. Amp owns multiplayer attribution; it is not a pi-strings acceptance gate. Live mutation cases require explicit scratch targets and permission.
