@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chmod, mkdtemp, realpath, rm } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -71,9 +71,11 @@ test("Amp opens the exact native T-ID with an explicit executor hint and never r
   const previous = new Map([
     ["AMP_CLI_PATH", process.env.AMP_CLI_PATH],
     ["AMP_ACP_STATE_DIR", process.env.AMP_ACP_STATE_DIR],
+    ["AMP_FAKE_ARGS_LOG", process.env.AMP_FAKE_ARGS_LOG],
   ]);
   process.env.AMP_CLI_PATH = fakeAmp;
   process.env.AMP_ACP_STATE_DIR = join(root, "amp-state");
+  process.env.AMP_FAKE_ARGS_LOG = join(root, "amp-args.ndjson");
   const coordinator = new Coordinator(root, { stateDir, profiles: {} });
   try {
     const opened = await coordinator.execute({ action: "spawn", name: "existing", agent: "amp", sessionId: localThread, cwd: root });
@@ -103,6 +105,18 @@ test("Amp opens the exact native T-ID with an explicit executor hint and never r
     const orb = await coordinator.execute({ action: "spawn", name: "existing-orb", agent: "amp", sessionId: orbThread, cwd: root, executionEnvironment: "orb" });
     assert.equal(orb.ok, true, JSON.stringify(orb));
     if (orb.ok) assert.equal((orb.details.native as { disconnectEffect?: string }).disconnectEffect, "unknown");
+    const orbSent = await coordinator.execute({ action: "send", name: "existing-orb", prompt: "orb exact" });
+    assert.equal(orbSent.ok, true, JSON.stringify(orbSent));
+    if (orbSent.ok) {
+      const result = await waitResult(coordinator, String(orbSent.details.requestId));
+      assert.match(String(result.ok ? result.details.output : ""), /AMP_ORB_OK/);
+    }
+    const ampArgs = (await readFile(join(root, "amp-args.ndjson"), "utf8"))
+      .trim().split("\n").filter(Boolean).map(line => JSON.parse(line));
+    const orbContinuation = ampArgs.find(args => args[0] === "threads" && args[1] === "continue" && args[2] === orbThread);
+    assert.ok(orbContinuation, JSON.stringify(ampArgs));
+    assert.equal(orbContinuation.includes("--orb-execute"), true);
+    assert.equal(orbContinuation[orbContinuation.indexOf("--mode") + 1], "high");
 
     const missingCwd = await coordinator.execute({ action: "spawn", name: "missing-cwd", agent: "amp", sessionId: localWithoutCwdThread });
     assert.equal(missingCwd.ok, false, JSON.stringify(missingCwd));

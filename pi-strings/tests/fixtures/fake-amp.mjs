@@ -1,5 +1,7 @@
 #!/usr/bin/env node
+import { appendFileSync } from 'node:fs'
 const args = process.argv.slice(2)
+if (process.env.AMP_FAKE_ARGS_LOG) appendFileSync(process.env.AMP_FAKE_ARGS_LOG, `${JSON.stringify(args)}\n`)
 if (args[0] === 'threads' && args[1] === 'markdown') {
   if (!/^T-[0-9a-f-]{36}$/i.test(args[2] ?? '')) process.exit(2)
   process.stdout.write('# fake Amp thread\n')
