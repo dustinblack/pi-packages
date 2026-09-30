@@ -433,6 +433,7 @@ export function cloneSessionAcpxState(state) {
     }
     return {
         native_session: state.native_session ? { ...state.native_session } : undefined,
+        provider_native_session: state.provider_native_session ? { ...state.provider_native_session } : undefined,
         current_mode_id: state.current_mode_id,
         desired_mode_id: state.desired_mode_id,
         desired_config_options: state.desired_config_options

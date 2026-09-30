@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { normalizeAgentCommandInput } from "../../acp/client-process.js";
 import { AcpClient } from "../../acp/client.js";
-import { requireNativeSessionBinding } from "../../acp/native-session.js";
+import { NATIVE_SESSION_CAPABILITY, NativeSessionBindingSchema, requireNativeSessionBinding } from "../../acp/native-session.js";
 import { normalizeOutputError } from "../../acp/error-normalization.js";
 import { extractAcpError, isAcpResourceNotFoundError } from "../../acp/error-shapes.js";
 import { modelStateFromConfigOptions } from "../../acp/model-support.js";
@@ -297,6 +297,12 @@ function resolveSupportedConfigOptionId(record, configId) {
     const supported = [...advertisedIds].toSorted();
     const supportedText = supported.length > 0 ? supported.join(", ") : "none";
     throw new AcpRuntimeError("ACP_BACKEND_UNSUPPORTED_CONTROL", `ACP session ${record.acpxRecordId} does not advertise config option '${configId}'. Supported config options: ${supportedText}.`);
+}
+function providerNativeSessionFromMetadata(metadata) {
+    const raw = metadata?.[NATIVE_SESSION_CAPABILITY];
+    if (raw === undefined)
+        return undefined;
+    return NativeSessionBindingSchema.parse(raw);
 }
 function applyConfigOptionResponseToTurn(turn, response) {
     if (!response?.configOptions) {
@@ -686,6 +692,14 @@ export class AcpRuntimeManager {
                 conversation: turn.conversation,
                 promptMessageId: turn.promptMessageId,
             });
+            const providerNativeSession = providerNativeSessionFromMetadata(response.metadata);
+            if (providerNativeSession && !turn.record.acpx?.native_session) {
+                const nextState = cloneSessionAcpxState(turn.acpxState) ?? {};
+                if (nextState.provider_native_session)
+                    requireNativeSessionBinding(nextState.provider_native_session, providerNativeSession);
+                nextState.provider_native_session = providerNativeSession;
+                turn.acpxState = nextState;
+            }
             await this.saveCompletedRuntimeTurn(turn, response.stopReason);
             task.settleResult({
                 status: response.stopReason === "cancelled" ? "cancelled" : "completed",
@@ -975,6 +989,9 @@ export class AcpRuntimeManager {
         const record = await this.requireRecord(handle.acpxRecordId ?? handle.sessionKey);
         return {
             summary: statusSummary(record),
+            ...(record.acpx?.provider_native_session || record.acpx?.native_session
+                ? { nativeSession: record.acpx.provider_native_session ?? record.acpx.native_session }
+                : {}),
             acpxRecordId: record.acpxRecordId,
             backendSessionId: record.acpSessionId,
             agentSessionId: record.agentSessionId,

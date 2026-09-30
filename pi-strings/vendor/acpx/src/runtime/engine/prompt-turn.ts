@@ -12,7 +12,7 @@ type PromptTurnClient = {
   prompt: (
     sessionId: string,
     prompt: PromptInput | string,
-  ) => Promise<{ stopReason: RunPromptResult["stopReason"]; usage?: unknown }>;
+  ) => Promise<{ stopReason: RunPromptResult["stopReason"]; usage?: unknown; _meta?: Record<string, unknown> | null }>;
   waitForSessionUpdatesIdle?: (options?: { idleMs?: number; timeoutMs?: number }) => Promise<void>;
 };
 
@@ -24,7 +24,7 @@ export async function runPromptTurn(params: {
   conversation: SessionConversation;
   promptMessageId?: string;
   onPromptStarted?: () => Promise<void> | void;
-}): Promise<{ stopReason: RunPromptResult["stopReason"]; source: "rpc" | "session" }> {
+}): Promise<{ stopReason: RunPromptResult["stopReason"]; source: "rpc" | "session"; metadata?: Record<string, unknown> }> {
   try {
     const promptPromise = params.client.prompt(params.sessionId, params.prompt);
     await params.onPromptStarted?.();
@@ -42,6 +42,7 @@ export async function runPromptTurn(params: {
     return {
       stopReason: response.stopReason,
       source: "rpc",
+      metadata: response._meta ?? undefined,
     };
   } catch (error) {
     if (!(error instanceof TimeoutError) || !params.promptMessageId) {

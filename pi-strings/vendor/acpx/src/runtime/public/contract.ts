@@ -144,6 +144,8 @@ export type AcpRuntimeSessionUsage = {
 
 export type AcpRuntimeStatus = {
   summary?: string;
+  /** Provider-native identity learned from an owned session, when advertised. */
+  nativeSession?: NativeSessionBinding;
   acpxRecordId?: string;
   backendSessionId?: string;
   agentSessionId?: string;

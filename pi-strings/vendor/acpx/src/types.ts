@@ -356,6 +356,8 @@ export type SessionConversation = {
 
 export type SessionAcpxState = {
   native_session?: import("./acp/native-session.js").NativeSessionBinding;
+  /** Provider-native identity learned after a created session's first turn. */
+  provider_native_session?: import("./acp/native-session.js").NativeSessionBinding;
   reset_on_next_ensure?: boolean;
   current_mode_id?: string;
   desired_mode_id?: string;

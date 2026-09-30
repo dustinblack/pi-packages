@@ -69,6 +69,7 @@ export interface RuntimeHandle {
 
 export interface RuntimeStatus {
   modelDiscoverySupported: boolean;
+  native?: NativeSessionDescription;
   currentModelId?: string;
   availableModelIds: string[];
   modelConfigId?: string;

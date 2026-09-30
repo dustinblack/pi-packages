@@ -331,6 +331,8 @@ function parseAcpxState(raw) {
     const state = {};
     if (record.native_session !== undefined)
         state.native_session = NativeSessionBindingSchema.parse(record.native_session);
+    if (record.provider_native_session !== undefined)
+        state.provider_native_session = NativeSessionBindingSchema.parse(record.provider_native_session);
     assignBooleanTrue(state, "reset_on_next_ensure", record.reset_on_next_ensure);
     assignStringState(state, "current_mode_id", record.current_mode_id);
     assignStringState(state, "desired_mode_id", record.desired_mode_id);

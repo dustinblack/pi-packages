@@ -3,6 +3,7 @@ type PromptTurnClient = {
     prompt: (sessionId: string, prompt: PromptInput | string) => Promise<{
         stopReason: RunPromptResult["stopReason"];
         usage?: unknown;
+        _meta?: Record<string, unknown> | null;
     }>;
     waitForSessionUpdatesIdle?: (options?: {
         idleMs?: number;
@@ -20,5 +21,6 @@ export declare function runPromptTurn(params: {
 }): Promise<{
     stopReason: RunPromptResult["stopReason"];
     source: "rpc" | "session";
+    metadata?: Record<string, unknown>;
 }>;
 export {};

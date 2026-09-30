@@ -51,6 +51,7 @@ type NativeDescription = NativeBinding & {
 
 type SessionState = {
   threadId: string | null;
+  scope: string;
   mode: "default" | "bypass";
   model: string;
   executor: Executor;
@@ -76,6 +77,7 @@ function stateDir(): string {
 }
 function mappingPath(sessionId: string): string { return join(stateDir(), "sessions", `${sessionId}.json`); }
 function sessionId(): string { return `S-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`; }
+function accountScope(): string { return `amp://account/${process.env.AMP_ACCOUNT_SCOPE?.trim() || "authenticated"}`; }
 
 function configOptions(state: Pick<SessionState, "mode" | "model" | "executor">): SessionConfigOption[] {
   return [
@@ -318,7 +320,7 @@ class AmpAcpAgent implements Agent {
 
   async newSession(params: NewSessionRequest) {
     const state: SessionState = {
-      threadId: null, mode: "default", model: "medium", executor: "local",
+      threadId: null, scope: accountScope(), mode: "default", model: "medium", executor: "local",
       cwd: params.cwd, native: false, controller: null, cancelled: false,
     };
     const id = sessionId();
@@ -334,7 +336,7 @@ class AmpAcpAgent implements Agent {
     if (binding) {
       const native = await bindingDescription(binding, params.sessionId, cwd);
       const state: SessionState = {
-        threadId: native.id, mode: "default", model: native.model ?? "", executor: native.executionEnvironment as Executor,
+        threadId: native.id, scope: native.scope, mode: "default", model: native.model ?? "", executor: native.executionEnvironment as Executor,
         cwd, native: true, controller: null, cancelled: false,
       };
       this.sessions.set(params.sessionId, state);
@@ -342,7 +344,7 @@ class AmpAcpAgent implements Agent {
     }
     const mapping = await loadMapping(params.sessionId);
     if (!mapping) throw RequestError.invalidParams(`No durable Amp thread mapping for ACP session ${params.sessionId}`);
-    const state: SessionState = { ...mapping, native: false, controller: null, cancelled: false };
+    const state: SessionState = { ...mapping, scope: accountScope(), native: false, controller: null, cancelled: false };
     this.sessions.set(params.sessionId, state);
     return { state };
   }
@@ -399,7 +401,17 @@ class AmpAcpAgent implements Agent {
         }
         if (stream.type === "result" && stream.is_error) throw new Error(typeof stream.error === "string" ? stream.error : "Amp returned an error result");
       }
-      return { stopReason: state.cancelled ? "cancelled" : "end_turn" };
+      const nativeSession = state.threadId ? {
+        id: state.threadId,
+        scope: state.scope,
+        cwd: state.cwd,
+        execution_environment: state.executor,
+        ...(state.model ? { model: state.model } : {}),
+      } : undefined;
+      return {
+        stopReason: state.cancelled ? "cancelled" : "end_turn",
+        ...(nativeSession ? { _meta: { [NATIVE_SESSION_CAPABILITY]: nativeSession } } : {}),
+      };
     } catch (error) {
       if (state.cancelled || (error instanceof Error && (error.name === "AbortError" || /aborted/i.test(error.message)))) return { stopReason: "cancelled" };
       throw error;

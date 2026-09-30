@@ -37,6 +37,9 @@ function mappingPath(sessionId2) {
 function sessionId() {
   return `S-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
+function accountScope() {
+  return `amp://account/${process.env.AMP_ACCOUNT_SCOPE?.trim() || "authenticated"}`;
+}
 function configOptions(state) {
   return [
     {
@@ -269,6 +272,7 @@ var AmpAcpAgent = class {
   async newSession(params) {
     const state = {
       threadId: null,
+      scope: accountScope(),
       mode: "default",
       model: "medium",
       executor: "local",
@@ -291,6 +295,7 @@ var AmpAcpAgent = class {
       const native = await bindingDescription(binding, params.sessionId, cwd);
       const state2 = {
         threadId: native.id,
+        scope: native.scope,
         mode: "default",
         model: native.model ?? "",
         executor: native.executionEnvironment,
@@ -304,7 +309,7 @@ var AmpAcpAgent = class {
     }
     const mapping = await loadMapping(params.sessionId);
     if (!mapping) throw RequestError.invalidParams(`No durable Amp thread mapping for ACP session ${params.sessionId}`);
-    const state = { ...mapping, native: false, controller: null, cancelled: false };
+    const state = { ...mapping, scope: accountScope(), native: false, controller: null, cancelled: false };
     this.sessions.set(params.sessionId, state);
     return { state };
   }
@@ -358,7 +363,17 @@ var AmpAcpAgent = class {
         }
         if (stream.type === "result" && stream.is_error) throw new Error(typeof stream.error === "string" ? stream.error : "Amp returned an error result");
       }
-      return { stopReason: state.cancelled ? "cancelled" : "end_turn" };
+      const nativeSession = state.threadId ? {
+        id: state.threadId,
+        scope: state.scope,
+        cwd: state.cwd,
+        execution_environment: state.executor,
+        ...state.model ? { model: state.model } : {}
+      } : void 0;
+      return {
+        stopReason: state.cancelled ? "cancelled" : "end_turn",
+        ...nativeSession ? { _meta: { [NATIVE_SESSION_CAPABILITY]: nativeSession } } : {}
+      };
     } catch (error) {
       if (state.cancelled || error instanceof Error && (error.name === "AbortError" || /aborted/i.test(error.message))) return { stopReason: "cancelled" };
       throw error;

@@ -51,7 +51,7 @@ export default function piStrings(pi: ExtensionAPI): void {
   register({
     name: "op_status",
     label: "Session status",
-    description: "Report session origin, verified native identity/capabilities when opened, and advertised model IDs. Native activity may be unknown; local request state is not shared-thread completion.",
+    description: "Report session origin, verified native identity/capabilities when opened, and advertised model IDs. Created Amp sessions expose their provider-native identity after the adapter receives it. Native activity may be unknown; local request state is not shared-thread completion.",
     parameters: Type.Object({
       name: Type.String(),
     }, { additionalProperties: false }),

@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { AcpxRuntime, createAgentRegistry, createFileSessionStore, type AcpRuntimeEvent, type AcpRuntimeHandle, type NativeSessionDescription } from "../../../dist/acpx-runtime/runtime.js";
+import { AcpxRuntime, createAgentRegistry, createFileSessionStore, type AcpRuntimeEvent, type AcpRuntimeHandle, type NativeSessionBinding, type NativeSessionDescription } from "../../../dist/acpx-runtime/runtime.js";
 import type { NormalizedEvent, Profile, RuntimeHandle, RuntimePort, RuntimeStatus, RuntimeTerminal, RuntimeTurn, TurnUsage } from "../domain/types.js";
 import { StringsError } from "../domain/errors.js";
 
@@ -41,6 +41,21 @@ export function permissionModeFor(_profile: Profile): "approve-reads" { return "
 
 function toHandle(handle: AcpRuntimeHandle): RuntimeHandle { return { ...handle }; }
 function fromHandle(handle: RuntimeHandle): AcpRuntimeHandle { return { ...handle }; }
+
+function nativeDescriptionFromBinding(binding: NativeSessionBinding | undefined): NativeSessionDescription | undefined {
+  if (!binding?.execution_environment) return undefined;
+  return {
+    id: binding.id,
+    scope: binding.scope,
+    cwd: binding.cwd,
+    executionEnvironment: binding.execution_environment,
+    ...(binding.model ? { model: binding.model } : {}),
+    attachment: "shared-session",
+    disconnectEffect: binding.execution_environment === "local" ? "stops-local-executor" : "unknown",
+    concurrentNativeClients: "unknown",
+    activity: "unknown",
+  };
+}
 
 export class AcpxRuntimePort implements RuntimePort {
   private readonly runtime: AcpxRuntime;
@@ -153,12 +168,14 @@ export class AcpxRuntimePort implements RuntimePort {
   async getStatus(handle: RuntimeHandle): Promise<RuntimeStatus> {
     if (this.origin === "opened") return { modelDiscoverySupported: false, availableModelIds: [] };
     const status = await this.runtime.getStatus({ handle: fromHandle(handle) });
-    if (!status.models) return { modelDiscoverySupported: false, availableModelIds: [] };
+    const native = nativeDescriptionFromBinding(status.nativeSession);
+    if (!status.models) return { modelDiscoverySupported: false, availableModelIds: [], ...(native ? { native } : {}) };
     const configOptions = status.details?.configOptions as Array<{ id: string; category?: string }> | undefined;
     const modelConfigId = configOptions?.find(option => option.category === "model")?.id;
     return {
       ...(modelConfigId ? { modelConfigId } : {}),
       modelDiscoverySupported: true,
+      ...(native ? { native } : {}),
       ...(status.models.currentModelId ? { currentModelId: status.models.currentModelId } : {}),
       availableModelIds: [...status.models.availableModelIds],
     };

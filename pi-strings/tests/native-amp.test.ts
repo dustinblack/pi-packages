@@ -49,6 +49,12 @@ test("Amp creates local and Orb sessions through the common op_* path", async ()
       const result = await waitResult(coordinator, String(orbSend.details.requestId));
       assert.match(String(result.ok ? result.details.output : ""), /AMP_ORB_OK/);
     }
+    const orbStatus = await coordinator.execute({ action: "status", name: "amp-orb" });
+    assert.equal(orbStatus.ok, true, JSON.stringify(orbStatus));
+    if (orbStatus.ok) {
+      assert.equal(orbStatus.details.nativeSessionId, orbThread);
+      assert.equal((orbStatus.details.native as { executionEnvironment?: string }).executionEnvironment, "orb");
+    }
   } finally {
     await coordinator.shutdown();
     for (const [key, value] of previous) {

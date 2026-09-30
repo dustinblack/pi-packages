@@ -20,6 +20,7 @@ export async function runPromptTurn(params) {
         return {
             stopReason: response.stopReason,
             source: "rpc",
+            metadata: response._meta ?? undefined,
         };
     }
     catch (error) {

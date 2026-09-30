@@ -675,6 +675,11 @@ export class Coordinator {
     const status = worker.record.origin === "opened"
       ? await worker.runtime.getStatus?.(worker.record.handle)
       : await this.readModelStatus(worker.runtime, worker.record.handle);
+    if (status?.native && worker.record.origin === "created") {
+      worker.record.native = status.native;
+      worker.record.updatedAt = new Date().toISOString();
+      await this.persist();
+    }
     return {
       ok: true,
       action: "status",
@@ -871,7 +876,8 @@ export class Coordinator {
   private getWorker(name: string): LiveWorker { const worker = this.workers.get(name); if (!worker) throw new StringsError("WORKER_NOT_FOUND", `Unknown worker: ${name}`); return worker; }
   private publicWorker(record: WorkerRecord): Record<string, unknown> { return {
     name: record.name, origin: record.origin, agent: record.profile.agent,
-    ...(record.origin === "created" ? { profile: record.profileName, role: record.role } : { policy: "provider-native", native: record.native }),
+    ...(record.origin === "created" ? { profile: record.profileName, role: record.role } : { policy: "provider-native" }),
+    ...(record.native ? { native: record.native } : {}),
     ...(record.model ? { model: record.model } : {}), status: record.status, cwd: record.cwd, activeRequestId: record.activeRequestId,
     session: record.handle.backendSessionId ?? record.handle.agentSessionId, nativeSessionId: record.native?.id ?? record.handle.agentSessionId,
   }; }
