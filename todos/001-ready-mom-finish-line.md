@@ -9,8 +9,8 @@ dependencies: []
 
 ## Where we are
 
-trunk:    012 — optional Kev screening before Mom wakes
-tangents: 015 — ready; 011 and 014 — complete; 016 — pending decision
+trunk:    015 — measure Mom's model usage against the lead on a realistic session
+tangents: 016 — pending decision; 011, 012, and 014 — complete
 
 008 is pending/inconclusive; resume only after the user promotes it once a stable bounded replay path is available.
 
@@ -39,7 +39,7 @@ tangents: 015 — ready; 011 and 014 — complete; 016 — pending decision
 - 009 — complete — `be537b4` + merge `45a85e6` — lead receives pivot/assent rules only while Mom is enabled
 - 010 — complete — `d4cb4d9` + `d55f39e8` + merge `77350ec` — sidecar pruned to map, notice, and usage
 - 011 — complete — `a2211d0` — four sourced process-risk classes, stable deduplication, atomic resolution, and a real Luna advisory capture; combined main passes 128 Tether + 40 delegate tests
-- 012 — ready — making-mom, delegates
+- 012 — complete — `a228576` — optional binary pre-wake screen replacing post-draft review; reviewer SHIP after evidence-derived correction-bypass fix; 008 report: 11/30 routine wakes avoided, 15/15 gold movements kept, 3/24 material proposals skipped at calibrated threshold 0.25; 137 Tether + 40 delegate tests
 - 013 — complete — `d6158d1`, `5722cba` + merge `94bb3bb` — search won 1/3 versus map 0/3; no production change
 - 014 — complete — `58ac5a0` — Alt+T Mom conversation; actual-terminal switch/answer/return preserves the lead transcript and draft, including the combined 011/widget-fix rerun
 - 015 — ready — making-mom, delegates
