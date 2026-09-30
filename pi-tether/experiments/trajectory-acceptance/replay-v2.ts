@@ -17,8 +17,10 @@ const SCORER_PACKET = `${ROOT}/semantic-scorer-packet.json`;
 const SAFE_MANIFEST = "pi-tether/experiments/trajectory-acceptance/aligned-replay-manifest.json";
 const MODEL = "openai-codex/gpt-5.6-luna";
 const CORPORA = ["pi-packages", "buzz", "ssmp"] as const;
-const MAX_CALLS = 30;
-const MAX_MS = 12 * 60_000;
+const MAX_CALLS = 60;
+// Raised from 12 minutes/30 calls after the first aligned run was cancelled by a single WebSocket
+// transport error at 4 minutes; the study inputs (prompt, settings, cases, labels, thresholds) are unchanged.
+const MAX_MS = 40 * 60_000;
 const sha = (data: string | Buffer) => createHash("sha256").update(data).digest("hex");
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 const mapHash = (map: WorkGraph) => sha(JSON.stringify(map));
@@ -188,6 +190,7 @@ export async function run() {
 		snapshots.set(item.caseId, entry);
 	}
 	await checkpoint("v1-snapshots-extracted");
+	const replayBeforeChecks: Record<string, { registeredBeforeSha256: string; replayBeforeSha256: string; matches: boolean }> = {};
 
 	for (const corpus of CORPORA) {
 		activeCorpus = corpus;
@@ -198,14 +201,11 @@ export async function run() {
 		const store = new MemoryStore(session.getSessionId());
 		const mom = new Mom({ ctx: { sessionManager: session, modelRegistry: auditedRegistry } as any, model: MODEL, store, current: () => true, changed() {} });
 		await mom.open(); const stage = installFeedAdapter(mom, session);
-		let cursor = 0;
+		let cursor = 0, cursorRef: string | null = null;
 		for (const item of needed) {
 			activeCase = item.caseId;
 			const horizon = all[item.alignedHorizon.event - 1];
 			if (!horizon || horizon.ref !== item.alignedHorizon.ref || horizon.actor !== "lead" || !["user", "user_answer"].includes(horizon.kind)) throw new Error(`${item.caseId}: aligned horizon does not match a lead direction.`);
-			const events = leadDirections(all, cursor, item.alignedHorizon.event);
-			if (!events.length || events.at(-1)!.ref !== item.alignedHorizon.ref) throw new Error(`${item.caseId}: staged evidence does not end at aligned horizon.`);
-			stage(events);
 			const invoke = async (phase: string, refresh = false) => {
 				activePhase = phase; const callStart = rawCalls.length; let error: string | null = null;
 				try { await mom.update(undefined, undefined, 0, refresh); } catch (caught) { error = String(caught); }
@@ -215,16 +215,44 @@ export async function run() {
 					checkpointId: mom.checkpointId ?? null, gaps: clone(mom.gaps), failure: clone(mom.failure ?? null), usageAfter: clone(mom.usage) });
 				await checkpoint(error ? "update-failure" : "update-accepted", error ?? undefined); return error;
 			};
-			let error = await invoke("aligned-horizon");
-			if (error && mom.failure) error = await invoke("deterministic-retry");
-			if (error && mom.gaps.length) error = await invoke("gap-refresh", true);
-			if (error || mom.failure || mom.gaps.length) throw new Error(`${item.caseId}: aligned update did not finish cleanly: ${error ?? "gap/failure remains"}`);
+			// One phase = one production update over exactly that evidence span. A pure transport failure
+			// leaves no failure/gap state and must not kill the run (the first attempt died on one
+			// WebSocket error). A retained deterministic failure has no newer material inside an isolated
+			// case, so it is retried through the explicit refresh path, exactly as production retries a
+			// retained range at its next settled boundary; a second failure opens one gap that refresh repairs.
+			const drain = async (events: FeedEvent[], phase: string) => {
+				if (!events.length) return;
+				stage(events);
+				let error = await invoke(phase);
+				for (let retry = 1; error && !mom.failure && !mom.gaps.length && retry <= 3; retry++) {
+					await new Promise(resolve => setTimeout(resolve, 5000));
+					error = await invoke(`${phase}-transport-retry-${retry}`);
+				}
+				if (error && mom.failure) error = await invoke(`${phase}-deterministic-retry`, true);
+				if (error && mom.gaps.length) error = await invoke(`${phase}-gap-refresh`, true);
+				if (error || mom.failure || mom.gaps.length) throw new Error(`${item.caseId}: ${phase} did not finish cleanly: ${error ?? "gap/failure remains"}`);
+			};
+			// Two aligned phases per case so the scored before-map and after-map share one lineage:
+			// consume evidence up to the boundary, snapshot, then consume boundary..horizon.
+			const pre = leadDirections(all, cursor, item.boundary.event - 1);
+			await drain(pre, "pre-boundary");
+			const beforeMap = graph(mom);
+			const replayBefore: Snapshot = { snapshotId: `v2-${corpus}-${mom.checkpointId ?? "bootstrap"}`, mapSha256: mapHash(beforeMap),
+				consumedThroughRef: pre.at(-1)?.ref ?? cursorRef ?? item.boundary.ref, map: beforeMap };
+			const events = leadDirections(all, item.boundary.event - 1, item.alignedHorizon.event);
+			if (!events.length || events.at(-1)!.ref !== item.alignedHorizon.ref) throw new Error(`${item.caseId}: staged evidence does not end at aligned horizon.`);
+			await drain(events, "aligned-horizon");
 			const map = graph(mom), record = store.records.findLast(candidate => candidate.type === "map");
 			if (!record) throw new Error(`${item.caseId}: accepted update wrote no map/cursor record.`);
 			const after: Snapshot = { snapshotId: `v2-${corpus}-${record.id}`, mapSha256: mapHash(map), consumedThroughRef: item.alignedHorizon.ref, map };
+			// The registered v1 before-map stays the eligibility record; the packet uses the replay's own
+			// immediately-before state so before and after come from the same trajectory.
+			replayBeforeChecks[item.caseId] = { registeredBeforeSha256: item.beforeSnapshot.mapSha256, replayBeforeSha256: replayBefore.mapSha256,
+				matches: replayBefore.mapSha256 === item.beforeSnapshot.mapSha256 };
+			snapshots.get(item.caseId)!.before = replayBefore;
 			snapshots.get(item.caseId)!.after = after;
 			await atomicJson(`${PRIVATE}/snapshots/${item.caseId}-after.json`, after); await checkpoint("case-complete");
-			cursor = item.alignedHorizon.event;
+			cursor = item.alignedHorizon.event; cursorRef = item.alignedHorizon.ref;
 		}
 		mom.close();
 		transcriptRuns.push({ corpus, replayCount: 1, stoppedAtEvent: cursor, stoppedAtRef: needed.at(-1)!.alignedHorizon.ref,
@@ -272,6 +300,7 @@ export async function run() {
 	const safeManifest = { schemaVersion: 2, status: "complete", blind: true, preRunSha, privateRoot: PRIVATE, model: MODEL, fallback: "none", reasoning: "low",
 		settings: { api: selected.api, maxTokens: 6000, toolChoice: "required", parallelToolCalls: false, retrieval: false, maxCallsPerUpdate: 2 },
 		limits: { maxCalls: MAX_CALLS, maxElapsedMs: MAX_MS }, inputs, v1InconclusiveHashes: v1Hashes,
+		beforeLineage: replayBeforeChecks,
 		packet: { path: SCORER_PACKET, sha256: packetSha256, schema: "semantic-scorer-packet.schema.json", cases: scorerCases.length },
 		totals: { cases: snapshots.size, reusedCases: [...snapshots.values()].filter(pair => pair.source === "reused-v1").length,
 			replayedCases: [...snapshots.values()].filter(pair => pair.source === "aligned-v2").length, transcriptReplays: transcriptRuns.length,
@@ -279,6 +308,8 @@ export async function run() {
 			unresolvedGaps: transcriptRuns.reduce((n, item) => n + item.gaps.length, 0) },
 		cases: coverage.cases.map((item, index) => { const pair = snapshots.get(item.caseId)!; return { caseId: item.caseId,
 			scorerCaseId: `case-${String(index + 1).padStart(3, "0")}`, horizon: item.alignedHorizon, source: pair.source,
+			beforeLineage: pair.source === "reused-v1" ? "reused-v1" : "aligned-v2",
+			registeredBeforeMatches: replayBeforeChecks[item.caseId]?.matches ?? null,
 			before: { snapshotId: pair.before.snapshotId, mapSha256: pair.before.mapSha256, consumedThroughRef: pair.before.consumedThroughRef },
 			after: { snapshotId: pair.after!.snapshotId, mapSha256: pair.after!.mapSha256, consumedThroughRef: pair.after!.consumedThroughRef } }; }) };
 	await atomicJson(SAFE_MANIFEST, safeManifest);
