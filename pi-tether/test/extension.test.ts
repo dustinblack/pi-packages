@@ -180,3 +180,28 @@ test("tree navigation cancels stale inference and rebuilds only the selected bra
 		assert.deepEqual(h.errors, []);
 	} finally { gate.resolve(); await h.close(); }
 });
+
+test("the widget repaints only when its content changes", { timeout: 15000 }, async () => {
+	const h = await setup(true);
+	try {
+		let idle = true;
+		const registrations: unknown[] = [];
+		const uiContext = { hasUI: true, mode: "tui", isIdle: () => idle, ui: {
+			setWidget: (_key: string, content: unknown) => { if (content) registrations.push(content); },
+			notify() {},
+		} };
+		await h.runtime.session.prompt("Keep the widget steady while nothing changes.");
+		await until(async () => (await snapshots(h)).length === 1, "first checkpoint");
+		await h.emitExtension("agent_settled", {}, uiContext); // routes ctx to the fake UI; the empty wake settles without a checkpoint
+		await until(async () => registrations.length >= 1, "initial widget registration");
+		await pause(400); // let any settling content changes land
+		const settled = registrations.length;
+		for (let i = 0; i < 3; i++) await h.emitExtension("agent_start", {}, uiContext);
+		await pause(50);
+		assert.equal(registrations.length, settled, "stable content never re-registers the widget");
+		idle = false; // a real status change must repaint exactly once
+		await h.emitExtension("agent_start", {}, uiContext);
+		await until(async () => registrations.length === settled + 1, "status-change repaint");
+		assert.deepEqual(h.errors, []);
+	} finally { await h.close(); }
+});

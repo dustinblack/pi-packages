@@ -37,6 +37,7 @@ export default function piTether(pi: ExtensionAPI) {
 	let readError: string | undefined;
 	let savedView: { owner: Mom; checkpoint: Mom["checkpoint"]; complete: boolean; work: WorkView; summary: string } | undefined;
 	let epoch = 0;
+	let widgetEpoch = -1, widgetSignature: string | undefined;
 	let revision = 0;
 	let coveredRevision = -1;
 	let dirty = false;
@@ -44,7 +45,6 @@ export default function piTether(pi: ExtensionAPI) {
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	let flight: Promise<string | undefined> | undefined;
 	let lastStarted = 0;
-	let leadTool: string | undefined;
 	let pendingCompaction: PendingCompactionReview | undefined;
 	let unsubscribe: (() => void) | undefined;
 	const interval = () => {
@@ -67,12 +67,19 @@ export default function piTether(pi: ExtensionAPI) {
 		const complete = Boolean(m) && !m!.busy && !blocked && !dirty && !m!.more && coveredRevision === revision;
 		const freshness = m?.busy ? "updating" : blocked ? "update stopped" : !complete ? "catching up" : "up to date";
 		const checked = m?.checkpoint ? `last saved ${formatElapsed(Date.now() - m.checkpoint.at)} ago` : "nothing saved yet";
-		const status = `${m?.enabled === false ? "paused" : freshness} · ${checked}${ctx && !ctx.isIdle() ? ` · agent ${leadTool ? `using ${leadTool}` : "working"}` : ""}`;
+		const status = `${m?.enabled === false ? "paused" : freshness} · ${checked}${ctx && !ctx.isIdle() ? " · agent working" : ""}`;
 		const saved = savedWork(complete);
 		return { status, complete, work: saved?.work, summary: saved?.summary ?? "", note: complete ? m?.checkpoint?.note?.text : undefined, error };
 	}
 	function sync() {
 		if (!ctx?.hasUI) return;
+		const v = view();
+		// setWidget re-registration forces a layout+repaint of the widget area, and terminals clear
+		// drag selections on repaint. Register only when rendered content actually changed; keep a
+		// live render closure so any incidental frame still draws current values.
+		const signature = `${v.status}\u0000${v.complete}\u0000${v.error ?? ""}\u0000${v.note ?? ""}`;
+		if (widgetEpoch === epoch && signature === widgetSignature) return;
+		widgetEpoch = epoch; widgetSignature = signature;
 		ctx.ui.setWidget(WIDGET, (_tui, theme) => ({ render: (width) => widgetLines(view(), theme, width), invalidate() {} }));
 	}
 	function cached(): string {
@@ -152,7 +159,7 @@ export default function piTether(pi: ExtensionAPI) {
 			if (e.version === 1 && typeof e.runId === "string" && e.kind === "settled") wake();
 		});
 		ctx = context; openingError = undefined; readError = undefined; savedView = undefined; lastStarted = 0;
-		revision = 0; coveredRevision = -1; dirty = true; leadTool = undefined; pendingCompaction = undefined;
+		revision = 0; coveredRevision = -1; dirty = true; pendingCompaction = undefined;
 		const token = epoch;
 		const advisorUrl = String(pi.getFlag("mom-advisor-url") ?? "").trim();
 		const instance: Mom = new Mom({ ctx: context, model: String(pi.getFlag("mom-model") ?? DEFAULT_MODEL),
@@ -208,9 +215,7 @@ export default function piTether(pi: ExtensionAPI) {
 		else delete event.systemPromptOptions.sections[LEAD_BEHAVIOR_SECTION_KEY];
 	});
 	pi.on("agent_start", () => { sync(); });
-	pi.on("agent_settled", (_event, context) => { ctx = context; leadTool = undefined; wake(); deliver(); });
-	pi.on("tool_execution_start", (event) => { leadTool = event.toolName; sync(); });
-	pi.on("tool_execution_end", () => { leadTool = undefined; sync(); });
+	pi.on("agent_settled", (_event, context) => { ctx = context; wake(); deliver(); });
 	pi.on("input", (event, context) => {
 		if (event.source !== "extension") deliver(true);
 		if (event.source === "extension" || !isStatusPing(event.text)) return { action: "continue" as const };
