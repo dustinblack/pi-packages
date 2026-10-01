@@ -1,5 +1,5 @@
 ---
-status: ready
+status: complete
 issue_id: "031"
 tags: [pi-strings, amp, plugin, controls]
 dependencies: ["029", "023"]
@@ -48,3 +48,5 @@ User selected the narrower **work controls only** scope: bounded reads, append/s
 `vendor/amp-plugin/pi-strings-bridge.ts` provides the project-scoped provider plugin. `extensions/pi-strings/runtime/amp-plugin-bridge.ts`, `Coordinator`, and `extensions/pi-strings/index.ts` expose `op_observe`, `op_append`, `op_steer`, and `op_cancel_remote`. The bridge uses a provider-supported portal URL, exact T-ID allowlist, bearer token, bounded recent-message API, and explicit unknown-delivery handling. Native `op_send` remains the user-attributed contribution path; no private Amp HTTP/WebSocket API is used.
 
 Deterministic tests pass in `tests/amp-plugin-bridge.test.ts` and `tests/amp-controls.test.ts`. A user-authorized local Amp scratch deployment proved observe, append, steer, and cancel end to end. A scratch Orb `T-01a0f2f6-3484-74ff-ad08-97572bdb46e9` was opened through the native adapter and a native `op_send` rendered as an ordinary `## User` message. The same native path then passed on pre-existing project Orb `T-01a0f0b4-5330-714f-a024-0a156279b832` in `max-planner` with active multiplayer. A no-project Orb scratch plugin attempt reached the provider portal but returned `502: sandbox is running but port is not open`; the workspace plugin was not loaded. Full plugin delivery therefore remains blocked on a recognized Amp project-scoped plugin deployment, not on the native contribution path or pi-strings control contract.
+
+**Closed as superseded, 2026-09-30 (user decision).** In the pi-strings → pi-delegate fold-in (039/040), the four bridge controls move to native paths with no plugin. Observe becomes an on-demand `amp threads export`. Append and steer become a native send through `delegate_ctl steer`, attributed as `## User`. Cancel becomes ACP session cancel, for turns the run started only. The Orb plugin deployment gate is no longer needed; the bridge code is deleted in 042. See `todos/040-ready-delegate-backend-contract.md`.
