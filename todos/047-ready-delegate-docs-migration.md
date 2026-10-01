@@ -29,4 +29,7 @@ Changing provider capabilities; claiming plugin author identity.
 
 ## Evidence
 
-Pending implementation.
+Closing commit `854a9b6`.
+- The agent checked all 38 JSON examples against the schemas and `validateStartInput`/`validateSteer`, plus 44 relative links and 34 file paths.
+- Observation docs were corrected to `observe: true` after 044 landed.
+- The skill description had to be quoted: its colon broke YAML, and Pi silently stopped loading the skill. Caught by `check:install`, which now passes (152 files).

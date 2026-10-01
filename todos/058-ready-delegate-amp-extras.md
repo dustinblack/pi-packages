@@ -17,6 +17,7 @@ ACP Amp runs show their cost in `delegate_ctl status`/`result`, accept Amp's age
 - **Cost:** `amp threads usage <T-ID>` prints `Cost: $…` plus Orb system metrics. On `T-01a0f0b4…` it reported $2.12 on 2026-09-30. pi-delegate's run view already has usage/cost fields, so fill them for Amp runs rather than adding a new one.
 - **Mode:** `--mode low|medium|high|ultra|<plugin mode>` sets Amp's model, system prompt and tools. `vendor/amp-acp/src/index.ts:176` already passes `options.mode`; expose it as a delegate option for acp:amp and reject it on other agents.
 - **Labels:** `amp threads label` and `--title`. Label created threads with the delegate run ID so `amp threads list` and `amp top -l` find them exactly. The user objected at [2610] to leftover test threads. Opened (existing) threads are never relabeled or retitled.
+- Gap found in 044: created Amp runs don't set `nativeSessionId` in the delegate view, though the adapter learns the T-ID from `--stream-json` (`session_id`). Labeling and cost need it, so surface it here.
 - The user chose these three on 2026-09-30. Archiving created threads on close was not chosen, so created threads stay unarchived as today.
 
 ## Acceptance criteria

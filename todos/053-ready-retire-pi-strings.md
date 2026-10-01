@@ -29,4 +29,8 @@ Unpublishing any npm release (needs explicit user approval), and renaming env va
 
 ## Evidence
 
-Pending.
+Closing commits `0238492` (delete pi-strings, `src/acp/index.ts` and 3 op_*-only tests) and `e737e76` (lessons kept in `pi-delegate/docs/ACP_LESSONS.md`).
+- Clean worktree: typecheck clean; 244 tests, 225 pass, 0 fail, 19 skipped; `check:install` PASS.
+- The user's `~/.pi/agent/settings.json` no longer lists pi-strings (removed with approval on 2026-09-30), and the leftover directory was deleted.
+- Open work from pi-strings' task list is filed as 060 (writer boundaries) and 061 (E2E failures).
+- Kept on purpose: the wire and state identifiers named pi-strings (`PI_STRINGS_*` env, adapter flags, `~/.pi/agent/pi-strings` state dir, config file names).
