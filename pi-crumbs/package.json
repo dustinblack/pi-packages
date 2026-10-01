@@ -18,7 +18,7 @@
     "diff": "^8.0.0"
   },
   "peerDependencies": {
-    "@mariozechner/pi-coding-agent": "*"
+    "@earendil-works/pi-coding-agent": ">=0.99.1 <0.100.0"
   },
   "pi": {
     "extensions": [
@@ -37,6 +37,7 @@
   "author": "ssweens",
   "license": "MIT",
   "devDependencies": {
+    "@earendil-works/pi-coding-agent": "0.99.1",
     "typescript": "^6.0.2"
   }
 }

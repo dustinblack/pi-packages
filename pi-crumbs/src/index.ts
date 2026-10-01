@@ -2,7 +2,7 @@
  * pi-crumbs - Leave a trail of crumbs to follow your changes
  */
 
-import type { ExtensionAPI, ExtensionContext, SessionManager } from '@mariozechner/pi-coding-agent';
+import type { ExtensionAPI, ExtensionContext, SessionManager } from '@earendil-works/pi-coding-agent';
 import { existsSync } from 'fs';
 import { readFile } from 'fs/promises';
 import { ObjectStore } from './object-store.js';
