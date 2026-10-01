@@ -79,6 +79,7 @@ test("a compaction that drops an active decision causes one deferred process adv
 	const h = await setup(true);
 	try {
 		await h.runtime.session.prompt("Record the decision to keep KEEP.txt unchanged before continuing the migration.");
+		await h.command("refresh");
 		await until(() => h.requests().length === 1);
 		const leadCalls = h.api.requests.filter((request: any) => !isMomRequest(request)).length;
 		h.api.onUnscripted((request) => {
@@ -110,6 +111,7 @@ test("a compaction retaining active material produces no notice", { timeout: 150
 	const h = await setup(true);
 	try {
 		await h.runtime.session.prompt("Keep KEEP.txt unchanged while doing the migration.");
+		await h.command("refresh");
 		await until(() => h.requests().length === 1);
 		await compact(h, "The migration continues. KEEP.txt must remain unchanged.");
 		assert.equal(h.requests().length, 2);

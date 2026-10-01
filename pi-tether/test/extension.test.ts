@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
+import { createServer } from "node:http";
 import { test } from "node:test";
 import { NOTICE } from "../src/checkpoint.ts";
+import { DELEGATE_MILESTONE_EVENT } from "../src/index.ts";
 import { setup, until, replacement, input, isMomRequest, deferred, readSidecar } from "./fixture.ts";
 
 const snapshots = async (h: Awaited<ReturnType<typeof setup>>) => (await readSidecar(h)).filter(r => r.type === "map" && r.data.snapshot)
@@ -12,6 +14,10 @@ test("normal parent narrative updates Mom without bookkeeping; cached status and
 	try {
 		assert(h.tools.has("mom")); assert(!h.tools.has("tether"));
 		await h.runtime.session.prompt("Keep the original goal while I investigate a tangent.");
+		await pause(250);
+		assert.equal(h.requests().length, 0, "one settled exchange does not wake Mom");
+		assert.equal(h.api.requests.filter((request: any) => !isMomRequest(request)).length, 1, "the lead exchange is independent of Mom calls");
+		for (let i = 0; i < 4; i++) await h.runtime.session.prompt(`Continue exchange ${i + 2} on the same tangent.`);
 		const manager = h.runtime.session.sessionManager;
 		const lastLead = manager.getBranch().findLast((e: any) => e.type === "message" && e.message.role === "assistant")!;
 		await until(async () => {
@@ -33,10 +39,97 @@ test("normal parent narrative updates Mom without bookkeeping; cached status and
 	} finally { await h.close(); }
 });
 
+test("delegate settlements never satisfy Mom's lead-exchange cadence", { timeout: 20000 }, async () => {
+	const h = await setup(true);
+	try {
+		await h.runtime.session.prompt("Keep the main goal while delegates investigate.");
+		for (let i = 0; i < 20; i++) await h.emitPiEvent(DELEGATE_MILESTONE_EVENT, { version: 1, runId: `worker-${i}`, kind: "settled" });
+		await pause(250);
+		assert.equal(h.requests().length, 0, "delegate fan-out cannot wake Mom without the lead threshold");
+		for (let i = 0; i < 3; i++) await h.runtime.session.prompt(`Continue the lead exchange ${i + 2}.`);
+		await pause(250);
+		assert.equal(h.requests().length, 0, "four lead exchanges plus any number of delegates remain below the threshold");
+		await h.runtime.session.prompt("Complete the fifth lead exchange.");
+		await until(async () => (await snapshots(h)).length === 1, "one batch after the fifth lead exchange");
+		assert.equal(h.requests().length, 1, "one coalesced Mom update covers the batch");
+		assert.equal(h.api.requests.filter((request: any) => !isMomRequest(request)).length, 5, "delegate notifications do not create lead requests");
+		assert.deepEqual(h.errors, []); assert.deepEqual(h.api.errors, []);
+	} finally { await h.close(); }
+});
+
+test("the settled cadence gates Mom and Kev separately", { timeout: 20000 }, async () => {
+	let advisorCalls = 0;
+	const advisor = createServer((request, response) => {
+		advisorCalls++;
+		request.resume();
+		request.on("end", () => {
+			response.writeHead(200, { "content-type": "application/json" });
+			response.end(JSON.stringify({ model: "kev-test", answers: { needs_update: { type: "noul", noul: 0.1 } }, usage: { input_tokens: 1, output_tokens: 1 } }));
+		});
+	});
+	await new Promise<void>((resolve, reject) => { advisor.once("error", reject); advisor.listen(0, "127.0.0.1", resolve); });
+	const address = advisor.address();
+	if (!address || typeof address === "string") throw new Error("Advisor fixture did not bind a TCP port.");
+	let h: Awaited<ReturnType<typeof setup>> | undefined;
+	try {
+		h = await setup(true, { "mom-advisor-url": `http://127.0.0.1:${address.port}/v1/systemone`, "mom-advisor-model": "kev-test" });
+		await h.runtime.session.prompt("Establish the current map before the cadence check.");
+		await h.command("refresh");
+		await until(async () => (await snapshots(h!)).length === 1, "initial checkpoint");
+		assert.equal(h.requests().length, 1, "explicit refresh makes one Mom call");
+		assert.equal(advisorCalls, 0, "bootstrap/explicit refresh bypass screening");
+
+		await h.runtime.session.prompt("Routine settled lead exchange one.");
+		for (let i = 0; i < 20; i++) await h.emitPiEvent(DELEGATE_MILESTONE_EVENT, { version: 1, runId: `advisor-worker-${i}`, kind: "settled" });
+		for (let i = 0; i < 3; i++) await h.runtime.session.prompt(`Routine settled lead exchange ${i + 2}.`);
+		await pause(250);
+		assert.equal(advisorCalls, 0, "one through four lead exchanges plus delegate fan-out do not call Kev");
+		assert.equal(h.requests().length, 1, "one through four lead exchanges make no extra Mom call");
+		await h.runtime.session.prompt("Routine settled lead exchange five.");
+		await until(() => advisorCalls === 1, "one Kev screen after the fifth exchange");
+		await until(async () => !/updating|catching up/.test((await h!.tools.get("mom").execute("settled", {}, undefined)).content[0].text), "screened batch coverage");
+		assert.equal(advisorCalls, 1, "exactly one whole-batch Kev screen");
+		assert.equal(h.requests().length, 1, "no-movement Kev verdict keeps Mom asleep");
+		assert.deepEqual(h.errors, []); assert.deepEqual(h.api.errors, []);
+	} finally {
+		if (h) await h.close();
+		await new Promise<void>((resolve) => advisor.close(() => resolve()));
+	}
+});
+
+test("explicit questions and compaction bypass the ordinary cadence gate", { timeout: 20000 }, async () => {
+	const h = await setup(true);
+	h.api.onUnscripted((request) => {
+		if (!isMomRequest(request)) return { text: "Lead continued." };
+		const body = input(request);
+		return replacement(request, body.question ? { answer: `The purpose remains active. [src:${body.original.ref}]` } : {});
+	});
+	try {
+		await h.runtime.session.prompt("Keep the purpose available for an explicit question.");
+		await h.tools.get("mom").execute("question", { question: "What is the active purpose?" }, undefined);
+		assert.equal(h.requests().length, 1, "an explicit question calls Mom with only one lead exchange pending");
+
+		await h.runtime.session.prompt("Add one more exchange before compaction.");
+		await pause(200);
+		assert.equal(h.requests().length, 1, "the second lead exchange remains below the ordinary threshold");
+		const manager = h.runtime.session.sessionManager;
+		const branchEntries = manager.getBranch();
+		const firstKeptEntryId = branchEntries.at(-1)?.id;
+		assert(firstKeptEntryId);
+		await h.emitExtension("session_before_compact", { branchEntries, preparation: { firstKeptEntryId } });
+		await h.emitExtension("session_compact", { compactionEntry: { id: "fixture-compaction", firstKeptEntryId,
+			summary: "The purpose remains active.", timestamp: new Date().toISOString() } });
+		await until(() => h.requests().length === 2, "one direct compaction review despite fewer than five lead exchanges");
+		assert.equal(input(h.requests().at(-1)).compactionReview?.kind, "compaction_review");
+		assert.deepEqual(h.errors, []); assert.deepEqual(h.api.errors, []);
+	} finally { await h.close(); }
+});
+
 test("/mom map is a cached alias for the graph command", { timeout: 15000 }, async () => {
 	const h = await setup(true);
 	try {
 		await h.runtime.session.prompt("Keep the live terminal map current.");
+		await h.command("refresh"); // explicit refresh bypasses the ordinary five-exchange gate
 		await until(async () => (await snapshots(h)).length === 1);
 		const notices: Array<{ text: string; level: string }> = [];
 		const ui = new Proxy(h.context.ui, { get(target, key, receiver) {
@@ -61,6 +154,7 @@ test("startup and reload render saved state without inferring over pending trans
 	const h = await setup(true);
 	try {
 		await h.runtime.session.prompt("Preserve the saved map before reload.");
+		await h.command("refresh");
 		await until(async () => (await snapshots(h)).length === 1);
 		const calls = h.requests().length;
 		h.runtime.session.sessionManager.appendMessage({ role: "user", content: "Pending evidence must wait for an allowed boundary.", timestamp: Date.now() });
@@ -79,17 +173,19 @@ test("automatic reads mark the saved map partial while Mom catches up and restor
 	const h = await setup(true), gate = deferred(), arrived = deferred();
 	try {
 		await h.runtime.session.prompt("Preserve the initial map.");
+		await h.command("refresh");
 		await until(async () => (await snapshots(h)).length === 1);
 		h.api.onUnscripted((request) => {
 			if (!isMomRequest(request)) return { text: "Lead continued with newer evidence." };
 			arrived.resolve(); return { ...replacement(request), gate };
 		});
 		await h.runtime.session.prompt("Add newer evidence while Mom catches up.");
+		const refresh = h.command("refresh");
 		await arrived.promise;
 		const partial = await h.tools.get("mom").execute("partial", {}, undefined);
 		assert.match(partial.content[0].text, /partial last-saved snapshot/);
 		assert.doesNotMatch(partial.content[0].text, /\bCurrent\b|· current|you are here/);
-		gate.resolve();
+		gate.resolve(); await refresh;
 		await until(async () => (await snapshots(h)).length === 2);
 		const complete = await h.tools.get("mom").execute("complete", {}, undefined);
 		assert.doesNotMatch(complete.content[0].text, /partial last-saved snapshot/);
@@ -109,7 +205,10 @@ test("automatic inference waits for a lead tool stream to settle and then checkp
 		await pause(250);
 		assert.equal(h.requests().length, 0, "no Mom request while the lead turn is still streaming");
 		gate.resolve(); await turn;
-		await until(async () => (await snapshots(h)).length === 1, "first sidecar checkpoint after settlement");
+		await pause(250);
+		assert.equal(h.requests().length, 0, "one settled tool-using exchange still waits for the batch threshold");
+		for (let i = 0; i < 4; i++) await h.runtime.session.prompt(`Follow-up exchange ${i + 2}.`);
+		await until(async () => (await snapshots(h)).length === 1, "checkpoint after five settled exchanges");
 		const body = input(h.requests()[0]);
 		assert.match(body.newEvents, /Inspect the active runs, then preserve this request/);
 		assert.match(body.newEvents, /lead tool_call delegate_ctl/);
@@ -125,7 +224,9 @@ test("automatic inference waits for a lead tool stream to settle and then checkp
 test("pause/resume preserves pending direction and user corrections without an extra lead turn", { timeout: 15000 }, async () => {
 	const h = await setup(true);
 	try {
-		await h.runtime.session.prompt("Keep recall and reminders."); await until(async () => (await snapshots(h)).length === 1);
+		await h.runtime.session.prompt("Keep recall and reminders.");
+		await h.command("refresh");
+		await until(async () => (await snapshots(h)).length === 1);
 		await h.command("pause");
 		await h.runtime.session.prompt("Change only the notification presentation.");
 		const parentCalls = h.api.requests.filter((r) => !isMomRequest(r)).length;
@@ -150,14 +251,15 @@ test("a sourced notice is appended once at a breakpoint without generating a lea
 			return replacement(request, { note: { text: "Commit the completed changes before more work makes them harder to recover.", riskClass: "uncommitted_work", target: "main", riskRefs: [body.original.ref, trigger], actionRefs: [body.original.ref] } });
 		});
 		await h.runtime.session.prompt("Commits are allowed. Commit completed changes before adding more work.");
+		for (let i = 0; i < 4; i++) await h.runtime.session.prompt(`Continue the same permitted release work, exchange ${i + 2}.`);
 		assert.equal(h.runtime.session.sessionManager.getBranch().filter((e: any) => e.customType === NOTICE).length, 0, "advice waits for the next request");
 		await until(async () => Boolean((await snapshots(h)).at(-1)?.data.note), "saved process advice");
 		const momCalls = h.requests().length;
 		await h.emitExtension("input", { type: "input", text: "Continue", source: "interactive" });
 		await until(() => h.runtime.session.sessionManager.getBranch().some((e: any) => e.customType === NOTICE), "notice delivery");
-		const calls = h.api.requests.length;
+		const calls = h.api.requests.length, parentCalls = h.api.requests.filter((r) => !isMomRequest(r)).length;
 		assert.equal(h.requests().length, momCalls, "notice delivery makes no extra Mom call");
-		assert.equal(h.api.requests.filter((r) => !isMomRequest(r)).length, 1);
+		assert.equal(parentCalls, 5, "the five settled lead exchanges remain separate lead turns");
 		assert.equal(h.runtime.session.isStreaming, false);
 		await h.runtime.session.reload(); await pause(300);
 		assert.equal(h.api.requests.length, calls);
@@ -182,18 +284,22 @@ test("an unresolved process risk stays quiet, then a sourced resolution permits 
 			return replacement(request, { note: { text: "Commit the release changes before more work makes them harder to recover.", riskClass: "uncommitted_work", target: "main", riskRefs: [body.original.ref, assistant], actionRefs: [body.original.ref] } });
 		});
 		await h.runtime.session.prompt("Commits are allowed. Commit completed release changes before adding more work.");
+		await h.command("refresh");
 		await until(async () => Boolean((await snapshots(h)).at(-1)?.data.note));
 		await h.emitExtension("input", { type: "input", text: "Continue", source: "interactive" });
 		await until(() => h.runtime.session.sessionManager.getBranch().filter((e: any) => e.customType === NOTICE).length === 1);
 		const beforeRepeat = h.requests().length;
 		await h.runtime.session.prompt("Continue with the same unresolved release risk.");
+		await h.command("refresh");
 		await until(() => h.requests().length > beforeRepeat, "repeat risk update");
 		await h.emitExtension("input", { type: "input", text: "Continue unchanged", source: "interactive" });
 		assert.equal(h.runtime.session.sessionManager.getBranch().filter((e: any) => e.customType === NOTICE).length, 1, "unchanged risk across updates does not nag");
 
 		await h.runtime.session.prompt("Resolve the release risk now.");
+		await h.command("refresh");
 		await until(async () => (await readSidecar(h)).some((r: any) => r.type === "map" && r.data.resolvedNotices?.includes("uncommitted_work:main")));
 		await h.runtime.session.prompt("Start later release work with commits still allowed.");
+		await h.command("refresh");
 		await until(async () => { const saved = await snapshots(h); const firstTrigger = saved[0]?.data.note?.riskRefs?.at(-1); return saved.at(-1)?.data.note?.riskRefs.some((ref: string) => ref !== firstTrigger); });
 		await until(async () => !/updating|catching up/.test((await h.tools.get("mom").execute("settled", {}, undefined)).content[0].text), "recurred risk checkpoint settlement");
 		await h.emitExtension("input", { type: "input", text: "Continue later work", source: "interactive" });
@@ -212,10 +318,14 @@ test("tree navigation cancels stale inference and rebuilds only the selected bra
 			if (first) { first = false; arrived.resolve(); return { ...replacement(request), gate }; }
 			return replacement(request);
 		});
-		await h.runtime.session.prompt("Abandoned branch request."); await arrived.promise;
+		await h.runtime.session.prompt("Abandoned branch request.");
+		const staleRefresh = h.command("refresh");
+		await arrived.promise;
 		const user = h.runtime.session.getUserMessagesForForking()[0]; assert(user);
 		await h.runtime.session.navigateTree(user.entryId, { summarize: false });
 		await h.runtime.session.prompt("Selected branch request."); gate.resolve();
+		await staleRefresh;
+		await h.command("refresh");
 		await until(async () => (await snapshots(h)).length === 1, "new branch checkpoint");
 		const body = input(h.requests().at(-1));
 		assert.match(body.newEvents, /Selected branch request/);
@@ -237,6 +347,7 @@ test("the widget shows durable catch-up progress while evidence is pending", { t
 			if (built && typeof built.render === "function") rendered.push(built.render(100).join("\n"));
 		};
 		await h.runtime.session.prompt("Keep the goal warm while Mom catches up.");
+		await h.command("refresh");
 		await until(async () => (await snapshots(h)).length === 1, "first checkpoint");
 		// Route ctx to a fake UI that can prove coverage: it carries the real sessionManager.
 		const uiContext = { hasUI: true, mode: "tui", isIdle: () => idle, sessionManager: h.runtime.session.sessionManager,
@@ -246,7 +357,7 @@ test("the widget shows durable catch-up progress while evidence is pending", { t
 		// New evidence arrives that Mom has not yet read: the widget must state real coverage.
 		await h.runtime.session.prompt("Add a second turn so the branch grows past the saved cursor.");
 		await until(async () => (await h.runtime.session.sessionManager.getBranch()).length > 4, "branch grows");
-		await h.emitExtension("agent_settled", {}, uiContext);
+		for (let i = 0; i < 3; i++) await h.emitExtension("agent_settled", {}, uiContext); // the fifth settled exchange crosses the cadence gate
 		await until(async () => /catching up · \d+% read/.test(rendered.at(-1) ?? ""), "catch-up percentage");
 		const partial = rendered.at(-1)!;
 		assert.match(partial, /catching up · \d+% read/);
@@ -269,6 +380,7 @@ test("the widget repaints only when its content changes", { timeout: 15000 }, as
 			notify() {},
 		} };
 		await h.runtime.session.prompt("Keep the widget steady while nothing changes.");
+		await h.command("refresh");
 		await until(async () => (await snapshots(h)).length === 1, "first checkpoint");
 		await h.emitExtension("agent_settled", {}, uiContext); // routes ctx to the fake UI; the empty wake settles without a checkpoint
 		await until(async () => registrations.length >= 1, "initial widget registration");

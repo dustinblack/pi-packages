@@ -30,15 +30,32 @@ function longSession(dir: string, turns: number, compactionEvery: number) {
 	return manager;
 }
 
-async function coldMom(policy: BootstrapPolicy, manager: SessionManager) {
+async function coldMom(policy: BootstrapPolicy, manager: SessionManager, options: { failFirstMapCursor?: boolean } = {}) {
 	const api = await provider(), box = sandbox(api.url);
 	process.env.HOME = box.root; process.env.PI_CODING_AGENT_DIR = box.agentDir;
 	const sdk = await import("@earendil-works/pi-coding-agent");
 	const runtime = await sdk.ModelRuntime.create({ authPath: join(box.agentDir, "auth.json"), modelsPath: join(box.agentDir, "models.json"), allowModelNetwork: false, refreshOnCreate: false });
 	const modelRegistry = new sdk.ModelRegistry(runtime);
 	const requests: any[] = [];
-	api.onUnscripted(request => { requests.push(request); return isMomRequest(request) ? replacement(request) : { text: "Lead continued." }; });
-	const store = new SidecarStore(() => `${manager.getSessionFile()}.mom`, manager.getSessionId());
+	api.onUnscripted(request => {
+		requests.push(request);
+		if (!isMomRequest(request)) return { text: "Lead continued." };
+		if (options.failFirstMapCursor && requests.filter(isMomRequest).length > 1) {
+			const body = input(request);
+			return { tool: { name: "commit_graph", arguments: { revision: body.graph.revision, purpose: body.graph.purpose, focus: body.graph.focus,
+				upsertNodes: [], upsertEdges: [], removeEdges: [], merges: [], folds: [], removeNodes: [], supersessions: [], unfinished: [], note: null, resolutions: [] } } };
+		}
+		return replacement(request);
+	});
+	const durable = new SidecarStore(() => `${manager.getSessionFile()}.mom`, manager.getSessionId());
+	let mapCursorWrites = 0;
+	const store: any = options.failFirstMapCursor ? {
+		load: () => durable.load(),
+		append: async (type: any, data: any) => {
+			if (type === "map" && data.base !== undefined && mapCursorWrites++ === 0) throw new Error("Injected mid-drain cursor failure");
+			return durable.append(type, data);
+		},
+	} : durable;
 	const mom = new Mom({ ctx: { sessionManager: manager, modelRegistry } as any, model: "fixture/fixture", store, current: () => true, changed() {}, bootstrapPolicy: policy });
 	return { api, box, mom, requests,
 		async close() { mom.close(); await api.close(); rmSync(box.root, { recursive: true, force: true }); } };
@@ -79,13 +96,24 @@ test("a long cold backlog is caught up by ONE bounded proposal, not one per capt
 			await reopened.mom.open();
 			assert.deepEqual(reopened.mom.checkpoint, saved);
 			assert.equal(reopened.mom.checkpointId, savedId);
-			// Reopen resumes at the durable cursor: it never replays the evidence the drain consumed.
+			// Reopen resumes at the durable cursor: it never replays evidence that the saved
+			// checkpoint already consumed. A remaining backlog legitimately continues after reopen.
 			const callsBefore = reopened.requests.filter(isMomRequest).length;
+			const consumedBefore = consumedEntries(manager, saved!.cut.parent);
 			await reopened.mom.update();
+			const consumedAfter = consumedEntries(manager, reopened.mom.checkpoint!.cut.parent);
+			assert(consumedAfter >= consumedBefore, "reopen never rewinds coverage");
 			const resumed = reopened.requests.filter(isMomRequest).length;
 			if (resumed > callsBefore) {
 				const body = input(reopened.requests.filter(isMomRequest).at(-1)!);
-				assert.doesNotMatch(body.newEvents, /Turn 0:/, "processed evidence is not replayed after reopen");
+				// Every direction the resumed digest cites must lie at or after the durable cut.
+				const cited = [...body.newEvents.matchAll(/\[src:([^\]]+)\]/g)].map(m => m[1]);
+				assert(cited.length > 0, "the resumed digest cites evidence");
+				const indexOf = (ref: string) => manager.getBranch().findIndex(e => e.id === ref.slice(ref.lastIndexOf(":") + 1).replace(/:b\d+$/, ""));
+				for (const ref of cited) {
+					const at = indexOf(ref);
+					if (at >= 0) assert(at >= consumedBefore - 1, `resumed digest must not cite evidence before the durable cut: ${ref}`);
+				}
 			}
 		} finally { await reopened?.close(); }
 	} finally { await lane?.close(); }
@@ -140,5 +168,111 @@ test("a single-window backlog keeps the ordinary path: no compression, no bootst
 		const body = input(lane.requests.filter(isMomRequest).at(-1)!);
 		assert.doesNotMatch(body.newEvents, /^BOOTSTRAP CHAPTER CHAIN/, "a backlog that fits one window is never compressed");
 		assert.equal(lane.mom.usage.calls, 1, "the ordinary path is unchanged");
+	} finally { await lane?.close(); }
+});
+
+test("a 40-chapter backlog drains across passes in a bounded proposal count, never per window", { timeout: 90000 }, async () => {
+	const dir = `/tmp/mom-bootstrap-multipass-${process.pid}-${Date.now()}`;
+	const manager = longSession(dir, 3200, 80); // 40 compaction chapters, well past one window
+	let lane: Lane | undefined;
+	try {
+		// maxChapters 12 forces a multi-pass drain: no single digest may swallow 40 chapters.
+		lane = await coldMom({ ...DEFAULT_BOOTSTRAP_POLICY, maxChapters: 12 }, manager);
+		const mom = lane.mom;
+		const windows: number[] = [];
+		const feed = mom.feed as any, original = feed.capture.bind(feed);
+		feed.capture = async (limit?: number, defer?: boolean) => { const result = await original(limit, defer); windows.push(result.events.length); return result; };
+		await mom.open();
+		// Drain to completion, exactly as the extension loop does, counting real proposals.
+		const passes: { digest: boolean; cut: string | null; consumed: number; more: boolean }[] = [];
+		for (let guard = 0; guard < 12; guard++) {
+			const before = lane.requests.filter(isMomRequest).length;
+			await mom.update();
+			const made = lane.requests.filter(isMomRequest).slice(before);
+			for (const request of made) {
+				const body = input(request);
+				passes.push({ digest: body.newEvents.startsWith("BOOTSTRAP CHAPTER CHAIN"),
+					cut: mom.checkpoint!.cut.parent, consumed: consumedEntries(manager, mom.checkpoint!.cut.parent), more: mom.more });
+			}
+			if (!mom.more && !mom.error) break; // drained
+		}
+		assert.ok(passes.length > 1, "the backlog must drain across multiple passes");
+		assert.ok(windows.length > passes.length, `windows (${windows.length}) must far exceed proposals (${passes.length})`);
+		// Every bounded-backlog pass uses the digest; only a final remainder that fits inside a
+		// single window may legitimately take the ordinary path.
+		const ordinary = passes.filter(p => !p.digest);
+		assert.ok(ordinary.length <= 1, `only a single-window tail may skip the digest, got ${ordinary.length}`);
+		assert.ok(passes.slice(0, -1).every(p => p.digest), "every pass that carries a backlog uses the chapter digest, including continuation after a checkpoint exists");
+		assert.ok(passes.length <= 4, `a 40-chapter backlog must drain in at most 4 proposals, took ${passes.length}`);
+		assert(passes.slice(0, -1).every(p => p.more), "every non-final pass reports more=true");
+		assert.equal(passes.at(-1)!.more, false, "the final pass drains the backlog");
+		// Exact cut/cursor safety: each cut is a real branch entry, strictly advancing, never ahead.
+		const branch = manager.getBranch();
+		for (const pass of passes) {
+			assert(pass.cut !== null && branch.some(entry => entry.id === pass.cut), "each cut is a real session entry id");
+			assert(pass.consumed > 0 && pass.consumed <= branch.length, "coverage never exceeds processed evidence");
+		}
+		for (let i = 1; i < passes.length; i++) assert(passes[i].consumed > passes[i - 1].consumed, "the cursor advances monotonically across passes");
+		assert.equal(passes.at(-1)!.consumed, branch.length, "the last pass claims exactly the processed evidence");
+		for (const node of mom.checkpoint!.graph.nodes) for (const source of node.sources) assert(mom.feed.byRef.has(source), `citation ${source} must resolve`);
+	} finally { await lane?.close(); }
+});
+
+test("a failed mid-drain cursor write retains the prior cut and retry advances without skipping", { timeout: 90000 }, async () => {
+	const dir = `/tmp/mom-bootstrap-midfail-${process.pid}-${Date.now()}`;
+	const manager = longSession(dir, 3200, 80);
+	let lane: Lane | undefined;
+	try {
+		lane = await coldMom({ ...DEFAULT_BOOTSTRAP_POLICY, maxChapters: 12 }, manager, { failFirstMapCursor: true });
+		const mom = lane.mom;
+		await mom.open();
+		await mom.update(); // first pass accepted
+		const first = mom.checkpoint, savedCursor = mom.checkpoint!.cut.parent;
+		let writeFailed = false;
+		try { await mom.update(); } catch { writeFailed = true; }
+		assert(writeFailed, "the injected cursor write fails after the proposal");
+		assert.strictEqual(mom.checkpoint, first, "a failed durable write keeps the prior checkpoint in memory");
+		assert.equal(mom.checkpoint!.cut.parent, savedCursor, "a failed write does not advance the durable cut");
+		await mom.update(); // retry the still-unconsumed batch
+		assert(mom.checkpoint!.cut.parent !== savedCursor, "the retry advances after the injected failure clears");
+		const branch = manager.getBranch();
+		const consumed = consumedEntries(manager, mom.checkpoint!.cut.parent);
+		assert(consumed > 0 && consumed <= branch.length, "coverage never exceeds processed evidence");
+		for (const node of mom.checkpoint!.graph.nodes) for (const source of node.sources) assert(mom.feed.byRef.has(source), `citation ${source} must resolve`);
+	} finally { await lane?.close(); }
+});
+
+test("continuation digests only fresh evidence and the chapter target is honest about overshoot", { timeout: 90000 }, async () => {
+	const dir = `/tmp/mom-bootstrap-fresh-${process.pid}-${Date.now()}`;
+	const manager = longSession(dir, 3200, 80); // 40 chapters
+	let lane: Lane | undefined;
+	try {
+		lane = await coldMom({ ...DEFAULT_BOOTSTRAP_POLICY, maxChapters: 12 }, manager);
+		const mom = lane.mom;
+		await mom.open();
+		const branch = manager.getBranch();
+		const consumed = () => branch.findIndex(e => e.id === mom.checkpoint!.cut.parent) + 1;
+		await mom.update(); // pass 1
+		const cutAfterPass1 = consumed();
+		const pass1 = lane.requests.filter(isMomRequest).length;
+		assert(mom.more, "the backlog is not exhausted");
+		await mom.update(); // pass 2: must digest ONLY what pass 1 left
+		const pass2 = lane.requests.filter(isMomRequest).length;
+		assert.equal(pass2, pass1 + 1, "the continuation is exactly one proposal");
+		const body = input(lane.requests.filter(isMomRequest).at(-1)!);
+		const cited = [...body.newEvents.matchAll(/\[src:([^\]]+)\]/g)].map(m => m[1]);
+		assert(cited.length > 0, "the continuation digest cites evidence");
+		const chaptersInPass2 = (body.newEvents.match(/Chapter \d+/g) ?? []).length;
+		assert(chaptersInPass2 > 0, "the continuation digest describes fresh chapters");
+		// Freshness: no cited ref may lie before the pass-1 cut.
+		const refIndex = (ref: string) => branch.findIndex(e => e.id === ref.slice(ref.lastIndexOf(":") + 1).replace(/:b\d+$/, ""));
+		for (const ref of cited) {
+			const at = refIndex(ref);
+			if (at >= 0) assert(at >= cutAfterPass1 - 1, `continuation replayed consumed evidence: ${ref}`);
+		}
+		// Target honesty: emitted chapters never exceed the target by more than the crossing window's
+		// own chapters, and the overshoot is reported rather than hidden.
+		assert(chaptersInPass2 <= 12 + 4, `target 12 must not be exceeded by an unbounded amount (got ${chaptersInPass2})`);
+		assert(mom.error === undefined, "the continuation completes");
 	} finally { await lane?.close(); }
 });

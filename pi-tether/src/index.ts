@@ -6,6 +6,7 @@ import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import { SystemOneAdvisor } from "./advisor.ts";
 import { DEFAULT_BOOTSTRAP_POLICY } from "./bootstrap.ts";
+import { LeadCadence } from "./cadence.ts";
 import { NOTICE, noticeKey } from "./checkpoint.ts";
 import { CORRECTION } from "./feed.ts";
 import { finishCompactionReview, prepareCompactionReview, type PendingCompactionReview } from "./compaction.ts";
@@ -32,7 +33,7 @@ export default function piTether(pi: ExtensionAPI) {
 	pi.registerFlag("mom-advisor-threshold", { description: "Screen probability at or above which Mom's model wakes", type: "string", default: "0.25" });
 	pi.registerFlag("mom-advisor-timeout-ms", { description: "Session-level screening timeout in milliseconds", type: "string", default: "1500" });
 	pi.registerFlag("mom-bootstrap", { description: "Cold catch-up: one bounded proposal over a compression of the whole backlog, instead of one proposal per capture window", type: "string", default: "1" });
-	pi.registerFlag("mom-bootstrap-chapters", { description: "Maximum chapters (compaction-bounded segments) entering one cold-catch-up proposal", type: "string", default: "24" });
+	pi.registerFlag("mom-bootstrap-chapters", { description: "Target chapters (compaction-bounded segments) per cold-catch-up digest batch; the batch may exceed it by the chapters in the crossing window", type: "string", default: "24" });
 	pi.registerFlag("mom-bootstrap-chars", { description: "Maximum characters of cold-catch-up compression sent in one proposal", type: "string", default: "48000" });
 	let ctx: ExtensionContext | undefined;
 	let mom: Mom | undefined;
@@ -46,7 +47,9 @@ export default function piTether(pi: ExtensionAPI) {
 	let coveredRevision = -1;
 	let dirty = false;
 	let store: SidecarStore | undefined;
+	const cadence = new LeadCadence();
 	let timer: ReturnType<typeof setTimeout> | undefined;
+	let timerAt: number | undefined;
 	let flight: Promise<string | undefined> | undefined;
 	let lastStarted = 0;
 	let pendingCompaction: PendingCompactionReview | undefined;
@@ -142,13 +145,18 @@ export default function piTether(pi: ExtensionAPI) {
 		const mine = mom, token = epoch, observed = revision;
 		if (!mine) throw new Error("Mom session is unavailable.");
 		if (!mine.enabled) throw new Error("Mom is paused. Use /mom resume.");
+		if (timer) clearTimeout(timer);
+		timer = undefined; timerAt = undefined;
 		dirty = false; lastStarted = Date.now();
 		const work = mine.update(question, signal, observed, refresh, compactionReview);
 		flight = work;
 		try {
 			const answer = await work;
 			if (token === epoch && mine === mom) {
-				if (!mine.more) coveredRevision = mine.coveredRevision;
+				if (!mine.more) {
+					coveredRevision = mine.coveredRevision;
+					cadence.coveredThrough(coveredRevision);
+				}
 				if (coveredRevision !== revision) dirty = true;
 				if (!compactionReview) await deliver();
 			}
@@ -159,34 +167,59 @@ export default function piTether(pi: ExtensionAPI) {
 			if (token === epoch && mine === mom && flight === work) {
 				flight = undefined;
 				sync();
-				if (!mine.error && !mine.waitingForWorkers && (dirty || mine.more)) schedule();
+				if (!mine.error && !mine.waitingForWorkers && (dirty || mine.more)) {
+					if (refresh) void run(undefined, undefined, true).catch(() => sync());
+					else schedule();
+				}
 			}
 		}
 	}
-	function schedule() {
-		if (!mom?.enabled || openingError || flight || timer) return;
-		const token = epoch;
-		// This timer only batches recorded activity/backlog. Idleness alone never wakes Mom.
-		timer = setTimeout(() => {
-			timer = undefined;
-			if (token !== epoch || (ctx && !ctx.isIdle())) return;
-			void run().catch(() => sync());
-		}, Math.max(150, interval() - (Date.now() - lastStarted)));
+	function automaticDueAt(now = Date.now()): number | undefined {
+		if (!mom?.enabled || openingError) return undefined;
+		const due = mom.more ? now : cadence.deadline(now);
+		return due === undefined ? undefined : Math.max(due, lastStarted + interval());
 	}
-	function wake() { dirty = true; revision++; sync(); schedule(); }
+	function schedule() {
+		if (!mom?.enabled || openingError || flight) return;
+		const due = automaticDueAt();
+		if (due === undefined) {
+			if (timer) clearTimeout(timer);
+			timer = undefined; timerAt = undefined;
+			return;
+		}
+		if (timer && timerAt === due) return;
+		if (timer) clearTimeout(timer);
+		const token = epoch;
+		timerAt = due;
+		// One one-shot deadline batches settled exchanges; there is no idle polling.
+		timer = setTimeout(() => {
+			timer = undefined; timerAt = undefined;
+			if (token !== epoch || (ctx && (!ctx.isIdle() || (ctx.hasPendingMessages?.() ?? false)))) return;
+			const nextDue = automaticDueAt();
+			if (nextDue === undefined) return;
+			if (nextDue > Date.now()) { schedule(); return; }
+			void run().catch(() => sync());
+		}, Math.max(150, due - Date.now()));
+	}
+	function wake(kind: "lead" | "delegate" = "delegate") {
+		dirty = true; revision++;
+		cadence.settled(kind, revision, Date.now());
+		sync(); schedule();
+	}
 	function reset(context: ExtensionContext) {
 		epoch++;
 		if (timer) clearTimeout(timer);
-		timer = undefined; flight = undefined;
+		timer = undefined; timerAt = undefined; flight = undefined;
+		cadence.reset();
 		mom?.close();
 		unsubscribe?.();
 		unsubscribe = pi.events.on(DELEGATE_MILESTONE_EVENT, (data: unknown) => {
 			if (!data || typeof data !== "object") return;
 			const e = data as Record<string, unknown>;
-			if (e.version === 1 && typeof e.runId === "string" && e.kind === "settled") wake();
+			if (e.version === 1 && typeof e.runId === "string" && e.kind === "settled") wake("delegate");
 		});
 		ctx = context; openingError = undefined; readError = undefined; savedView = undefined; lastStarted = 0;
-		revision = 0; coveredRevision = -1; dirty = true; pendingCompaction = undefined;
+		revision = 0; coveredRevision = -1; dirty = true; pendingCompaction = undefined; cadence.reset();
 		const token = epoch, priorNoticePersistence = noticePersistence;
 		const advisorUrl = String(pi.getFlag("mom-advisor-url") ?? "").trim();
 		const bootstrapChapters = Number(pi.getFlag("mom-bootstrap-chapters") ?? DEFAULT_BOOTSTRAP_POLICY.maxChapters);
@@ -214,7 +247,8 @@ export default function piTether(pi: ExtensionAPI) {
 	function close() {
 		epoch++;
 		if (timer) clearTimeout(timer);
-		timer = undefined; mom?.close(); flight = undefined;
+		timer = undefined; timerAt = undefined; mom?.close(); flight = undefined;
+		cadence.reset();
 		unsubscribe?.(); unsubscribe = undefined;
 		ctx?.ui.setWidget(WIDGET, undefined);
 		mom = undefined; ctx = undefined; savedView = undefined; store = undefined;
@@ -233,7 +267,7 @@ export default function piTether(pi: ExtensionAPI) {
 		pendingCompaction = undefined;
 		if (!pending || !mom?.enabled || openingError) return;
 		if (timer) clearTimeout(timer);
-		timer = undefined; dirty = true; revision++; sync();
+		timer = undefined; timerAt = undefined; dirty = true; revision++; sync();
 		const activeRefs = new Set(mom.graph.nodes.filter(node => node.state === "active" || node.state === "parked").flatMap(node => node.sources));
 		try { await run(undefined, undefined, false, finishCompactionReview(pending, event, activeRefs)); }
 		catch { sync(); }
@@ -246,7 +280,7 @@ export default function piTether(pi: ExtensionAPI) {
 		else delete event.systemPromptOptions.sections[LEAD_BEHAVIOR_SECTION_KEY];
 	});
 	pi.on("agent_start", () => { sync(); });
-	pi.on("agent_settled", (_event, context) => { ctx = context; wake(); deliver(); });
+	pi.on("agent_settled", (_event, context) => { ctx = context; wake("lead"); deliver(); });
 	pi.on("input", async (event, context) => {
 		if (event.source !== "extension") await deliver(true);
 		if (event.source === "extension" || !isStatusPing(event.text)) return { action: "continue" as const };
@@ -341,14 +375,16 @@ export default function piTether(pi: ExtensionAPI) {
 					if (!store) throw new Error("Mom session is unavailable.");
 					await store.append("control", { enabled: command === "resume" });
 					reset(context);
-					if (command === "resume") { await ready; wake(); }
+					if (command === "resume") { await ready; void run(undefined, undefined, true).catch(() => sync()); }
 					context.ui.notify(`Mom ${command === "pause" ? "paused" : "resumed"}.`, "info"); return;
 				}
 				if (command === "correct") {
 					if (!text) throw new Error("Use /mom correct <your correction>.");
 					pi.sendMessage({ customType: CORRECTION, content: args.slice(args.indexOf(command) + command.length).trim(), display: true,
 						details: { origin: "user-command" } }, { triggerTurn: false });
-					wake(); return;
+					wake("lead");
+					if (mom?.enabled) void run(undefined, undefined, true).catch(() => sync());
+					return;
 				}
 				if (command === "graph" || command === "map") {
 					await ready;

@@ -9,8 +9,8 @@ dependencies: []
 
 ## Where we are
 
-trunk:    038 — prove on a live session that narrowing and redirection visibly change the map (prompt obligation landed; todo 037 closed, the 008 label gate retired as an instrument)
-tangents: 016 — ready (buried-history recall experiment); 008/011/012/014/015/036 — complete (008 ran clean and scored 3/15)
+trunk:    049 — cold catch-up bootstrap; file-level release complete, stable-SHA and real-model semantic capture remain open
+tangents: 050 — Mom map maintenance hub (051 cadence and 052 incremental thread-map implementation integrated; stable-SHA/commit verification remains); 038 — pending live narrowing/redirection proof; 016 — ready (buried-history recall experiment); 008/011/012/014/015/036 — complete
 
 008 is pending/inconclusive; resume only after the user promotes it once a stable bounded replay path is available.
 
@@ -27,9 +27,14 @@ tangents: 016 — ready (buried-history recall experiment); 008/011/012/014/015/
 - Waking on every event cost 787 calls and $2.02 in one session [6766]. The settled-boundary runtime now measures 132 replies and $0.2532 nominal across ~68 hours of source-session activity in the live-cadence replay (69.7% cache share edge over the lead) → 015 complete at `d512be8`. Evidence: `pi-tether/experiments/evidence/todo-015/`.
 - Todo 015 live-cadence replay (`d512be8`): 92 wakes / 132 Luna replies; Mom 690,426 input + 82,961 output and $0.2532 nominal vs lead 102,175,945 + 617,452 and $37.3901; cache share 52.99% vs 44.75%; worst-case-uncached Mom $0.4088. Seven deterministic failures and six no-op wakes are included as real production cost.
 - Dead end: per-message and per-fragment classification. Removed at the user's direction [5315][5325]. Do not reintroduce it.
+- User-approved cadence direction: accumulate several completed exchanges rather than waking Mom per message/turn. Astra's unvalidated starting gate is five exchanges, or at least two pending for ten minutes; compaction and explicit refresh flush. Todo 051 now implements the batched gate with delegate exclusion and a one-shot timer. Todo 052 applies normalized cited state/diffs and summary-vs-raw checks to incremental updates. Both implementations pass focused and full working-tree checks; stable-SHA/commit verification remains open.
 
 ## Children
 
+- 049 — ready — bounded long-history catch-up; file-level handoff complete, stable-SHA verification and real-model cold-catch-up capture remain open
+- 050 — ready — coordination hub for cold catch-up, live cadence, and incremental thread-map updates
+- 051 — ready — cadence implementation integrated and tests pass in the shared working tree; stable-SHA/commit gate remains
+- 052 — ready — incremental thread-map implementation integrated and tests pass in the shared working tree; stable-SHA/commit gate remains
 - 002 — complete — `65856a8` + closure commit — working tree landed and pushed
 - 003 — complete — `17e508b` + closure commit — one-call routine updates, bounded repair, durable visible gap and refresh recovery
 - 004 — complete — `0bb158b` + merge `178e6e8` — exact literal ranking restored without keyword heuristics

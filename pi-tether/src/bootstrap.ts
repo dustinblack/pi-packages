@@ -13,7 +13,13 @@
 import type { Cut, FeedEvent } from "./feed.ts";
 
 export interface BootstrapPolicy {
-	/** Compaction entries are chapter boundaries; this caps how many chapters enter one drain. */
+	/**
+	 * Target chapters (compaction-bounded segments) per digest batch. This is a TARGET, not a hard
+	 * maximum: the drain stops at a capture-window boundary after the target is crossed, so the
+	 * emitted count is target + the chapters inside that crossing window. Enforcing an exact cap
+	 * would require rewinding the feed mid-window (cut surgery), which risks skipping worker
+	 * evidence. The digest's character bound IS hard.
+	 */
 	maxChapters: number;
 	/** Hard bound on digest characters, so one model message stays inside the context guard. */
 	maxDigestChars: number;
@@ -40,6 +46,8 @@ export interface BootstrapDigest {
 	text: string;
 	cut: Cut;
 	chapters: number;
+	/** Chapters emitted above `maxChapters`, caused by the crossing window. Zero when the target is not crossed. */
+	overshoot: number;
 	coveredThroughRef: string;
 	windows: number;
 	/** Evidence remained beyond the drain: the caller must keep catching up, not claim it. */
@@ -119,25 +127,32 @@ export interface BootstrapFeed {
  * when the digest cannot be bounded or the backlog is not a backlog, so the caller keeps the
  * ordinary per-window path.
  */
-export async function bootstrapDigest(feed: BootstrapFeed, firstMore: boolean, policy: BootstrapPolicy): Promise<BootstrapDigest | undefined> {
+export async function bootstrapDigest(feed: BootstrapFeed, firstMore: boolean, policy: BootstrapPolicy, fromIndex = 0): Promise<BootstrapDigest | undefined> {
 	if (!firstMore) return undefined; // a single window already holds everything: nothing to compress
 	if (feed.hasRunningWorkers) return undefined; // live work keeps the ordinary path
-	let more: boolean = firstMore, windows = 0, cut: Cut | undefined, chapters = 0;
+	let more: boolean = firstMore, windows = 0, cut: Cut | undefined;
+	// Count the chapters already present in the initial staged capture: the drain loop must not
+	// resume from zero or it keeps draining past the target (the observed 26-vs-24 overshoot).
+	let chapters = 0;
+	for (const event of feed.events.slice(fromIndex)) if (event.kind === "compaction") chapters++;
 	while (more && windows < policy.maxWindows) {
 		const captured = await feed.capture(24000, true);
 		windows++;
 		cut = captured.cut;
-		more = captured.more;
+		more = captured.more && captured.events.length > 0;
 		if (!captured.events.length) break;
-		// Count chapters incrementally from this window's events: re-segmenting the whole backlog
-		// per window is quadratic and starves the timing-sensitive tests that run alongside.
 		for (const event of captured.events) if (event.kind === "compaction") chapters++;
 		if (chapters > policy.maxChapters) break;
 	}
-	if (!cut || !feed.events.length) return undefined;
-	const segments = segmentChapters(feed.events);
+	if (!cut) return undefined;
+	// Segment only what THIS pass drained: a continuation digest must not re-describe chapters
+	// its checkpoint already consumed.
+	const drained = feed.events.slice(fromIndex);
+	if (!drained.length) return undefined;
+	const segments = segmentChapters(drained);
 	if (!segments.length) return undefined;
 	const text = chapterDigest(segments, policy);
 	if (!text) return undefined;
-	return { text, cut, chapters: segments.length, coveredThroughRef: segments.at(-1)!.endRef, windows, remainingMore: more };
+	return { text, cut, chapters: segments.length, overshoot: Math.max(0, segments.length - policy.maxChapters),
+		coveredThroughRef: segments.at(-1)!.endRef, windows, remainingMore: more };
 }

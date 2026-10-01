@@ -29,19 +29,27 @@ export async function until(predicate: () => unknown, message = "condition", ms 
 		await new Promise((resolve) => setTimeout(resolve, 15));
 	}
 }
-export async function setup(automatic = false) {
+export async function setup(automatic = false, flagOverrides: Record<string, string> = {}) {
 	// Core tests need only Mom; load the UI extension for automatic lifecycle tests.
 	const extension = automatic ? (await import("../src/index.ts")).default : undefined;
 	const api = await provider(), box = sandbox(api.url);
-	const commands = new Map<string, any>(), tools = new Map<string, any>(), handlers = new Map<string, any[]>();
+	const commands = new Map<string, any>(), tools = new Map<string, any>(), handlers = new Map<string, any[]>(), piEventHandlers = new Map<string, any[]>();
 	let context: any, activePi: any;
 	api.onUnscripted((request) => isMomRequest(request) ? replacement(request) : { text: "Lead continued." });
 	const h = await harness(box, undefined, { register: (pi: any) => {
 		activePi = pi;
 		pi.on("session_start", (_event: any, ctx: any) => { context = ctx; });
 		if (extension) extension(new Proxy(pi, { get(target, key) {
+			if (key === "events") {
+				const eventBus = target.events;
+				return new Proxy(eventBus, { get(_events, eventKey) {
+					if (eventKey === "on") return (name: string, value: any) => { piEventHandlers.set(name, [...(piEventHandlers.get(name) ?? []), value]); return eventBus.on(name, value); };
+					return Reflect.get(eventBus, eventKey, eventBus);
+				} });
+			}
 			if (key === "on") return (name: string, value: any) => { handlers.set(name, [...(handlers.get(name) ?? []), value]); return target.on(name, value); };
-			if (key === "getFlag") return (name: string) => name === "mom-model" ? "fixture/fixture" : name === "mom-interval-ms" ? "0" : target.getFlag(name);
+			if (key === "getFlag") return (name: string) => Object.prototype.hasOwnProperty.call(flagOverrides, name) ? flagOverrides[name]
+				: name === "mom-model" ? "fixture/fixture" : name === "mom-interval-ms" ? "0" : target.getFlag(name);
 			if (key === "registerCommand") return (name: string, value: any) => { commands.set(name, value); target.registerCommand(name, value); };
 			if (key === "registerTool") return (value: any) => { tools.set(value.name, value); target.registerTool(value); };
 			return target[key];
@@ -53,6 +61,7 @@ export async function setup(automatic = false) {
 			store: new SidecarStore(() => h.parent, context.sessionManager.getSessionId()), current: () => true, changed() {}, ...overrides }); },
 		command: (args: string, ctx = context) => commands.get("mom").handler(args, ctx),
 		emitExtension: async (name: string, event: any, ctx = context) => { for (const handler of handlers.get(name) ?? []) await handler(event, ctx); },
+		emitPiEvent: async (name: string, event: any) => { for (const handler of piEventHandlers.get(name) ?? []) await handler(event); },
 		requests: () => api.requests.filter(isMomRequest),
 		async close() { await h.runtime.dispose(); await api.close(); rmSync(box.root, { recursive: true, force: true }); },
 	};

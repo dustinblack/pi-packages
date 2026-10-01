@@ -7,7 +7,7 @@ import { branchCheckpoints, emptyUsage, graphChange, loadState, noticeKey, sumUs
 import { LiveFeed, renderEvent, renderEvents, suffix, type Cut, type FeedEvent } from "./feed.ts";
 import type { CompactionReview } from "./compaction.ts";
 import { bootstrapDigest, DEFAULT_BOOTSTRAP_POLICY, type BootstrapPolicy } from "./bootstrap.ts";
-import { acceptGraph, MOM_PROMPT, momTools, validateSearchQuery } from "./contract.ts";
+import { acceptGraph, CHAPTER_STATE_FIELDS, MOM_PROMPT, momTools, normalizeEvidence, validateSearchQuery } from "./contract.ts";
 import { emptyGraph, graphSlice } from "./graph.ts";
 
 export const DEFAULT_MODEL = "openai-codex/gpt-5.6-luna";
@@ -63,6 +63,7 @@ export class Mom {
 	private disposed = false;
 	private controller?: AbortController;
 	private committed = 0;
+	private chapterBoundary: string | null = null;
 	private checkpoints: { id: string; data: Checkpoint }[] = [];
 	failure?: CursorFailure;
 	gaps: SkippedGap[] = [];
@@ -70,6 +71,10 @@ export class Mom {
 	private queued?: StagedBatch;
 
 	constructor(private host: MomHost) { this.feed = new LiveFeed(host.ctx.sessionManager); }
+
+	private advanceChapterBoundary(events: readonly FeedEvent[]): void {
+		for (const event of events) if (event.kind === "compaction") this.chapterBoundary = event.ref;
+	}
 
 	async open(): Promise<void> {
 		const state = await loadState(this.host.store, this.host.ctx.sessionManager);
@@ -100,6 +105,8 @@ export class Mom {
 			this.staged = { events, cut: state.failure.through, from: state.failure.from, gaps: [], more: false, revision: 0,
 				startIndex: this.committed, endIndex: this.feed.events.length };
 		} else this.committed = this.feed.events.length;
+		this.chapterBoundary = null;
+		for (let i = 0; i < this.committed; i++) if (this.feed.events[i].kind === "compaction") this.chapterBoundary = this.feed.events[i].ref;
 		this.checkpoints = branchCheckpoints(await this.host.store.load(), new Set(this.host.ctx.sessionManager.getBranch().map(e => e.id)))
 			.filter(item => item.id !== cutoverCheckpointId);
 	}
@@ -191,19 +198,22 @@ export class Mom {
 			this.waitingForWorkers = false;
 			if (!batch.events.length && !question && !compactionReview) { this.coveredRevision = batch.revision; this.staged = undefined; return undefined; }
 			this.error = undefined;
-			// Cold backlog: the ordinary path would spend one proposal per 24,000-character window.
-			// Bootstrap instead drains the backlog locally (no model calls) and synthesizes the map
-			// from one bounded chapter-chain digest whose cut matches the drained evidence exactly.
-			let bootstrapChapters = 0;
-			if (this.host.bootstrapPolicy && !question && !compactionReview && !this.checkpoint && !this.failure && !batch.retryGapId && batch.more) {
-				const digest = await bootstrapDigest(this.feed, batch.more, this.host.bootstrapPolicy!);
+			// Any bounded backlog batch uses the chapter-chain digest, not only a cold start. Gating
+			// this on the checkpoint made continuation fall back to one proposal per 24,000-character
+			// window — 17 extra proposals on the live session, the same runaway pattern this replaced.
+			// The digest drains the remainder locally (no model calls) and synthesizes from a bounded
+			// chain whose cut matches the drained evidence exactly.
+			if (this.host.bootstrapPolicy && !question && !compactionReview && !this.failure && !batch.retryGapId && batch.more) {
+				const digest = await bootstrapDigest(this.feed, batch.more, this.host.bootstrapPolicy!, batch.startIndex);
 				if (digest) {
 					// The digest replaces the raw slice for this one proposal; every ref it cites is
-					// among the drained events, and the checkpoint commits the drain's own cut.
+					// among the events drained in THIS pass, and the checkpoint commits the drain's own
+					// cut. `more` must follow the drain, not the pre-drain window: leaving it stale
+					// claimed pending evidence forever after the backlog was exhausted.
 					this.staged = { ...batch, events: this.feed.events.slice(batch.startIndex), cut: digest.cut,
 						endIndex: this.feed.events.length, more: digest.remainingMore, digest: digest.text };
 					batch = this.staged;
-					bootstrapChapters = digest.chapters;
+					this.more = digest.remainingMore;
 				}
 			}
 			// The map is current state; the session log is history. Include only one boundary
@@ -240,6 +250,7 @@ export class Mom {
 					try { await this.host.store.append("map", { base: this.checkpointId, cut: batch.cut, failure: null, screen }); }
 					catch (error) { throw new Error(`Mom could not advance her state beside the session: ${String(error)}`); }
 					this.checkpoint = { ...this.checkpoint!, cut: batch.cut, at: Date.now() };
+					this.advanceChapterBoundary(batch.events);
 					this.coveredRevision = batch.revision;
 					this.committed = batch.endIndex; this.staged = newer; this.queued = undefined;
 					return undefined;
@@ -256,10 +267,18 @@ export class Mom {
 			let emptySearch: string | undefined;
 			let searchRetryOnly = false;
 			const original = this.feed.events.find((e) => e.actor === "lead" && e.kind === "user");
+			// Thread-map normalization for ordinary and compaction-boundary batches: one bounded slice
+			// becomes compaction chapters with stable ids and cited pointers — structure only, no host
+			// semantics. The trailing chapter stays provisional; a backlog digest already carries its own
+			// chapters, so it is passed through unchanged.
+			const normalized = batch.digest ? undefined : normalizeEvidence(batch.events, this.chapterBoundary);
 			const messages: Message[] = [{ role: "user", timestamp: Date.now(), content: JSON.stringify({
 				original: original ? { ref: original.ref, text: original.text } : null,
 				graph: this.graph, contextBeforeBatch: prior ? renderEvent(prior) : null,
-				newEvents: batch.digest ?? renderEvents(batch.events), gaps: batch.gaps, pendingMore: batch.more,
+				newEvents: batch.digest ?? normalized!.text,
+				...(normalized ? { chapters: normalized.chapters } : {}),
+				chapterState: CHAPTER_STATE_FIELDS,
+				gaps: batch.gaps, pendingMore: batch.more,
 				compactionReview: compactionReview ?? null,
 				unresolvedProcessRisks: [...unresolved],
 				question: question ?? null, evidencePagesRemaining: readPages, metadataSearchesRemaining: searches,
@@ -360,6 +379,7 @@ export class Mom {
 					// Usage is its own compact stream; a failed write never invalidates an accepted map.
 					try { await this.host.store.append("usage", { usage: this.usage, error: null }); } catch { /* usage bookkeeping is best-effort */ }
 					this.failure = undefined;
+					this.advanceChapterBoundary(batch.events);
 					this.coveredRevision = batch.revision;
 					this.committed = batch.endIndex; this.staged = newer; this.queued = undefined;
 					return next.answer;
@@ -426,6 +446,7 @@ export class Mom {
 					gap: { action: "open", ...gap } });
 				this.gaps.push(gap); this.failure = undefined;
 				if (this.checkpoint) this.checkpoint = { ...this.checkpoint, cut: batch.cut, at: Date.now() };
+				this.advanceChapterBoundary(batch.events);
 				this.committed = batch.endIndex; this.staged = newer; this.queued = undefined;
 			}
 			throw failureError;
