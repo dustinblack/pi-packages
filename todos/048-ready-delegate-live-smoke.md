@@ -16,6 +16,11 @@ The installed pi-delegate, with pi-strings gone, runs end to end: one ordinary P
 
 Fixtures cannot prove process boundaries, provider identity, native executor preservation or user-facing attribution. Keep prompts read-only. Use only existing approved targets, not fresh scratch threads: the user objected on 2026-09-30 to custom test threads left behind as a mess.
 
+Approved targets (user, 2026-10-01):
+- Existing max-planner Orb thread `T-01a0f0b4-5330-714f-a024-0a156279b832`: open, observe, and one short marker steer. It is multiplayer, so everyone in it sees the marker. Send nothing else.
+- One new local Amp thread, created and labeled by delegate, with a read-only prompt, then closed.
+- One real Pi child and one non-Amp ACP agent, with read-only prompts.
+
 ## Acceptance criteria
 
 - [ ] A real Pi child delegates, completes, reports its result and leaves no orphan.
