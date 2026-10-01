@@ -52,7 +52,7 @@
   },
   "pi": {
     "extensions": [
-      "./extensions/pi-strings/index.ts"
+      "./extensions/index.ts"
     ],
     "skills": [
       "./skills"
