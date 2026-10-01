@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1
+
+- Separate background graph maintenance from explicit questions. Do not repeat the opening question's text on saved-map background updates, and reject unsolicited answers before advancing coverage.
+- Let a single pending lead exchange reach the existing ten-minute deadline instead of waiting indefinitely for a second exchange. Preserve five-exchange batching and the no-inference-on-reload policy.
+
 ## 0.1.0
 
 - Replace manual Tether bookkeeping with automatic, read-only Mom observation. Remove the ledger-writing tool, `/tether` commands, and mandatory agent instructions.

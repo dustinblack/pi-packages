@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
+import { setImmediate } from "node:timers/promises";
 import { test } from "node:test";
 import { NOTICE } from "../src/checkpoint.ts";
 import { DELEGATE_MILESTONE_EVENT } from "../src/index.ts";
@@ -8,6 +9,25 @@ import { setup, until, replacement, input, isMomRequest, deferred, readSidecar }
 const snapshots = async (h: Awaited<ReturnType<typeof setup>>) => (await readSidecar(h)).filter(r => r.type === "map" && r.data.snapshot)
 	.map(record => ({ ...record, data: record.data.snapshot }));
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+test("one settled exchange updates automatically at the ten-minute deadline", { timeout: 15000 }, async (t) => {
+	const h = await setup(true);
+	try {
+		t.mock.timers.enable({ apis: ["Date", "setTimeout"], now: Date.now() });
+		await h.runtime.session.prompt("Record a single exchange without waiting for a second request.");
+		t.mock.timers.tick(599_999);
+		await setImmediate();
+		assert.equal(h.requests().length, 0, "the exchange remains batched before ten minutes");
+		t.mock.timers.tick(1);
+		await setImmediate();
+		t.mock.timers.reset();
+		await until(async () => (await snapshots(h)).length === 1, "single-exchange timer checkpoint");
+		assert.equal(h.requests().length, 1);
+		assert.equal((await snapshots(h))[0].data.cut.parent, h.runtime.session.sessionManager.getLeafId());
+		await pause(200);
+		assert.equal(h.requests().length, 1, "the accepted batch does not poll again");
+	} finally { t.mock.timers.reset(); await h.close(); }
+});
 
 test("normal parent narrative updates Mom without bookkeeping; cached status and idle time are free", { timeout: 15000 }, async () => {
 	const h = await setup(true);

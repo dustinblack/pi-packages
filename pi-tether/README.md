@@ -22,7 +22,7 @@ Mom uses **`openai-codex/gpt-5.6-luna`, low reasoning**, through Pi's configured
 pi -e ./pi-tether/src/index.ts --mom-model openai-codex/gpt-5.6-luna --mom-interval-ms 15000
 ```
 
-Mom updates after a lead turn settles or a linked delegate settles, with at least 15 seconds between automatic updates by default. Message completion, individual tool results, delegate start/note events, and idleness do not wake her. A successful compaction is one additional settled boundary: it triggers exactly one bounded background review. She never starts routine inference while the lead or a linked delegate is still working. A settled update reads the complete pending user, lead, tool-metadata, and worker slice without blocking the working agent.
+Mom batches five completed lead exchanges, or updates when the oldest pending exchange reaches ten minutes—even if it is the only exchange. Automatic updates remain at least 15 seconds apart by default. Delegate settlements can resume a waiting batch but do not count toward the five-exchange threshold. Message completion, individual tool results, delegate start/note events, and idle polling do not wake her. A successful compaction triggers one bounded background review. She never starts routine inference while the lead or a linked delegate is still working. A settled update reads the complete pending user, lead, tool-metadata, and worker slice without blocking the working agent.
 
 ### Optional pre-wake Kev/JEV screen
 
@@ -125,9 +125,13 @@ Folds and merges still require an explicit target update. The reducer adds valid
 
 The account is limited to 24,000 serialized characters. Each update allows 24,000 characters of new events and 90,000 characters of model context. Background settled-boundary and refresh updates expose only `commit_graph`: one proposal plus at most one repair. Explicit questions retain five total model calls and separate limits of two metadata searches and two original-source reads. Each source read holds at most 4,000 characters; reading either side of a tool call includes its paired record within that limit. Limits stop an update; they do not silently discard remaining work.
 
+Background requests explicitly ask for graph maintenance. Their tool schema has no answer field, and the host rejects unsolicited answers before saving coverage. Saved-map updates retain the opening request's source pointer without repeating its question text; cold starts and explicit questions still receive the text. New requirements and reported outcomes belong on the affected work even when the overall purpose stays the same. These checks separate tasks; they cannot prove that every model interpretation is complete.
+
 Source search accepts only short literal phrases and scans original payloads ephemerally without persisting a second index. It ranks exact phrases and informative query/question-token intersections, deduplicates tool pairs toward the observed result, and returns only references plus safe match metadata—never payload excerpts. A malformed query returns repair feedback without consuming a search. A first zero-result search exposes only one shorter literal retry. A successful question search must be followed by an original-source read.
 
 ## Usage and checks
+
+Regression checks cover a single exchange just before and at its ten-minute deadline, the running extension's timer-driven checkpoint, and rejection of a historical-question answer without advancing coverage. Explicit questions retain their answer schema and response path. Run these with `npm run check`.
 
 `/mom status` reports accumulated calls, tokens, nominal cost, and update time. `/mom detail` exposes input, output, cache-read, cache-write, call, elapsed-time, and nominal-cost totals as structured session usage. Subscription cost metadata is not an invoice. **Low overhead and cache causality are not established.** Mom keeps one requested cache key across fresh updates in one branch instance; it still starts each update with a fresh bounded conversation.
 

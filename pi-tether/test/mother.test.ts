@@ -13,6 +13,37 @@ const stateHash = (value: unknown) => createHash("sha256").update(JSON.stringify
 const screenResult = (needsUpdate: number, threshold = 0.7, latencyMs = 4) => ({ status: "screened" as const, model: "kev-test",
 	needsUpdate, wake: needsUpdate >= threshold, usage: { input: 24, output: 3 }, latencyMs });
 
+test("background continuation rejects an answer to historical conversation before advancing coverage", { timeout: 15000 }, async () => {
+	const h = await setup(), mom = h.createMom();
+	try {
+		await h.runtime.session.prompt("Why is the footer version wrong?");
+		await mom.open(); await mom.update();
+		const saved = mom.checkpoint;
+		await h.runtime.session.prompt("Show the current off-peak rate and Pacific-time window in the deals sheet.");
+		let calls = 0;
+		h.api.onUnscripted(request => {
+			calls++;
+			if (calls === 1) return replacement(request, { upsertNodes: [], answer: "The footer version was fixed." });
+			assert.equal(mom.checkpoint, saved, "the wrong-task reply cannot mark the new evidence covered");
+			return replacement(request);
+		});
+		await mom.update();
+		assert.equal(calls, 2, "the existing repair budget handles an unsolicited answer");
+		assert.notDeepEqual(mom.checkpoint?.cut, saved?.cut);
+		const request = h.requests()[1], body = input(request);
+		assert.equal(body.original.text, undefined, "the saved-map update does not repeat the opening question");
+		assert.match(body.task, /update/i);
+		assert.match(body.newEvents, /off-peak rate and Pacific-time/);
+		assert.equal(request.tools[0].function.parameters.properties.answer, undefined, "background tools cannot answer questions");
+		const beforeQuestion = h.requests().length;
+		h.api.onUnscripted(request => replacement(request, { upsertNodes: [], answer: "The opening request concerned the footer version." }));
+		assert.equal(await mom.update("What was the opening request?"), "The opening request concerned the footer version.");
+		const question = h.requests()[beforeQuestion];
+		assert.equal(input(question).original.text, "Why is the footer version wrong?");
+		assert(question.tools[0].function.parameters.properties.answer, "explicit questions retain their answer field");
+	} finally { mom.close(); await h.close(); }
+});
+
 test("fresh Mom contexts checkpoint automatically observed narrative and recover without replay calls", { timeout: 15000 }, async () => {
 	const h = await setup();
 	let mom = h.createMom();

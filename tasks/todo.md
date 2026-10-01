@@ -1,5 +1,20 @@
 # Tasks
 
+## Current Task: Mom continuation accuracy and bounded single-exchange catch-up
+
+- [x] Separate background graph maintenance from explicit questions and reject unsolicited answers before advancing coverage.
+- [x] Give one pending lead exchange the existing ten-minute deadline while preserving five-exchange batching.
+- [x] Run regression tests and real cold/warm replays of session 01a0f835; inspect the retained current requirement, not just coverage.
+- [x] Review the diff, update package documentation, and propose the verified change for commit.
+
+### Review (Mom continuation and single-exchange catch-up)
+
+- Reproduced unsolicited historical-question answers in two of three saved-cache continuations. The fixed background request identifies its task, omits the opening question's text once a map exists, and exposes no answer field. Host validation rejects unsolicited answers before coverage can advance; explicit questions retain their answer path.
+- Removed the two-exchange aging minimum. The running-extension regression advances the clock to one millisecond before and exactly at ten minutes, observes one checkpoint without another user request, and confirms no repeat call.
+- Failing-before/passing-after regressions and `pi-tether/npm run check` pass: TypeScript and 177 tests. Scoped `git diff --check` passes.
+- Froze the reported session through `a00329e9` and asserted the continuation graph and evidence match the captured failing input exactly. Five real Luna continuations each accepted in one call (14.0–22.4 seconds), retained the cited peak/off-peak and Pacific-time requirement, and made no call on unchanged input. Cold start accepted in one call (35.5 seconds). Six further runs on the extended session also passed. Local evidence: `.amp/in/artifacts/mom-01a0f835-fixed-frozen.json`, `mom-01a0f835-fixed.json`, and `mom-check-final.log`.
+- No live session or cache was changed. Package version is 0.1.1; commit and push approved. This bounded replay does not establish general semantic completeness.
+
 > **Historical.** The sections below record work on the pi-strings package, which was retired in todo 053. Its ACP code now lives in `pi-delegate/src/acp/` and is reached through `delegate backend:"acp"`. Its docs moved to `pi-delegate/docs/` (for example `2026-08-02-COORDINATION_LAYERS.md`; `TEST_COVERAGE.md` is now `ACP_TEST_COVERAGE.md`). The backlog is `todos/`.
 
 ## Active: reduce pi-strings to a routing-only ACPX coordinator

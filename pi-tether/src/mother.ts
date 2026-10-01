@@ -289,7 +289,9 @@ export class Mom {
 			// chapters, so it is passed through unchanged.
 			const normalized = batch.digest ? undefined : normalizeEvidence(batch.events, this.chapterBoundary);
 			const messages: Message[] = [{ role: "user", timestamp: Date.now(), content: JSON.stringify({
-				original: original ? { ref: original.ref, text: original.text } : null,
+				task: question ? "Answer the explicit question using the graph and evidence."
+					: "Update the work graph from newEvents. This is background maintenance, not a request to answer the recorded conversation.",
+				original: original ? { ref: original.ref, ...(!this.checkpoint || question ? { text: original.text } : {}) } : null,
 				graph: this.graph, contextBeforeBatch: prior ? renderEvent(prior) : null,
 				newEvents: batch.digest ?? normalized!.text,
 				...(normalized ? { chapters: normalized.chapters } : {}),
@@ -311,7 +313,7 @@ export class Mom {
 				if (MOM_PROMPT.length + JSON.stringify(messages).length > CONTEXT_LIMIT) throw new Error("Mom context exceeds 90,000 characters. Last checkpoint retained; no silent truncation.");
 				const availableSearches = question && readPages === 0 ? 0 : searches;
 				const context = { systemPrompt: MOM_PROMPT, messages, tools: question
-					? momTools(readPages, availableSearches, mustInspect, searchRetryOnly)
+					? momTools(readPages, availableSearches, mustInspect, searchRetryOnly, true)
 					: momTools(0, 0, false, false) };
 				const options = { maxTokens: 6000, sessionId: this.cacheSessionId,
 					signal: AbortSignal.any([this.controller.signal, AbortSignal.timeout(120000), ...(signal ? [signal] : [])]), maxRetryDelayMs: 1000 };
