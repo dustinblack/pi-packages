@@ -17,7 +17,7 @@ Extension packages for [pi](https://github.com/badlogic/pi-mono).
 | **pi-huddle** | Huddle mode — read-only exploration + `ask_user` structured elicitation |
 | **pi-plugins** | Claude plugin marketplace support for Pi, including GitHub HTTPS and SSH marketplace repos |
 | **pi-multi-pass** | Multiple OAuth subscriptions with rate-limit rotation, pools, and failover |
-| **pi-strings** | Multi-agent ACP orchestration with persistent named workers and a hardened Pi adapter |
+| **pi-delegate** | Delegation and phased todos: durable child runs, plus an ACP backend (`delegate backend:"acp"`) for Codex, Claude, Amp, OpenCode and Pi agents. Replaces the retired pi-strings package |
 
 ## Installation
 
@@ -31,7 +31,7 @@ pi install @ssweens/pi-dynamic-models
 pi install @ssweens/pi-huddle
 pi install @ssweens/pi-plugins
 pi install @ssweens/pi-multi-pass
-pi install @ssweens/pi-strings
+pi install @ssweens/pi-delegate
 ```
 
 Or from a local checkout:

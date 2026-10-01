@@ -1,5 +1,7 @@
 # Tasks
 
+> **Historical.** The sections below record work on the pi-strings package, which was retired in todo 053. Its ACP code now lives in `pi-delegate/src/acp/` and is reached through `delegate backend:"acp"`. Its docs moved to `pi-delegate/docs/` (for example `2026-08-02-COORDINATION_LAYERS.md`; `TEST_COVERAGE.md` is now `ACP_TEST_COVERAGE.md`). The backlog is `todos/`.
+
 ## Active: reduce pi-strings to a routing-only ACPX coordinator
 
 - [x] Audit OpenClaw ACPX session control against pi-strings and incorporate transferable lifecycle, serialization, capability, and cleanup safeguards
