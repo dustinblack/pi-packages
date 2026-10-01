@@ -74,7 +74,7 @@ import {
 
 function getAuthStorage(ctx: ExtensionContext | ExtensionCommandContext) {
 	return createAuthStorageFacade(
-		ctx.modelRegistry as Parameters<typeof createAuthStorageFacade>[0],
+		ctx.modelRegistry as unknown as Parameters<typeof createAuthStorageFacade>[0],
 		readStoredCredential,
 	);
 }

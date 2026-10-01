@@ -12,7 +12,7 @@
 
 ## Manual verification
 
-In a Pi 0.80.10+ session with `pi-multi-pass` loaded:
+In a Pi 0.99.1+ session with `pi-multi-pass` loaded:
 
 1. Run `/subs add` and verify it offers Anthropic, ChatGPT Codex, and GitHub Copilot only.
 2. Run `/subs status` and verify configured subscriptions appear without an extension error.

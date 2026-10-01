@@ -32,9 +32,14 @@
     "test": "node --experimental-strip-types --test tests/*.mjs"
   },
   "peerDependencies": {
-    "@earendil-works/pi-ai": "*",
-    "@earendil-works/pi-coding-agent": ">=0.80.10",
-    "@earendil-works/pi-tui": "*"
+    "@earendil-works/pi-ai": ">=0.99.1 <0.100.0",
+    "@earendil-works/pi-coding-agent": ">=0.99.1 <0.100.0",
+    "@earendil-works/pi-tui": ">=0.99.1 <0.100.0"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "0.99.1",
+    "@earendil-works/pi-coding-agent": "0.99.1",
+    "@earendil-works/pi-tui": "0.99.1"
   },
   "pi": {
     "extensions": [
