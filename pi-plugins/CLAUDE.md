@@ -31,7 +31,7 @@ This GSD project plans a successor architecture for the V1 implementation alread
 
 - **Runtime:** Node ≥ 22 (NFR-4)
 - **Tech stack:** TypeScript strict; the resolver MUST expose discriminated `installable: true | false` so consumers cannot read `pluginRoot` from a non-installable plugin (NFR-7)
-- **Pi API:** `@mariozechner/pi-coding-agent` peer dependency, currently `*` with development against `^0.70.6`; pinning a min version is a successor SHOULD (NFR-11)
+- **Pi API:** `@earendil-works/pi-coding-agent` and `@earendil-works/pi-tui` peer dependencies, pinned to `>=0.99.1 <0.100.0` with development against `0.99.1` (NFR-11)
 - **File operations:** All disk mutations atomic (tmp + rename or atomic JSON write) -- NFR-1
 - **Recovery model:** No fix may require a Pi process restart; `Run /reload` must suffice (NFR-2). All operations must be safe to retry -- idempotent or fail-clean (NFR-3)
 - **Network policy:** Network is required only for GitHub-source `marketplace add` and for `update`/`marketplace update` against GitHub-source marketplaces; `install`, `list`, `uninstall`, `marketplace remove`, and path-source `marketplace add` MUST NOT touch the network (NFR-5)
