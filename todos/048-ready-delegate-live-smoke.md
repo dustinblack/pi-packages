@@ -35,4 +35,28 @@ Team-thread mutation, multiplayer changes, plugin deployment, automatic retries 
 
 ## Evidence
 
-Pending authorized smoke runs.
+Live run on 2026-10-01, at `018901d`, real Pi 0.99.2 driving `delegate`/`delegate_ctl` with the user's normal resource loading. All six criteria passed, but only with a workaround (see Blocker).
+
+What passed:
+- **Pi child:** `scout-af3e8e22…` → `PI_DELEGATE_PI_CHILD_OK`, with no orphans.
+- **Codex ACP:** `codex-16a2604d…`, req `req_e3106866…`, completed with delivery accepted.
+- **Orb thread** `T-01a0f0b4-5330-714f-a024-0a156279b832`:
+  - opened idle;
+  - observe returned 14 messages;
+  - one marker `pi-delegate smoke check (automated, please ignore) PI_DELEGATE_ORB_OK` was sent. It shows as `## User`, executor stays orb, and visibility and multiplayer are unchanged;
+  - close only disconnected; the thread is unarchived;
+  - cost went from $2.12 to $2.45.
+- **Local Amp thread** `T-01a0f65d-df8d-723d-87d1-7d515c454720`:
+  - labels `<run hex>, pi-delegate` and a title;
+  - `PI_DELEGATE_AMP_LOCAL_OK`;
+  - cost $0.01;
+  - archived after close.
+- **Timeout and cancel:** reported honestly (`TURN_TIMEOUT` and cancelled, with delivery unknown).
+- **Park and revive:** worked across two processes, for both Codex and the Orb thread.
+- **Cost:** about $0.34 metered.
+
+**Blocker:** the ACP backend worked in only one Pi process per machine, because the machine-wide Coordinator lock gave `COORDINATOR_OWNED` to every other process. The smoke ran with `PI_AGENT_DIR` pointed at a scratch dir. The user chose one Coordinator per process on 2026-10-01; this todo needs re-proof after that fix.
+
+Smaller bugs found are being fixed with review round 2: the Codex native ID is never shown, `[status]` lines leak into reports, a steer after a timeout says `WORKER_BUSY`, a cancel also wakes the parent, and the cost in a wait result is stale.
+
+Logs: the session scratchpad `runA.log` … `runD2.log`.
