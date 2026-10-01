@@ -29,4 +29,8 @@ Backend behavior, provider credentials, publishing a release.
 
 ## Evidence
 
-Pending.
+Closing commit `7bca920`. `command npm run check:install` gives `PASS 151 packaged files, Pi 0.99.1 in >=0.99.1 <0.100.0, isolated pi install with ACP runtime`.
+- The pack shrinks from 329 to 151 files. The smoke asserts the required files are present and that tests, scripts and vendor sources are absent.
+- The installed copy resolves `dist/pi-acp.js`, `dist/amp-acp.js` and `dist/acpx-runtime/runtime.js` and their externals from its own path. Both adapters answer an ACP `initialize`.
+- Each failure mode was checked: removing `dist`, adding `vendor` sources and dropping `write-file-atomic` each fail the smoke.
+- Caveat: the smoke installs with dev Pi 0.99.1. The installed 0.99.2 is covered only by the peer range; 048 exercises it live.
