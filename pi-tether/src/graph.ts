@@ -212,10 +212,11 @@ export function checkUnfinished(previous: WorkGraph, upserts: readonly GraphNode
 	const old = new Map(previous.nodes.map(n => [n.id, n])), proposed = new Map(old), result = new Map(after.nodes.map(n => [n.id, n]));
 	for (const node of upserts) proposed.set(node.id, node);
 	const closing = new Set(folds.map(f => f.thread));
-	for (const node of upserts) if (isEndeavor(node) && node.state === "settled" && old.get(node.id)?.state !== "settled") closing.add(node.id);
+	for (const node of upserts) if (isEndeavor(node) && node.state === "settled" && old.has(node.id) && old.get(node.id)!.state !== "settled") closing.add(node.id);
+	// Only work that existed before this transaction can be lost by closing a scope; nodes first created here need no disposition.
 	const required = new Set<string>(), scopesByNode = new Map<string, Set<string>>();
 	for (const index of [old, proposed]) for (const node of index.values()) {
-		if (node.state !== "active" && node.state !== "parked") continue;
+		if (!old.has(node.id) || (node.state !== "active" && node.state !== "parked")) continue;
 		const seen = new Set<string>();
 		let parent = node.parent;
 		while (parent && !seen.has(parent)) {

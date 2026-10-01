@@ -80,11 +80,19 @@ test("the host assigns public Why provenance while intent remains free text", ()
 	assert.throws(() => acceptGraph({ ...transaction, upsertNodes: [{ ...root, rationale: "Because efficiency demands it." }, rule] }, emptyGraph(), undefined,
 		known, new Set(known.keys()), new Set()), /Invalid graph transaction shape/);
 	const genericOverlap = { ...transaction, upsertNodes: [node("mother", null, "active", user.ref, "Keep this original goal for an unrelated deployment."), rule] };
-	const fixedRoot = acceptGraph(genericOverlap, emptyGraph(), undefined, known, new Set(known.keys()), new Set());
-	assert.equal(fixedRoot.graph.nodes[0]?.intent, user.text, "the root intent is the opening request verbatim, not the model's paraphrase");
-	assert.deepEqual(fixedRoot.repairs, [{ from: "mother intent", to: "the opening request" }]);
-	const rewrittenRoot = acceptGraph({ ...transaction, upsertNodes: [{ ...root, intent: "Something else now." }, rule] }, fixedRoot.graph, "saved", known, new Set(), new Set());
-	assert.equal(rewrittenRoot.graph.nodes[0]?.intent, user.text, "a continuation cannot rewrite the root intent");
+	const synthesized = acceptGraph(genericOverlap, emptyGraph(), undefined, known, new Set(known.keys()), new Set());
+	assert.equal(synthesized.graph.nodes[0]?.intent, "Keep this original goal for an unrelated deployment.", "cold start keeps the synthesized purpose, not the first message verbatim");
+	assert.deepEqual(synthesized.repairs, []);
+	const reworded = acceptGraph({ ...transaction, upsertNodes: [{ ...root, label: "Renamed", intent: "Something else now." }, rule] }, synthesized.graph, "saved", known, new Set(), new Set());
+	assert.equal(reworded.graph.nodes[0]?.intent, "Keep this original goal for an unrelated deployment.", "a rewording with no new user direction is restored");
+	assert.equal(reworded.graph.nodes[0]?.label, "mother");
+	assert.deepEqual(reworded.repairs, [{ from: "mother purpose", to: "kept: no new user direction cited" }]);
+	const turn: FeedEvent = { ref: "s:turn", actor: "lead", kind: "user", at: "", text: "Forget the deployment; make this a library instead." };
+	const withTurn = new Map([...known, [turn.ref, turn]]);
+	const redirected = acceptGraph({ ...transaction, upsertNodes: [{ ...root, label: "Library", intent: "Make this a library.", sources: [user.ref, turn.ref] }, rule] }, synthesized.graph, "saved", withTurn, new Set([turn.ref]), new Set());
+	assert.equal(redirected.graph.nodes[0]?.intent, "Make this a library.", "a new user direction cited on the root redirects the purpose");
+	assert.equal(redirected.graph.nodes[0]?.purposeSource, turn.ref, "Why follows the redirecting direction");
+	assert.deepEqual(redirected.repairs, []);
 	const paraphrasedRule = { ...transaction, upsertNodes: [root, { ...rule, intent: "Never publish or finish this task." }] };
 	assert.equal(acceptGraph(paraphrasedRule, emptyGraph(), undefined, known, new Set(known.keys()), new Set()).graph.nodes[1]?.intent,
 		"Never publish or finish this task.");

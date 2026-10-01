@@ -133,3 +133,6 @@ When Scott says "manage and monitor via subagents", he means Task subagents disp
 
 ## Name the exact session and purpose before any Mom repro or check command
 Scott asked "Why are you looking at those? This is for mom." when a command mixed a pi-delegate tsc filter with a repro on a session he had not named. For Mom work, state up front which session file is being fed to the repro and why (size, compaction count), and keep unrelated-package noise (e.g. pi-delegate cross-import errors) out of the command or explain it in one clause (2026-10-01).
+
+## Mom's root is the synthesized current purpose, durable against drift — not the literal first message
+I pinned the root intent to the verbatim opening user message after reviewers called the model's evolved purpose a "miss". Scott: "I don't necessarily trust the first request arbitrarily" — the root must say what the session is actually doing, with durability (changes only on evidenced user redirection), not whatever the first message happened to be. Don't pick a deterministic-but-wrong anchor to kill variance; gate change on evidence instead (2026-10-01).

@@ -42,6 +42,16 @@ test("moving or settling a prior open node cannot evade disposition coverage", (
 	assert.throws(() => checkUnfinished(before, updates, folds, after, [item("hold", "resolved", null), item("pending", "carried", "other")], refs), /Carried disposition needs pending in the closing thread's surviving parent\/root/);
 });
 
+test("a settled endeavor first created in this transaction needs no dispositions for its new open children", () => {
+	const updates = [node("main", null), node("done", "main", "settled"), node("hold", "done", "active", "rule")];
+	const after = editGraph(emptyGraph(), 0, updates.map(put), "main", "main", refs);
+	assert.doesNotThrow(() => checkUnfinished(emptyGraph(), updates, [], after, [], refs));
+	assert.throws(() => checkUnfinished(emptyGraph(), updates, [], after, [item("hold")], refs), /transaction closes no endeavor/);
+	// A prior open node moved under a brand-new settled endeavor is still not lost: the new scope is not "closing".
+	const before = initial(), moved = [node("done", "main", "settled"), node("pending", "done", "parked")];
+	assert.doesNotThrow(() => checkUnfinished(before, moved, [], editGraph(before, 1, moved.map(put), "main", "main", refs), [], refs));
+});
+
 test("carried items inside an unfinished cluster keep their internal parent instead of flattening", () => {
 	const before = initial();
 	const nested = editGraph(before, 1, [put(node("cluster", "child")), put(node("hold", "cluster", "active", "rule"))], "main", "child", refs);
