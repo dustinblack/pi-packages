@@ -3,7 +3,7 @@ import { matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi, type Compo
 import type { AnnotationView, EndeavorView, WorkView } from "./presentation.ts";
 
 export const FOCUS_KEY = "alt+t";
-export interface PanelView { status: string; summary: string; complete?: boolean; note?: string; error?: string; work?: WorkView }
+export interface PanelView { status: string; summary: string; complete?: boolean; note?: string; error?: string; work?: WorkView; coverage?: { consumed: number; total: number; percent: number } }
 export interface MomConversationSource {
 	view(): PanelView;
 	ask(question: string, signal: AbortSignal): Promise<string | undefined>;

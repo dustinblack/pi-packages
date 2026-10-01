@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { coverageProgress, coverageSentence } from "../src/presentation.ts";
 import { widgetLines } from "../src/panel.ts";
 
 test("widget shows each work node's state and current progress, not its rules", () => {
@@ -33,6 +34,30 @@ test("catch-up widget suppresses the you-are-here marker until coverage is compl
 	work.coverageComplete = true;
 	const complete = widgetLines({ status: "up to date", complete: true, summary: "", work }, theme, 100).join("\n");
 	assert.match(complete, /you are here/);
+});
+
+test("catch-up widget shows the durable evidence percentage", () => {
+	const theme: any = { fg: (_color: string, text: string) => text, bold: (text: string) => text };
+	const line = widgetLines({ status: "catching up · 43% read", summary: "", coverage: { consumed: 562, total: 1307, percent: 43 } }, theme, 100).join("\n");
+	assert.match(line, /Mom · catching up · 43% read/);
+	assert.doesNotMatch(line, /562 of 1307/); // counts belong to the read text, not the one-line widget
+});
+
+test("coverage progress is monotone and refuses to guess on an unknown branch", () => {
+	const branch = [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }];
+	assert.deepEqual(coverageProgress(branch, null), { consumed: 0, total: 4, percent: 0 });
+	assert.deepEqual(coverageProgress(branch, "b"), { consumed: 2, total: 4, percent: 50 });
+	assert.deepEqual(coverageProgress(branch, "d"), { consumed: 4, total: 4, percent: 100 });
+	assert.equal(coverageProgress(branch, "missing"), undefined, "a branch that no longer holds the consumed leaf says nothing");
+	assert.equal(coverageProgress([], null), undefined);
+});
+
+test("the catching-up sentence reports durable coverage and disappears once complete", () => {
+	assert.equal(coverageSentence({ coverage: { consumed: 562, total: 1307 } }), "She has read 562 of 1307 recorded entries (43%).");
+	assert.equal(coverageSentence({ coverage: { consumed: 1307, total: 1307 } }), undefined, "complete coverage adds no sentence");
+	assert.equal(coverageSentence({ coverage: { consumed: 0, total: 1307 } }), "She has read 0 of 1307 recorded entries (0%).", "nothing read yet is still honest progress");
+	assert.equal(coverageSentence({}), undefined);
+	assert.equal(coverageSentence({ coverage: { consumed: 3, total: 0 } }), undefined, "an empty session claims nothing");
 });
 
 test("cached widget shows freshness and one advisory without source-ID clutter", () => {

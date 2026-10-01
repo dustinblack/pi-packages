@@ -225,6 +225,40 @@ test("tree navigation cancels stale inference and rebuilds only the selected bra
 	} finally { gate.resolve(); await h.close(); }
 });
 
+test("the widget shows durable catch-up progress while evidence is pending", { timeout: 20000 }, async () => {
+	const h = await setup(true);
+	try {
+		let idle = true;
+		const rendered: string[] = [];
+		const theme: any = { fg: (_c: string, t: string) => t, bold: (t: string) => t, italic: (t: string) => t, strikethrough: (t: string) => t, bg: (_c: string, t: string) => t };
+		// setWidget receives a factory: (tui, theme) => { render, invalidate }.
+		const render = (content: unknown) => {
+			const built = typeof content === "function" ? (content as any)({ terminal: { rows: 24 } }, theme) : content;
+			if (built && typeof built.render === "function") rendered.push(built.render(100).join("\n"));
+		};
+		await h.runtime.session.prompt("Keep the goal warm while Mom catches up.");
+		await until(async () => (await snapshots(h)).length === 1, "first checkpoint");
+		// Route ctx to a fake UI that can prove coverage: it carries the real sessionManager.
+		const uiContext = { hasUI: true, mode: "tui", isIdle: () => idle, sessionManager: h.runtime.session.sessionManager,
+			ui: { setWidget: (_key: string, content: unknown) => render(content), notify() {} } };
+		await h.emitExtension("agent_settled", {}, uiContext);
+		await until(async () => rendered.length >= 1, "first widget render");
+		// New evidence arrives that Mom has not yet read: the widget must state real coverage.
+		await h.runtime.session.prompt("Add a second turn so the branch grows past the saved cursor.");
+		await until(async () => (await h.runtime.session.sessionManager.getBranch()).length > 4, "branch grows");
+		await h.emitExtension("agent_settled", {}, uiContext);
+		await until(async () => /catching up · \d+% read/.test(rendered.at(-1) ?? ""), "catch-up percentage");
+		const partial = rendered.at(-1)!;
+		assert.match(partial, /catching up · \d+% read/);
+		assert.doesNotMatch(partial, /NaN|undefined/, "the percentage is always a real number");
+		const partialPercent = Number(/catching up · (\d+)% read/.exec(partial)![1]);
+		assert(partialPercent > 0 && partialPercent < 100, `coverage is partial, not absolute: ${partialPercent}%`);
+		// Once the pending batch is accepted the widget returns to up to date.
+		await until(async () => rendered.at(-1)?.includes("up to date"), "coverage completes");
+		assert.deepEqual(h.errors, []);
+	} finally { await h.close(); }
+});
+
 test("the widget repaints only when its content changes", { timeout: 15000 }, async () => {
 	const h = await setup(true);
 	try {

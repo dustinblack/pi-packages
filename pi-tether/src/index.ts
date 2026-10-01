@@ -12,7 +12,7 @@ import { DEFAULT_MODEL, Mom } from "./mother.ts";
 import { SidecarStore } from "./sidecar.ts";
 import { FOCUS_KEY, MomConversationView, MomPanel, widgetLines, type PanelView } from "./panel.ts";
 import { formatElapsed, isStatusPing } from "./status.ts";
-import { presentGraph, readText, summaryText, type WorkView } from "./presentation.ts";
+import { coverageProgress, presentGraph, readText, summaryText, type WorkView } from "./presentation.ts";
 
 export const DELEGATE_MILESTONE_EVENT = "pi-delegate:milestone.v1";
 export const LEAD_BEHAVIOR_SECTION = `Mom observes and maps the work; the lead does not maintain her notes.
@@ -57,21 +57,33 @@ export default function piTether(pi: ExtensionAPI) {
 	function savedWork(complete: boolean) {
 		if (!mom || openingError) return savedView?.owner === mom ? savedView : undefined;
 		if (!savedView || savedView.owner !== mom || savedView.checkpoint !== mom.checkpoint || savedView.complete !== complete) {
-			const work = presentGraph({ ...mom.readGraph(), coverageComplete: complete });
+			const work = presentGraph({ ...mom.readGraph(), coverageComplete: complete, coverage: coverage() });
 			savedView = { owner: mom, checkpoint: mom.checkpoint, complete, work, summary: summaryText(work) };
 		}
 		return savedView;
+	}
+	// Durable coverage of recorded evidence. Memoized because the widget's live render closure calls
+	// view() on every frame; the branch walk is otherwise repeated per frame during catch-up.
+	let coverageKey = "", coverageValue: { consumed: number; total: number; percent: number } | undefined;
+	function coverage() {
+		const branch = ctx?.sessionManager?.getBranch() ?? [];
+		const leaf = mom?.checkpoint?.cut.parent ?? null;
+		const key = `${leaf ?? "-"}|${branch.length}`;
+		if (key !== coverageKey) { coverageKey = key; coverageValue = coverageProgress(branch, leaf); }
+		return coverageValue;
 	}
 	function view(): PanelView {
 		const m = mom;
 		const blocked = Boolean(openingError || m?.error || m?.feed.gaps.size || m?.failure || m?.gaps.length);
 		const error = blocked ? "Mom couldn't update her notes. Showing the last saved view; /mom detail has the reason." : undefined;
 		const complete = Boolean(m) && !m!.busy && !blocked && !dirty && !m!.more && coveredRevision === revision;
-		const freshness = m?.busy ? "updating" : blocked ? "update stopped" : !complete ? "catching up" : "up to date";
+		const progress = complete ? undefined : coverage();
+		const freshness = m?.busy ? "updating" : blocked ? "update stopped"
+			: !complete ? `catching up${progress ? ` · ${progress.percent}% read` : ""}` : "up to date";
 		const checked = m?.checkpoint ? `last saved ${formatElapsed(Date.now() - m.checkpoint.at)} ago` : "nothing saved yet";
 		const status = `${m?.enabled === false ? "paused" : freshness} · ${checked}${ctx && !ctx.isIdle() ? " · agent working" : ""}`;
 		const saved = savedWork(complete);
-		return { status, complete, work: saved?.work, summary: saved?.summary ?? "", note: complete ? m?.checkpoint?.note?.text : undefined, error };
+		return { status, complete, work: saved?.work, summary: saved?.summary ?? "", note: complete ? m?.checkpoint?.note?.text : undefined, error, coverage: progress };
 	}
 	function sync() {
 		if (!ctx?.hasUI) return;
@@ -284,7 +296,7 @@ export default function piTether(pi: ExtensionAPI) {
 				const reader = mom, state = view();
 				if (args.graph || args.source) {
 					const data = args.source ? { ...await reader.feed.lookup(args.source.ref, args.source.offset ?? 0), pairedRef: reader.feed.pairedSource(args.source.ref) }
-						: { status: state.status, error: state.error, ...reader.readGraph(args.graph), coverageComplete: state.complete };
+						: { status: state.status, error: state.error, ...reader.readGraph(args.graph), coverageComplete: state.complete, coverage: state.coverage };
 					if (token !== epoch || reader !== mom) throw new Error("The session changed while Mom was reading.");
 					const work = args.source ? state.work! : presentGraph(data);
 					const selected = Boolean(args.graph?.nodes?.length || args.graph?.checkpoint);
@@ -333,7 +345,7 @@ export default function piTether(pi: ExtensionAPI) {
 				if (command === "graph" || command === "map") {
 					await ready;
 					if (openingError || !mom) throw new Error(openingError ?? "Mom session is unavailable.");
-					context.ui.notify(readText(presentGraph(mom.readGraph({ nodes: parts[0] ? [parts[0]] : undefined, depth: parts[1] ? Number(parts[1]) : undefined })), Boolean(parts[0])), "info"); return;
+					context.ui.notify(readText(presentGraph({ ...mom.readGraph({ nodes: parts[0] ? [parts[0]] : undefined, depth: parts[1] ? Number(parts[1]) : undefined }), coverage }), Boolean(parts[0])), "info"); return;
 				}
 				if (command === "source") {
 					await ready;

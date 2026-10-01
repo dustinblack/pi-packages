@@ -51,6 +51,8 @@ export interface WorkView {
 	at?: number;
 	initialized?: boolean;
 	coverageComplete?: boolean;
+	/** Durable evidence coverage while catching up; undefined once complete or unprovable. */
+	coverage?: { consumed: number; total: number };
 	status?: string;
 	change?: unknown;
 	unfinished?: unknown;
@@ -217,6 +219,26 @@ const grouped = (items: string[]): string => items.slice(0, GROUP_LIMIT).join(";
 	+ (items.length > GROUP_LIMIT ? `; … ${items.length - GROUP_LIMIT} more` : "");
 
 /** Bounded story groups under their recorded endeavor, never inferred membership. */
+export interface ProgressView { coverage?: { consumed: number; total: number } }
+/**
+ * How much recorded evidence Mom has durably consumed. Honest coverage, not effort: entries differ
+ * in size, so the percentage is a monotone progress signal, not an estimate of remaining time.
+ * Returns undefined rather than guessing when the branch no longer contains the consumed leaf.
+ */
+export function coverageProgress(branch: readonly { id: string }[], consumedLeaf: string | null): { consumed: number; total: number; percent: number } | undefined {
+	if (!branch.length) return undefined;
+	const consumed = consumedLeaf === null ? 0 : branch.findIndex(entry => entry.id === consumedLeaf) + 1;
+	if (consumedLeaf !== null && consumed === 0) return undefined;
+	const total = branch.length;
+	return { consumed, total, percent: Math.min(100, Math.round((consumed / total) * 100)) };
+}
+
+export function coverageSentence(view: ProgressView): string | undefined {
+	const coverage = view.coverage;
+	if (!coverage || coverage.total <= 0 || coverage.consumed >= coverage.total) return undefined;
+	return `She has read ${coverage.consumed} of ${coverage.total} recorded entries (${Math.min(100, Math.round(coverage.consumed / coverage.total * 100))}%).`;
+}
+
 export function summaryText(view: WorkView): string {
 	const lines: string[] = [];
 	const endeavors = new Map(view.endeavors.map(e => [e.id, e]));
@@ -280,7 +302,7 @@ export function summaryText(view: WorkView): string {
 	};
 
 	if (view.error) lines.push("Mom could not update this account; last saved view only, not confirmation of recent activity.");
-	else if (!view.historical && !coverageComplete) lines.push("Mom is still catching up; partial last-saved snapshot only, not current orientation.");
+	else if (!view.historical && !coverageComplete) lines.push(`Mom is still catching up; partial last-saved snapshot only, not current orientation.${coverageSentence(view) ? ` ${coverageSentence(view)}` : ""}`);
 	if (view.historical) lines.push(`History${view.checkpoint ? ` · checkpoint=${view.checkpoint}` : ""} — earlier saved account, not current work.`);
 	if (!items.length) lines.push(view.omittedRecords ? "No records loaded in this selection." : "Mom has not saved an account of this work yet.");
 	else if (!view.purpose || !endeavors.has(view.purpose)) lines.push(`Endeavor: account outside this view${view.purpose ? ` [${view.purpose}]` : ""}.`);
