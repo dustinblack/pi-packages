@@ -1,8 +1,8 @@
 ---
 status: ready
 issue_id: "043"
-tags: [pi-delegate, pi-strings, lifecycle]
-dependencies: ["040", "041", "042"]
+tags: [pi-delegate, acpx, lifecycle]
+dependencies: ["042"]
 forked_from: "039"
 ---
 
@@ -10,23 +10,23 @@ forked_from: "039"
 
 ## Outcome
 
-Make wait, result, status, steer, cancel, and close behave consistently at the delegate front door while preserving backend-specific evidence and authority.
+`delegate_ctl` wait, result, status, steer, cancel and close behave consistently for both backends and keep backend-specific evidence and authority.
 
 ## Context
 
-Pi children support durable run segments and revival. ACPX workers support provider requests, native sessions, explicit delivery, and bounded cleanup. A unified status must not turn remote acceptance into completion or local disconnect into remote cancellation.
+Pi children support durable run segments and revival. ACP workers support provider requests, native sessions, explicit delivery and bounded cleanup. A unified status must not turn remote acceptance into completion, or a local disconnect into remote cancellation. Follow 040's `op_*` mapping table for observe/append/cancel_remote/close.
 
 ## Acceptance criteria
 
-- [ ] `delegate_ctl` maps each supported action to the selected backend.
-- [ ] Wait/result preserve provider request IDs, native IDs, delivery, output bounds, and terminal causes.
-- [ ] Steer/cancel are explicit capability checks; unsupported ACP steering fails rather than falling back.
+- [ ] Each `delegate_ctl` action maps to the run's backend.
+- [ ] Wait/result preserve request IDs, native IDs, delivery, output bounds and terminal causes.
+- [ ] Steer and cancel check capabilities explicitly; unsupported ACP steering fails instead of falling back.
 - [ ] Close/disconnect never implicitly cancels externally owned native work.
-- [ ] Cross-backend lifecycle tests cover success, timeout, provider failure, ambiguity, and cancellation.
+- [ ] Lifecycle tests cover success, timeout, provider failure, ambiguous delivery and cancellation on `acp`.
 
 ## Out of scope
 
-New provider APIs, multiplayer controls, and UI redesign.
+New provider APIs, multiplayer controls, UI redesign.
 
 ## Evidence
 

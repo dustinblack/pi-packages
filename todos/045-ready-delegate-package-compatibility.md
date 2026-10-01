@@ -1,32 +1,32 @@
 ---
 status: ready
 issue_id: "045"
-tags: [pi-delegate, pi-strings, packaging, compatibility]
-dependencies: ["039"]
+tags: [pi-delegate, packaging, compatibility]
+dependencies: ["041"]
 forked_from: "039"
 ---
 
-# Align package compatibility and combined installation
+# Install and load pi-delegate with the ACP runtime on Pi 0.99
 
 ## Outcome
 
-Make pi-delegate and pi-strings installable and loadable together on a declared Pi version range.
+`pi install` of pi-delegate alone brings `delegate`, `delegate_ctl`, `todo` and the ACP runtime on Pi `>=0.99.1 <0.100.0`, with no load errors.
 
 ## Context
 
-Current declarations conflict: pi-delegate requires Pi >=0.86.1; pi-strings declares >=0.83.0 <0.84.0. The installed Pi is 0.99.2. Package manifests, type dependencies, extension loading, and tool schemas need a deliberate compatibility decision.
+Originally filed for the pi-strings (`<0.84`) vs pi-delegate (`>=0.86.1`) conflict. The fold-in plus the repo-wide bump to the pi-omp pattern (`9e905a1`) removes the two-package question. What remains is that the single package ships its vendored runtime and built `dist/` and declares its new runtime deps. Installed Pi is 0.99.2. `pi-delegate/test/install-smoke.ts` is the existing smoke test.
 
 ## Acceptance criteria
 
-- [ ] Supported Pi range is explicit and both packages agree on it, or incompatibility is explicit.
-- [ ] `pi install`/pack smoke loads both packages without schema, resource, or dependency collisions.
-- [ ] Current local Pi version is covered by the declared range or clearly rejected.
-- [ ] No unrelated package dependency is widened without evidence.
+- [ ] `files`/`pi` manifest entries include the moved `dist/`, `vendor/` and skills; the pack contents are verified.
+- [ ] Install smoke asserts `errors=[]`, the three tools, and that the ACP runtime binaries resolve from the installed package.
+- [ ] Peer range covers installed Pi 0.99.2.
+- [ ] No unrelated dependency is widened without evidence.
 
 ## Out of scope
 
-Backend behavior, provider credentials, and publishing a new release.
+Backend behavior, provider credentials, publishing a release.
 
 ## Evidence
 
-Pending baseline and compatibility update.
+Pending.

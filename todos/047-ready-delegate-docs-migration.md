@@ -1,7 +1,7 @@
 ---
 status: ready
 issue_id: "047"
-tags: [pi-delegate, pi-strings, docs, migration]
+tags: [pi-delegate, docs, migration]
 dependencies: ["042", "043"]
 forked_from: "039"
 ---
@@ -10,22 +10,22 @@ forked_from: "039"
 
 ## Outcome
 
-Users can install, select, and operate Pi or ACPX delegation without learning the low-level `op_*` protocol for ordinary tasks.
+Users install pi-delegate and run Pi or ACP delegation from `delegate`, without learning the old `op_*` protocol.
 
 ## Context
 
-The current pi-strings README teaches direct coordinator tools; pi-delegate teaches `delegate`/`delegate_ctl`. Documentation must state when to choose Pi versus ACPX, how native Amp opening differs, and which controls remain provider-specific.
+pi-strings' README, `docs/AGENT_GUIDE.md` and `skills/pi-strings` teach the `op_*` tools. pi-delegate's README and `skills/delegation` teach `delegate`/`delegate_ctl`. Merge them into pi-delegate's docs and skill. Keep the Amp and native-session design docs (`docs/NATIVE_SESSION_OPENING.md`, `AMP_*`) under `pi-delegate/docs/`.
 
 ## Acceptance criteria
 
-- [ ] README and agent guide show natural-language delegate examples for both backends.
-- [ ] Migration notes explain direct `op_*` compatibility and the new front door.
-- [ ] Backend-specific authority, identity, timeout, delivery, and cancellation limits are explicit.
-- [ ] Examples match schemas and pass docs/resource path checks.
+- [ ] The README and delegation skill show natural-language `delegate` examples for both backends.
+- [ ] A migration note maps each old `op_*` call to its `delegate` equivalent, using 040's table.
+- [ ] Backend-specific authority, identity, timeout, delivery and cancellation limits are stated.
+- [ ] Examples match the schemas, and docs/resource path checks pass.
 
 ## Out of scope
 
-Changing provider capabilities or claiming plugin author identity.
+Changing provider capabilities; claiming plugin author identity.
 
 ## Evidence
 
