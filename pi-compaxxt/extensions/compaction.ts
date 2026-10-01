@@ -16,8 +16,8 @@
  *      <other-read-files>   — read-only files minus the important ones
  */
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { compact } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { compact } from "@earendil-works/pi-coding-agent";
 
 // ---------------------------------------------------------------------------
 // Session context block
@@ -243,8 +243,13 @@ ${fileLines.join("\n\n")}`;
 						preparation,
 						ctx.model,
 						effectiveApiKey,
+						// Forward request headers unchanged (null entries are deletion markers).
+						auth.headers as Record<string, string> | undefined,
 						combinedInstructions || undefined,
 						signal,
+						undefined,
+						undefined,
+						auth.env,
 					),
 				"compaction",
 			);

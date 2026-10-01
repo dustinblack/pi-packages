@@ -13,16 +13,16 @@
  * - Session metadata in response
  */
 
-import { complete, type Message } from "@mariozechner/pi-ai";
-import type { ExtensionAPI, SessionEntry } from "@mariozechner/pi-coding-agent";
+import { complete, type Message } from "@earendil-works/pi-ai/compat";
+import type { ExtensionAPI, SessionEntry } from "@earendil-works/pi-coding-agent";
 import {
 	SessionManager,
 	convertToLlm,
 	serializeConversation,
 	getMarkdownTheme,
-} from "@mariozechner/pi-coding-agent";
-import { Container, Markdown, Spacer, Text } from "@mariozechner/pi-tui";
-import { Type } from "@sinclair/typebox";
+} from "@earendil-works/pi-coding-agent";
+import { Container, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
+import { Type } from "typebox";
 import * as fs from "node:fs";
 
 // Maximum characters of serialized conversation to send to the query LLM.
