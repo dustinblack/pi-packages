@@ -32,7 +32,11 @@ Draft `op_*` mapping (proposal; the bridge rows wait on the user):
 | status, list | `delegate_ctl status` (with no runId, lists) | Native identity and capabilities go in the ACP view |
 | cancel | `delegate_ctl cancel` | Cooperative, with grace, then close |
 | close | new `delegate_ctl close` | ACP workers hold processes. Opened sessions disconnect only, never archive or delete. |
-| observe, append, plugin-steer, cancel_remote | **open:** `delegate_ctl` actions behind the configured Amp bridge, or drop until 031's Orb plugin gate passes | Bridge messages show as "Message from pi-strings-bridge plugin". Native send covers ordinary contribution ([2749–2756]). |
+| observe | `delegate_ctl status`/`result` on an opened Amp run, using one `amp threads export <T-ID>` per call | On demand only, with no background polling. Export is a full dump (~0.5 s, 35 KB for 14 messages, measured 2026-09-30), so return only messages after the last `messageId` returned; the thread `v`/`updatedAt` mark changes. |
+| plugin-steer, append | `delegate_ctl steer` (native send) | Shows as `## User`, not "Message from pi-strings-bridge plugin" |
+| cancel_remote | `delegate_ctl cancel` through ACP session cancel | Only for turns this run started. Cancelling a turn someone else started fails explicitly as unsupported. |
+
+Decided 2026-09-30 (user): no plugin bridge and no new verbs. Delete `src/acp/runtime/amp-plugin-bridge.ts`, `vendor/amp-plugin`, the `PI_STRINGS_AMP_BRIDGE_*` config and the bridge tests. Todo 031 is proposed to close as superseded, which is the user's call. Turns this run starts stream live through `--execute --stream-json` (`vendor/amp-acp/src/index.ts:174`), so export is needed only to see other participants' activity.
 
 ## Acceptance criteria
 
