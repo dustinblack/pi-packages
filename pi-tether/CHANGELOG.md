@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.2
+
+- Keep the persistent Mom widget visible with 1–6-word work names and states, without narrative paragraphs. Validate new names and allow legacy root-name shortening without changing its durable intent.
+- Remove the separate successful `/mom refresh` report; retain explicit status output and errors.
+- Open the interactive conversation with `/mom` or Alt+J (Option+J on Mac), replacing the conflicting Alt+T binding. Show both entry points in the widget and retain Q&A when switching. Keep the expanded read-only map at `/mom overview`.
+- Distinguish competing approaches to the same outcome from topic switches when creating alternative links. Review unsupported existing links within the same update; add an opt-in real-model regression for false and genuine alternatives.
+
 ## 0.1.1
 
 - Separate background graph maintenance from explicit questions. Do not repeat the opening question's text on saved-map background updates, and reject unsolicited answers before advancing coverage.

@@ -10,6 +10,24 @@ const snapshots = async (h: Awaited<ReturnType<typeof setup>>) => (await readSid
 	.map(record => ({ ...record, data: record.data.snapshot }));
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+test("refresh updates the map silently while explicit status still reports it", { timeout: 15000 }, async () => {
+	const h = await setup(true);
+	try {
+		const notices: string[] = [];
+		const context = { ...h.context, ui: { ...h.context.ui, notify: (text: string) => notices.push(text) } };
+		await h.runtime.session.prompt("Keep the Mom widget visible.");
+		await h.command("refresh", context);
+		assert.equal(h.requests().length, 1);
+		assert.equal((await snapshots(h)).length, 1);
+		assert.deepEqual(notices, [], "successful completion must not print a duplicate report");
+		await h.command("status", context);
+		assert.match(notices[0], /Keep the Mom widget visible/);
+		await h.command("refresh", context);
+		assert.equal(notices.length, 1);
+		assert.equal(h.requests().length, 1, "unchanged refresh is silent and free");
+	} finally { await h.close(); }
+});
+
 test("one settled exchange updates automatically at the ten-minute deadline", { timeout: 15000 }, async (t) => {
 	const h = await setup(true);
 	try {

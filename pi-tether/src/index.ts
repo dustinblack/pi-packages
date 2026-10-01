@@ -12,7 +12,7 @@ import { CORRECTION } from "./feed.ts";
 import { finishCompactionReview, prepareCompactionReview, type PendingCompactionReview } from "./compaction.ts";
 import { DEFAULT_MODEL, Mom } from "./mother.ts";
 import { SidecarStore } from "./sidecar.ts";
-import { FOCUS_KEY, MomConversationView, MomPanel, widgetLines, type PanelView } from "./panel.ts";
+import { FOCUS_KEY, MomConversationView, MomPanel, widgetLines, type MomExchange, type PanelView } from "./panel.ts";
 import { formatElapsed, isStatusPing } from "./status.ts";
 import { coverageProgress, presentGraph, readText, summaryText, type WorkView } from "./presentation.ts";
 
@@ -208,6 +208,8 @@ export default function piTether(pi: ExtensionAPI) {
 	}
 	function reset(context: ExtensionContext) {
 		epoch++;
+		conversationDraft = "";
+		conversationExchanges = [];
 		if (timer) clearTimeout(timer);
 		timer = undefined; timerAt = undefined; flight = undefined;
 		cadence.reset();
@@ -291,6 +293,7 @@ export default function piTether(pi: ExtensionAPI) {
 
 	let conversationOpen = false;
 	let conversationDraft = "";
+	let conversationExchanges: MomExchange[] = [];
 	async function show(context: ExtensionContext) {
 		if (context.mode !== "tui") { context.ui.notify(cached(), "info"); return; }
 		await context.ui.custom<void>((tui, theme, _keys, done) => new MomPanel(view, theme, () => Math.max(5, tui.terminal.rows - 6), () => done()));
@@ -303,12 +306,12 @@ export default function piTether(pi: ExtensionAPI) {
 			await context.ui.custom<void>((tui, theme, keys, done) => new MomConversationView(
 				{ view, ask: (question, signal) => run(question, signal) }, theme, tui, keys,
 				SettingsManager.create(context.cwd, AGENT_DIR), () => done(), conversationDraft,
-				(draft) => { conversationDraft = draft; },
+				(draft) => { conversationDraft = draft; }, conversationExchanges,
 			), { overlay: true, overlayOptions: { width: "100%", maxHeight: "100%", anchor: "top-left", margin: 0 } });
 		} catch (error) { context.ui.notify(`Cannot open Mom: ${String(error)}`, "error"); }
 		finally { conversationOpen = false; }
 	}
-	pi.registerShortcut(FOCUS_KEY, { description: "Switch to Mom conversation (Esc or Alt+T returns)", handler: async (context) => { await talk(context); } });
+	pi.registerShortcut(FOCUS_KEY, { description: "Switch to Mom conversation (Esc or Alt+J returns)", handler: async (context) => { await talk(context); } });
 	pi.registerTool({ name: "mom", label: "Mom", description: "Find out where you are in the work: the goal, what this is part of, what's unfinished, and where to return after a detour. Default reads return a compact story map: current work, live rules, waiting choices, and folded history. Features, theories, postulates and things being tried form the map; rules, choices and observations are attached to them. Omit arguments or use graph={} for the map; graph.nodes selects full records; source reads original evidence. These reads make no model call. question asks Mom to reason about the history. Read-only: you do not maintain Mom's notes. Choose at most one of graph, source, question.",
 		renderCall(args, theme) {
 			const action = args.question ? "asking about the work" : args.source ? "reading original evidence" : args.graph?.checkpoint ? "reading earlier work" : args.graph ? "finding our place" : "where we are";
@@ -359,12 +362,13 @@ export default function piTether(pi: ExtensionAPI) {
 			}
 		},
 	});
-	pi.registerCommand("mom", { description: "Mom: status · map|graph [endeavor] [depth] · detail · ask <question> · correct <text> · source <id> [offset] · refresh · pause · resume",
+	pi.registerCommand("mom", { description: "Talk to Mom (Alt+J) · overview · status · map|graph [endeavor] [depth] · detail · ask <question> · correct <text> · source <id> [offset] · refresh · pause · resume",
 		handler: async (args, context) => {
 			const [command, ...parts] = args.trim().split(/\s+/);
 			const text = parts.join(" ");
 			try {
-				if (!command) { await show(context); return; }
+				if (!command) { await talk(context); return; }
+				if (command === "overview") { await show(context); return; }
 				if (command === "status") { context.ui.notify(cached(), "info"); return; }
 				if (command === "detail") {
 					await ready;
@@ -397,9 +401,9 @@ export default function piTether(pi: ExtensionAPI) {
 					const source = await mom.feed.lookup(parts[0], Number(parts[1] ?? 0));
 					context.ui.notify(`Original recorded evidence, not new work:\n${JSON.stringify(source, null, 2)}`, "info"); return;
 				}
-				if (command === "refresh") { await run(undefined, undefined, true); context.ui.notify(cached(), "info"); return; }
+				if (command === "refresh") { await run(undefined, undefined, true); return; }
 				if (command === "ask" && text) { const answer = await run(text); context.ui.notify(answer ?? "Mom returned no answer.", "info"); return; }
-				throw new Error("Use /mom, status, map, graph, detail, ask, correct, source, refresh, pause, or resume.");
+				throw new Error("Use /mom, overview, status, map, graph, detail, ask, correct, source, refresh, pause, or resume.");
 			} catch (error) {
 				readError = String(error);
 				context.ui.notify("Mom couldn't complete that request. Your last saved view is unchanged. Use /mom detail for the reason and /mom for your place in the work.", "error");

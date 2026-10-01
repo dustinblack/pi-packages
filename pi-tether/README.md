@@ -4,7 +4,9 @@ Mom keeps track of your goal, what's unfinished, and where to return after a det
 
 The map follows what you're building or exploring: **features, theories, postulates, and things you're trying**. Rules, open choices, and observations are attached to that work. They are not separate projects. Exactly one persisted endeavor is the **mother thread**: it carries the source-backed original session purpose and coordinates every current, interrupted, and alternative branch beneath it.
 
-The widget shows the main line and the current branch as a tree, using the same colors and branch marks as pi-omp's todo panel. When transcript coverage is complete, the current location is marked **you are here**. While Mom is busy, blocked, catching up, or has pending coverage, the panel and story reads label the map as a partial last-saved snapshot and suppress current-orientation markers. Each work node shows its state and current progress. Rules, choices and observations are left out of the widget; `alt+t` switches to Mom's dedicated conversation view. Ask there without a slash command, then press Escape or `alt+t` to return to the untouched lead editor and its draft.
+The persistent widget shows the main line and current branch as a tree of **1–6-word names and states**, using the same colors and branch marks as pi-omp's todo panel. It remains visible when Mom is up to date; successful updates do not print a separate completion report. When transcript coverage is complete, the current location is marked **you are here**. While Mom is busy, blocked, catching up, or has pending coverage, the map is a partial last-saved snapshot without current-orientation markers. Full intent, observations, rules, and sources remain available in `/mom overview`. Old cached names are capped at six words on screen; Mom can shorten them on her next update without changing the root's durable purpose.
+
+`/mom` or `alt+j` switches to Mom's dedicated conversation view. On Mac, Alt is Option (`⌥`); the terminal must send Option as Meta for the shortcut. Ask there without a slash command, then press Escape or `alt+j` to return to the untouched lead editor and its draft. Mom's questions, answers, and draft survive switching between views, but reset on session/branch changes or reload. They never enter the lead transcript.
 
 Default `mom` reads show a compact story map: the mother thread, current endeavor, live rules, choices waiting on you, recorded outcomes, and handles for folded history. Active purposes and rules show an English `Why` copied as one complete normalized token sequence from evidence, followed by only the explicit `purposeSource` citation that grounds it. Mom does not add separate causal rationale prose. Rules appear as short sentences under their endeavor, not as `governs` arrows or record dumps. Select an endeavor or attached record when you need complete fields and sources. There is no separate graph viewer.
 
@@ -48,15 +50,16 @@ The default threshold is `0.25`, calibrated on the preserved todo-008 evidence: 
 
 | Command | Action |
 |---|---|
-| `alt+t` | Switch to Mom's dedicated view. Enter asks from her map; Ctrl+X cancels an answer; Escape or `alt+t` returns to the lead with its draft and context untouched. |
-| `/mom` | Open the read-only saved overview. Scroll with arrows or Page Up/Down; Escape closes it. |
+| `alt+j` | Switch to Mom's dedicated view. Enter asks from her map; Ctrl+X cancels an answer; Escape or `alt+j` returns to the lead with its draft and context untouched. |
+| `/mom` | Open the interactive Mom conversation, like `alt+j`. |
+| `/mom overview` | Open the expanded read-only saved map. Scroll with arrows or Page Up/Down; Escape closes it. |
 | `/mom status` | Show where you are, update status, and usage. |
 | `/mom map [id] [depth]` or `/mom graph [id] [depth]` | Show the compact map, or select one record for complete fields and sources. |
 | `/mom detail` | Show raw saved data and exact diagnostic errors. |
 | `/mom source <id> [offset]` | Read original evidence. Use the bare source ID, without `src:` or brackets. |
 | `/mom ask <question>` | Ask Mom to reason about recorded history with bounded source lookup. |
 | `/mom correct <text>` | Record your correction without starting a lead turn. |
-| `/mom refresh` | Read pending activity, or explicitly retry the oldest skipped evidence gap. No model call when already caught up and no gap exists. |
+| `/mom refresh` | Read pending activity, or explicitly retry the oldest skipped evidence gap. Updates the persistent widget without printing a completion report. No model call when already caught up and no gap exists. |
 | `/mom pause` | Stop background inference; keep the saved view. |
 | `/mom resume` | Resume reading pending activity. |
 
@@ -82,6 +85,8 @@ Agents can turn returned data into prose or Mermaid. They do not open threads, r
 ## How work stays connected
 
 The mother thread is the one root; every other endeavor has an endeavor parent. Its stable ID cannot be replaced by a later side request. Child work can appear during a detour. Related endeavors can merge without flattening their children. When an endeavor finishes, its completed details can fold into its parent's outcome.
+
+An `alternative_to` link means competing approaches to the same outcome, supported by cited evidence of that competition. Topic switches, chronological succession, interruptions, and sibling tasks do not establish alternatives. Mom should omit uncertain links and remove unsupported links when reviewing affected work. Structural validation checks endpoints and citations, not whether the relationship is semantically true.
 
 Unfinished work and standing rules must survive that fold. Permission to prepare does not grant permission to act. A rule's scope must not silently broaden when work moves. Earlier detail remains available through saved history and source references.
 
@@ -142,5 +147,7 @@ cd pi-tether && npm run check
 npx tsx test/terminal-mom-proof.ts # isolated tmux PTY + local loopback provider
 cd ../pi-delegate && npm run check
 ```
+
+For an opt-in real-model alternative-link regression, run `npx tsx experiments/alternative-links-live.ts SESSION THROUGH_ENTRY NEW_OUTPUT_DIR` from `pi-tether/`. Use the footer/deals session and the entry where its initial map stopped. It freezes that prefix, runs three cold replays, and compares them with three genuine storage-alternative cases. Each run must accept in one call. It never writes to the source session or cache; artifacts include graphs, model operations, and the frozen input hash.
 
 The deterministic suite covers settled-boundary scheduling, unique mother-root hierarchy, multi-chapter cold catch-up, English purpose plus explicit `purposeSource`, current/interrupted branches, alternative links, atomic graph cutover and the first post-cutover no-op, bounded ordered gap recovery, carry, source lookup, sidecar-only state, storage failure, worker history, reload, and quiet advice. The v3 isolated Luna-low artifact at `experiments/evidence/todo-007-real-luna-purpose-map.json` validates bounded real-session synthesis with English `Why`, explicit `purposeSource`, and parked work. An intentional attempt to replay the full frozen 7,336-line snapshot processed 29 batches in 48 model calls, then ended with an open gap and remaining evidence; it exposed the grounded gap-recovery failure that is now fixed. This was not a complete replay. The frozen snapshot was verified as an exact byte prefix because the live source appended during the run; no whole-source unchanged claim is made. The real capture contains no `alternative_to` edge, while deterministic fixtures cover alternatives and bounded gap recovery. Full-trajectory replay belongs to todo 008. Scripted model replies check mechanics, not arbitrary model judgment. See [the experiment record](experiments/README.md) for earlier work.

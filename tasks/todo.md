@@ -1,5 +1,35 @@
 # Tasks
 
+## Current Task: correct unsupported Mom alternatives
+
+- [x] Clarify that alternatives compete for the same outcome; pivots and sibling tasks need no cross-link.
+- [x] Replay the reported cold-start session and a genuine competing-approaches case with the real Mom model.
+- [x] Append a corrected saved map removing only `footer/alternative_to/deals`; verify nodes, coverage, usage, and prior history are preserved.
+- [x] Explain the current compaction review versus a proposed occasional independent thread-map audit.
+- [x] Replace the conflicting Alt+T shortcut with Alt+J and verify switching in the real terminal.
+
+### Review (cross-link repair and shortcut)
+
+- All six real Luna runs passed in one call: three frozen footer/deals cold starts omitted the false alternative while retaining both subjects; three competing SQLite/PostgreSQL cases kept a genuine alternative. Evidence: `.amp/in/artifacts/mom-alternative-links/`. This checks the relationship, not whole-map semantic completeness.
+- Appended revision 5 to the specified session's `.mom` sidecar, removing only the false edge. Nodes, coverage, usage, previous bytes, and transcript stayed unchanged; production restore and historical-map access passed. Backup and repair evidence: `.amp/in/artifacts/mom-crosslink-before.mom` and `mom-crosslink-repair.json`.
+- Alt+J (Option+J on Mac) replaces Alt+T. Installed bindings were checked; the proposed Alt+Shift+M was rejected after its legacy encoding failed Pi's matcher. Actual Pi TUI passed opening and returning with Alt+J, Escape, `/mom`, asking, reopening, retained lead draft, and unchanged transcript. Inspected updated wide/narrow widget and conversation captures.
+- Final TypeScript and all 179 tests pass. Independent full-history thread-map audits are discussed, not implemented. Reload is required to load the code and repaired cache. Changes remain uncommitted.
+
+## Current Task: quiet Mom status and accessible conversation
+
+- [x] Use 1–6-word node names and omit narrative paragraphs from the compact tree.
+- [x] Keep the persistent widget visible, add its conversation shortcut hint, and silence only the separate successful refresh output.
+- [x] Open the interactive Mom view with `/mom` as well as Alt+J; preserve conversation when switching.
+- [x] Exercise the real Pi TUI, inspect screenshots, and summarize the live saved state with limitations.
+
+### Review (Mom widget and conversation)
+
+- TypeScript and all 179 tests pass, including persistent caught-up rendering, legacy long names, word-count boundaries, root-purpose preservation, and silent refresh with explicit status still available.
+- The actual Pi TUI passed `/mom`, Alt+J, ask, return, and reopen through an isolated tmux/loopback provider. The lead draft and transcript hash stayed unchanged. Inspected 100- and 60-column captures and the conversation screen under `.amp/in/artifacts/mom-ui/`.
+- Replayed the latest update of session `01a0f835` from a temporary copy and its preceding saved state. One real Luna call in 18.1 seconds produced short visible work names. A broader assertion found one unchanged seven-word legacy annotation; new labels are validated, legacy work labels are capped in the UI, and old hidden annotations do not force an extra model call. Evidence: `.amp/in/artifacts/mom-names-replay.json`.
+- This UI work left the live session/cache untouched; the separately authorized cross-link repair above subsequently updated only the cache. Saved state tracks footer work as settled, deals redesign as active with reported verification but no established new commit, and Pacific timing/no-model-call requirements.
+- Version 0.1.2 is local and uncommitted; reload is needed for a running Pi instance. Suggested commit: `fix(tether): keep Mom status compact and make conversation accessible`.
+
 ## Current Task: Mom continuation accuracy and bounded single-exchange catch-up
 
 - [x] Separate background graph maintenance from explicit questions and reject unsolicited answers before advancing coverage.

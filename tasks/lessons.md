@@ -136,3 +136,9 @@ Scott asked "Why are you looking at those? This is for mom." when a command mixe
 
 ## Mom's root is the synthesized current purpose, durable against drift — not the literal first message
 I pinned the root intent to the verbatim opening user message after reviewers called the model's evolved purpose a "miss". Scott: "I don't necessarily trust the first request arbitrarily" — the root must say what the session is actually doing, with durability (changes only on evidenced user redirection), not whatever the first message happened to be. Don't pick a deterministic-but-wrong anchor to kill variance; gate change on evidence instead (2026-10-01).
+
+## Mom status is navigation, not a running report
+Scott wants the persistent widget kept, including when Mom is up to date. Only the separate nonpersistent completion message should disappear. I incorrectly conflated those surfaces. Keep 1–6-word names in the persistent tree, prose in the expanded map, and expose the conversation through `/mom` and a shortcut hint. Changing a display name must not silently change the durable purpose (2026-10-01).
+
+## Check installed shortcuts and terminal encoding before choosing a binding
+Scott already uses Alt+T outside Mom. Respect reported conflicts even when local Pi registrations do not reveal their owner. Check installed extensions and built-in keys, then exercise the actual terminal encoding before choosing a replacement; a supported key identifier does not imply its legacy byte sequence is recognized (2026-10-01).

@@ -73,6 +73,12 @@ export const MOM_PROMPT = `You are Mom. You own and actively maintain the sessio
 
 The task field identifies this invocation. When question is null, update the saved graph from newEvents; do not answer questions found in original, contextBeforeBatch, or the recorded conversation. Those questions were addressed to the working agent, not to you. Retain new requirements and reported outcomes on the affected work even when its overall purpose has not changed. Only a non-null question asks you for an answer, and only that question may be answered.
 
+DISPLAY NAMES
+Every node label is a 1–6-word name, not a summary sentence. Name the work or subject directly: "Extension improvements", "Footer version", "Interactive deal comparison", "No model calls". Keep full scope in intent and progress in observed. On the next update, shorten existing longer labels while preserving IDs, intent, state, and evidence. This is the one permitted cosmetic rewrite: a legacy root label longer than six words may become a short name without new user direction; its durable intent and purpose source remain unchanged. Other root purpose changes still require cited user direction.
+
+CROSS-LINK EVIDENCE
+An alternative_to edge means two competing approaches to the same intended outcome. Its cited evidence must support that competition, not merely mention either task. For example, two parser implementations competing to handle the same format can be alternatives. Fixing documentation and then debugging a release are separate work, not alternatives. A topic switch, chronological succession, interruption, shared parent, or shared project does not establish a cross-link. Record those through parent membership, focus, and work state instead. Prefer no cross-link when the relationship is uncertain. When reviewing affected work, remove an existing unsupported edge explicitly rather than treating its presence in the saved map as evidence. Do this within the same commit_graph transaction; do not add a model call just to review edges.
+
 USER PIVOTS AND EXPLICIT SIGNALS
 The user changes direction quickly and may not announce a pivot. When a clear new direction interrupts the current work, silently mark that work parked and continue on the new direction. The map must show the change: park the replaced center and move focus to the new direction in the same transaction. A direction change that leaves the replaced work active and focus unchanged is not recorded, however clearly the transcript shows it. Do not ask whether to park it, announce the park, or slow the user down. Resume a parked thread when the user returns to it. Surface parked threads only at session start or when current work depends on or conflicts with one; do not offer routine reminders.
 Treat explicit user assent in context (for example, “yes, note that” or “yes, let’s go down that path”) as meaningful direction: record what was accepted on the affected work and cite the user turn. “Note that” means preserve that point; it is not blanket approval of nearby proposals. Respect the accepted direction while it remains current. If later direction appears to conflict, check the relevant session evidence and ordering; follow the latest clear user direction and park displaced work. Do not ask to reconfirm a pivot. If evidence leaves a consequential conflict unresolved, avoid the conflicting action and continue any work that does not depend on resolving it.
@@ -205,6 +211,9 @@ export function acceptGraph(value: unknown, previous: WorkGraph, checkpoint: str
 	const upsertNodes = proposed.upsertNodes.map(node => {
 		let sources = [...node.sources];
 		const before = oldNodes.get(node.id);
+		if (node.label !== before?.label && node.label.split(/\s+/).length > 6) {
+			throw new Error(`Node ${node.id} needs a 1–6-word name; put scope and progress in intent and observed.`);
+		}
 		for (const prior of before?.sources ?? []) if (authority(prior) && !sources.includes(prior)) {
 			sources.push(prior); repairs.push({ from: node.id, to: prior });
 		}
@@ -217,15 +226,16 @@ export function acceptGraph(value: unknown, previous: WorkGraph, checkpoint: str
 		// earliest cited user source, else the earliest source.
 		let purposeSource = before?.purposeSource && sources.includes(before.purposeSource) ? before.purposeSource : ordered.find(authority) ?? ordered[0];
 		if (node.id !== purpose || !before) return { ...node, sources, ...(purposeSource ? { purposeSource } : {}) };
-		// The root states the session's purpose and is durable: once saved, its label and intent change
-		// only when the root cites a new lead user direction. A rewording without one is restored.
+		// Preserve root purpose without new direction. A legacy sentence label may be shortened,
+		// but this display-only migration never changes intent or its provenance.
 		const redirect = ordered.find(ref => authority(ref) && newRefs.has(ref) && !before.sources.includes(ref));
 		if (redirect) {
 			if (node.intent !== before.intent) purposeSource = redirect;
 			return { ...node, sources, purposeSource };
 		}
-		if (node.label !== before.label || node.intent !== before.intent) repairs.push({ from: `${node.id} purpose`, to: "kept: no new user direction cited" });
-		return { ...node, label: before.label, intent: before.intent, sources, ...(purposeSource ? { purposeSource } : {}) };
+		const label = before.label.trim().split(/\s+/).length > 6 ? node.label : before.label;
+		if (node.label !== label || node.intent !== before.intent) repairs.push({ from: `${node.id} purpose`, to: "kept: no new user direction cited" });
+		return { ...node, label, intent: before.intent, sources, ...(purposeSource ? { purposeSource } : {}) };
 	});
 	const removed = new Set([...proposed.removeNodes.map(item => item.id), ...proposed.folds.map(item => item.thread), ...proposed.merges.map(item => item.thread)]);
 	const available = new Map(previous.nodes.map(node => [node.id, node.label]));

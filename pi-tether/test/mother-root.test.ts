@@ -102,6 +102,26 @@ test("the host assigns public Why provenance while intent remains free text", ()
 		assistantKnown, new Set([assistant.ref]), new Set()), /needs an observed lead user event/);
 });
 
+test("names have one to six words and legacy root shortening preserves purpose", () => {
+	const user: FeedEvent = { ref: "s:user", actor: "lead", kind: "user", at: "", text: "Improve extensions and the footer." };
+	const known = new Map([[user.ref, user]]);
+	const root = { ...node("mother", null, "active", user.ref, "Maintain the extensions and footer."), label: "Improve pi extensions and investigate footer behavior" };
+	const prior = editGraph(emptyGraph(), 0, [put(root)], "mother", "mother", new Set(known.keys()));
+	const transaction = { focus: "mother", unfinished: [], upsertNodes: [{ ...root, label: "Extension improvements", intent: "Silently change the purpose." }],
+		upsertEdges: [], removeEdges: [], merges: [], folds: [], removeNodes: [] };
+	const accepted = acceptGraph(transaction, prior, "saved", known, new Set(), new Set());
+	assert.equal(accepted.graph.nodes[0].label, "Extension improvements");
+	assert.equal(accepted.graph.nodes[0].intent, root.intent);
+	assert.equal(accepted.graph.nodes[0].purposeSource, root.purposeSource);
+	for (const label of ["One", "One two three four five six"]) {
+		assert.equal(acceptGraph({ ...transaction, upsertNodes: [{ ...root, label }] }, emptyGraph(), undefined, known, new Set(known.keys()), new Set()).graph.nodes[0].label, label);
+	}
+	for (const [label, error] of [["   ", /label.*fewer than 1/], ["One two three four five six seven", /1–6-word name/]] as const) {
+		assert.throws(() => acceptGraph({ ...transaction, upsertNodes: [{ ...root, label }] }, emptyGraph(), undefined, known, new Set(known.keys()), new Set()), error);
+	}
+	assert.equal(acceptGraph({ ...transaction, upsertNodes: [root] }, prior, "saved", known, new Set(), new Set()).graph.nodes[0].label, root.label, "unchanged legacy labels do not invalidate an update");
+});
+
 test("cold start rejects multiple roots and names every candidate", () => {
 	const user: FeedEvent = { ref: "s:user", actor: "lead", kind: "user", at: "", text: "Map both." };
 	const transaction = { focus: "one", unfinished: [], upsertNodes: [

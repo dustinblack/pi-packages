@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { SettingsManager } from "@earendil-works/pi-coding-agent";
+import { matchesKey } from "@earendil-works/pi-tui";
 import { FOCUS_KEY, MomConversationView } from "../src/panel.ts";
 
 const theme: any = {
@@ -12,8 +13,10 @@ const theme: any = {
 	getThinkingBorderColor: () => "",
 };
 
-test("Alt+T switches to Mom, asks from her map, and returns without touching lead context or draft", async () => {
-	assert.equal(FOCUS_KEY, "alt+t");
+test("Alt+J switches to Mom, asks from her map, and returns without touching lead context or draft", async () => {
+	assert.equal(FOCUS_KEY, "alt+j");
+	assert.equal(matchesKey("\x1bj", FOCUS_KEY), true);
+	assert.equal(matchesKey("\x1bt", FOCUS_KEY), false, "Mom leaves the previous shortcut free");
 	const leadContext = [{ role: "user", content: "Keep this lead context" }, { role: "assistant", content: "Still here" }];
 	const before = JSON.stringify(leadContext);
 	const leadDraft = "unfinished lead editor draft";

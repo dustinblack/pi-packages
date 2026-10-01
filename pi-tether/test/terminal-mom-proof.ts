@@ -12,12 +12,16 @@ const api = await provider(), box = sandbox(api.url);
 const socket = `mom-proof-${process.pid}`;
 const cli = join(dirname(fileURLToPath(import.meta.resolve("@earendil-works/pi-coding-agent"))), "bundle/cli.js");
 const fixture = resolve(import.meta.dirname, "mom-terminal-fixture.ts");
-const evidenceDir = resolve(import.meta.dirname, "../experiments/evidence/todo-014");
+const evidenceDir = resolve(process.env.MOM_PROOF_EVIDENCE ?? resolve(import.meta.dirname, "../experiments/evidence/todo-014"));
 const tmux = (...args: string[]) => execFileSync("tmux", ["-L", socket, ...args], { encoding: "utf8", timeout: 10000 });
 const quote = (s: string) => `'${s.replaceAll("'", `'\\''`)}'`;
 const capture = () => tmux("capture-pane", "-p", "-t", "pi");
 const key = (...keys: string[]) => tmux("send-keys", "-t", "pi", ...keys);
 const text = (value: string) => tmux("send-keys", "-t", "pi", "-l", value);
+function saveScreen(name: string) {
+	mkdirSync(evidenceDir, { recursive: true });
+	writeFileSync(join(evidenceDir, `${name}.ansi`), tmux("capture-pane", "-e", "-p", "-t", "pi").replaceAll(box.root, "<isolated-root>"));
+}
 async function expect(pattern: RegExp) {
 	const end = Date.now() + 15000;
 	while (Date.now() < end) { const screen = capture(); if (pattern.test(screen)) return screen; await sleep(50); }
@@ -36,15 +40,32 @@ try {
 	tmux("new-session", "-d", "-s", "pi", "-x", "100", "-y", "30", `sh ${quote(launch)}`);
 	await expect(/MOM-PROOF-READY/);
 	text("Ship the dedicated Mom view"); key("Enter");
-	await expect(/LEAD-ANSWER-UNCHANGED/); await expect(/Main purpose.*you are here/);
+	await expect(/LEAD-ANSWER-UNCHANGED/);
+	text("/mom refresh"); key("Enter");
+	await expect(/Main purpose.*you are here/);
+	const refreshed = await expect(/Mom · Alt\+J or \/mom · up to date/);
+	assert.doesNotMatch(refreshed, /Mom \(session\):|Mother thread:/, "refresh must not dump a completion report");
+	saveScreen("persistent-widget");
+	text("/mom"); key("Enter");
+	await expect(/Questions and answers stay out of the lead conversation/);
+	key("Escape");
+	await expect(/Mom · Alt\+J or \/mom · up to date/);
 	text("LEAD-DRAFT-014");
 	const session = join(box.root, "parents", readdirSync(join(box.root, "parents")).find(name => name.endsWith(".jsonl"))!);
 	const before = readFileSync(session, "utf8");
-	key("M-t"); await expect(/Questions and answers stay out of the lead conversation/);
+	key("M-j"); await expect(/Questions and answers stay out of the lead conversation/);
 	text("What is current?"); key("Enter");
 	const momScreen = await expect(/From the saved map: Ship the dedicated Mom view is the current work/);
 	assert.match(momScreen, /Main purpose/);
-	key("Escape"); const leadScreen = await expect(/LEAD-DRAFT-014/);
+	saveScreen("mom-conversation");
+	key("M-j"); const leadScreen = await expect(/LEAD-DRAFT-014/);
+	assert.match(leadScreen, /Mom · Alt\+J or \/mom · up to date/);
+	key("M-j"); await expect(/From the saved map: Ship the dedicated Mom view is the current work/);
+	key("Escape"); await expect(/LEAD-DRAFT-014/);
+	tmux("resize-window", "-t", "pi", "-x", "60", "-y", "24");
+	await sleep(150);
+	await expect(/Main purpose.*you are here/);
+	saveScreen("persistent-widget-narrow");
 	const after = readFileSync(session, "utf8");
 	assert.equal(after, before, "Mom view must not append its question or answer to the lead transcript");
 	assert.doesNotMatch(after, /What is current\?|From the saved map/);

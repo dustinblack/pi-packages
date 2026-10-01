@@ -2,12 +2,13 @@ import { CustomEditor, getSelectListTheme, type KeybindingsManager, type Setting
 import { matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component, type Focusable, type TUI } from "@earendil-works/pi-tui";
 import type { AnnotationView, EndeavorView, WorkView } from "./presentation.ts";
 
-export const FOCUS_KEY = "alt+t";
+export const FOCUS_KEY = "alt+j";
 export interface PanelView { status: string; summary: string; complete?: boolean; note?: string; error?: string; work?: WorkView; coverage?: { consumed: number; total: number; percent: number } }
 export interface MomConversationSource {
 	view(): PanelView;
 	ask(question: string, signal: AbortSignal): Promise<string | undefined>;
 }
+export interface MomExchange { question: string; answer?: string; error?: string }
 
 const PREVIEW_NEIGHBORS = 6;
 const finished = (state: string) => ["settled", "finished", "completed", "done"].includes(state);
@@ -83,7 +84,10 @@ function hierarchy(work: WorkView, theme: Theme, width: number, expanded: boolea
 		else if (node.id === work.purpose && budget >= visibleWidth(marker + meta) + 28) meta += " · main line";
 		if (root && budget >= visibleWidth(marker + meta) + visibleWidth(progress(node)) + 18) meta += progress(node);
 		if (visibleWidth(marker + meta) >= budget) { marker = here ? "you are here" : ""; meta = here ? "" : meta.trim(); }
-		const label = clip(clean(node.label), Math.max(0, budget - visibleWidth(marker + meta)));
+		// Old sidecars can contain sentence labels. Keep them readable without rewriting saved evidence.
+		const words = clean(node.label).split(/\s+/);
+		const name = words.length > 6 ? `${words.slice(0, 6).join(" ")}…` : words.join(" ");
+		const label = clip(name, Math.max(0, budget - visibleWidth(marker + meta)));
 		let title: string;
 		if (here) title = theme.bold(theme.fg("accent", label));
 		else if (finished(node.state)) title = theme.fg("success", theme.strikethrough(label));
@@ -107,11 +111,7 @@ function hierarchy(work: WorkView, theme: Theme, width: number, expanded: boolea
 			const last = i === siblings.length - 1;
 			lines.push(row(node, `${prefix}${last ? "└─ " : "├─ "}`, parent === null));
 			const continuation = `${prefix}${last ? "   " : "│  "}`;
-			if (!expanded) {
-				// Current state of unfinished work; finished nodes are already marked done.
-				const now = node.observed || node.intent;
-				if (now && !finished(node.state)) detail(now, `${continuation}  `, node.state === "blocked" ? "warning" : "muted");
-			} else {
+			if (expanded) {
 				if (node.intent) detail(`Purpose: ${node.intent}`, `${continuation}  `, "muted");
 				if (node.observed) detail(`State: ${node.observed}`, `${continuation}  `, "muted");
 				if (node.history) detail("Earlier work was folded away; its sources are still available.", `${continuation}  `, "dim");
@@ -127,10 +127,10 @@ function hierarchy(work: WorkView, theme: Theme, width: number, expanded: boolea
 	}
 	visit(null, "");
 	const hidden = work.endeavors.length - visited.size;
-	if (hidden) lines.push(clip(theme.fg("dim", ` … ${hidden} more endeavor${hidden === 1 ? "" : "s"} · alt+t to read`), width));
+	if (hidden) lines.push(clip(theme.fg("dim", ` … ${hidden} more endeavor${hidden === 1 ? "" : "s"} · alt+j to read`), width));
 	if (work.outside.length) {
 		if (expanded) for (const outside of work.outside) detail(`Outside this view: ${outside}`, " ", "dim");
-		else lines.push(clip(theme.fg("dim", " More work is outside this view · alt+t for context"), width));
+		else lines.push(clip(theme.fg("dim", " More work is outside this view · alt+j for context"), width));
 	}
 	return lines;
 }
@@ -138,7 +138,7 @@ function hierarchy(work: WorkView, theme: Theme, width: number, expanded: boolea
 /** Cached hierarchy in the same tree, color and header style as pi-omp's todo widget. */
 export function widgetLines(view: PanelView, theme: Theme, width: number): string[] {
 	const w = Math.max(0, Math.floor(width));
-	const lines = ["", clip(theme.bold(theme.fg("accent", "Mom")) + theme.fg("dim", ` · ${view.status}`), w)];
+	const lines = ["", clip(theme.bold(theme.fg("accent", "Mom")) + theme.fg("dim", ` · Alt+J or /mom · ${view.status}`), w)];
 	if (view.work?.endeavors.length) lines.push(...hierarchy(view.work, theme, w, false));
 	else lines.push(clip(theme.fg("muted", fallback(view.summary) || "Following your conversation; no saved work yet."), w));
 	if (view.error) lines.push(clip(theme.fg("warning", view.error), w));
@@ -149,7 +149,6 @@ export function widgetLines(view: PanelView, theme: Theme, width: number): strin
 /** Full-viewport, sidecar-backed conversation. It owns neither the lead editor nor lead messages. */
 export class MomConversationView implements Component, Focusable {
 	private editor: CustomEditor;
-	private exchanges: { question: string; answer?: string; error?: string }[] = [];
 	private controller?: AbortController;
 	private asking = false;
 	private notice = "";
@@ -162,7 +161,7 @@ export class MomConversationView implements Component, Focusable {
 
 	constructor(private source: MomConversationSource, private theme: Theme, private tui: TUI,
 		keybindings: KeybindingsManager, settings: SettingsManager, private done: () => void,
-		draft = "", private saveDraft: (text: string) => void = () => {}) {
+		draft = "", private saveDraft: (text: string) => void = () => {}, private exchanges: MomExchange[] = []) {
 		this.draft = draft;
 		this.editor = new CustomEditor(tui, {
 			borderColor: theme.fg.bind(theme, "borderAccent"),
@@ -179,7 +178,7 @@ export class MomConversationView implements Component, Focusable {
 		this.asking = true;
 		this.editor.disableSubmit = true;
 		this.controller = new AbortController();
-		const exchange = { question } as { question: string; answer?: string; error?: string };
+		const exchange: MomExchange = { question };
 		this.exchanges.push(exchange);
 		this.notice = "Reading the saved map and its sources…";
 		this.scroll = Number.POSITIVE_INFINITY;
@@ -224,6 +223,7 @@ export class MomConversationView implements Component, Focusable {
 			this.theme.fg("muted", "Ask about the work here. Questions and answers stay out of the lead conversation."), "",
 		];
 		if (view.error) lines.push(...wrap(this.theme.fg("warning", view.error)), "");
+		if (view.note) lines.push(...wrap(this.theme.fg("accent", `Mom's note: ${clean(view.note)}`)), "");
 		if (view.work?.endeavors.length) lines.push(...hierarchy(view.work, this.theme, width, false));
 		else lines.push(...wrap(this.theme.fg("muted", fallback(view.summary) || "No saved work yet. Mom can answer after the map has a saved view.")));
 		for (const exchange of this.exchanges) {
@@ -242,7 +242,7 @@ export class MomConversationView implements Component, Focusable {
 		const footer = [
 			...(this.notice ? [clip(this.theme.fg("dim", this.notice), w)] : []),
 			...editor,
-			clip(this.theme.fg("dim", `${this.asking ? "Ctrl+X cancel · " : ""}Enter ask · Esc or Alt+T return to lead · PgUp/PgDn scroll · Ctrl+End latest`), w),
+			clip(this.theme.fg("dim", `${this.asking ? "Ctrl+X cancel · " : ""}Enter ask · Esc or Alt+J return to lead · PgUp/PgDn scroll · Ctrl+End latest`), w),
 		];
 		this.pageRows = Math.max(1, height - footer.length);
 		const content = this.content(w);
