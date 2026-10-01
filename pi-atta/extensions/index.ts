@@ -5,7 +5,7 @@
  * highlighted selection, word-wrapped preview pane with scrollbar.
  */
 
-import type { ExtensionAPI, ExtensionContext, Theme } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext, Theme } from "@earendil-works/pi-coding-agent";
 import type { Component, TUI } from "@earendil-works/pi-tui";
 import { Key, matchesKey, Input, wrapTextWithAnsi } from "@earendil-works/pi-tui";
 import { execSync } from "node:child_process";
@@ -274,7 +274,7 @@ class SessionPickerModal implements Component {
 
 	private loadPreview() {
 		const s = this.filtered[this.sel];
-		if (!s) { this.previewMsgs = []; this.previewRendered = []; this.previewId = null; this.previewScroll = 0; return; }
+		if (!s) { this.previewMsgs = []; this.previewId = null; this.previewScroll = 0; return; }
 		if (s.id === this.previewId) return;
 		this.previewId = s.id;
 		// -1 = sentinel: pin to latest (bottom) on next render
@@ -472,16 +472,17 @@ export default function attaExtension(pi: ExtensionAPI): void {
 		let recentAt = 0;
 
 		ctx.ui.onTerminalInput((data) => {
-			if (data !== "@") return;
+			if (data !== "@") return undefined;
 			const now = Date.now();
 			if (now - recentAt < 500) {
 				recentAt = 0;
 				showPicker(ctx).then(({ session, leftover }) => {
 					if (session) insertRef(ctx, session, leftover);
 				}).catch(() => {});
-				return;
+				return undefined;
 			}
 			recentAt = now;
+			return undefined;
 		});
 	});
 

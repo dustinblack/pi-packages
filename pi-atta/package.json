@@ -18,10 +18,12 @@
     "LICENSE"
   ],
   "peerDependencies": {
-    "@mariozechner/pi-ai": "*",
-    "@mariozechner/pi-agent-core": "*",
-    "@mariozechner/pi-coding-agent": "*",
-    "@mariozechner/pi-tui": "*"
+    "@earendil-works/pi-coding-agent": ">=0.99.1 <0.100.0",
+    "@earendil-works/pi-tui": ">=0.99.1 <0.100.0"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "0.99.1",
+    "@earendil-works/pi-tui": "0.99.1"
   },
   "pi": {
     "extensions": [

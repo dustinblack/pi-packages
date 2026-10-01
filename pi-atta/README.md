@@ -77,8 +77,8 @@ The model can use the `session_query` tool (from pi-huddle or similar) to query 
 ## Requirements
 
 - pi with extension support
-- `@mariozechner/pi-coding-agent` (for SessionManager)
-- `@mariozechner/pi-tui` (for UI components)
+- `@earendil-works/pi-coding-agent` (for SessionManager)
+- `@earendil-works/pi-tui` (for UI components)
 
 ## License
 
