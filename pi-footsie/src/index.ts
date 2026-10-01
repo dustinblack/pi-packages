@@ -1,6 +1,5 @@
 import os from "node:os";
-import { readFileSync } from "node:fs";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { VERSION, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 const VULGARITY_REGEX = /\b(fuck|fucking|fucked|shit|shitty|damn|bitch|asshole|wtf|bullshit|crap|dick|piss|motherfucker)\b/gi;
 
@@ -42,20 +41,8 @@ function countVulgarityUsage(ctx: any): number {
   return count;
 }
 
-let cachedPiVersion: string | null = null;
-
 function getPiVersion(): string {
-  if (cachedPiVersion !== null) return cachedPiVersion;
-  try {
-    // Read version from Pi's package.json
-    const packageJsonPath = "/Users/ssweens/.bun/install/global/node_modules/@earendil-works/pi-coding-agent/package.json";
-    const content = readFileSync(packageJsonPath, "utf8");
-    const pkg = JSON.parse(content);
-    cachedPiVersion = pkg.version || "unknown";
-  } catch {
-    cachedPiVersion = "unknown";
-  }
-  return cachedPiVersion;
+  return VERSION || "unknown";
 }
 
 function compactHost(hostname: string): string {
