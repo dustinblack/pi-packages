@@ -36,4 +36,4 @@ Closing commit `16dd624`. Validated in a clean worktree with real npm: typecheck
 - Native open, undecorated steer and close/park without archive/delete/cancel are tested in `test/acp-native.test.ts`.
 - Per-message author is always `unknown`: the export has no author field.
 - Prior native Amp evidence: todos 029 and 021.
-- Code-review findings on this slice (#7: an over-bound first message loses its tail) are being fixed separately. Prior native Amp evidence is in todos 029 and 021.
+- Code-review findings on this slice (#7: an over-bound first message loses its tail) are being fixed separately.
