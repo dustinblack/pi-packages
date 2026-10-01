@@ -271,6 +271,11 @@ export class PiAcpSession {
   // Some pi events can arrive out of order (e.g. late toolcall_* deltas after execution starts),
   // and clients may hide progress if we ever downgrade back to `pending`.
   private currentToolCalls = new Map<string, 'pending' | 'in_progress'>()
+  // Pi >=0.99 JSON/RPC `message_update` records are delta-only: `toolcall_start` carries
+  // `id`/`toolName`, `toolcall_delta` carries only `contentIndex` + serialized argument text,
+  // and only `toolcall_end` carries the complete `toolCall`. Buffer per content block so
+  // streaming deltas can still be attributed to their tool call.
+  private streamingToolCalls = new Map<number, { id: string; name: string; argsText: string }>()
 
   // pi can emit multiple `turn_end` and `agent_end` events for a single user prompt
   // when retry, compaction, or queued continuations run. The session-level prompt
@@ -544,21 +549,31 @@ export class PiAcpSession {
         // Surface tool calls ASAP so clients (e.g. Zed) can show a tool-in-use/loading UI
         // while the model is still streaming tool call args.
         if (ame?.type === 'toolcall_start' || ame?.type === 'toolcall_delta' || ame?.type === 'toolcall_end') {
+          const contentIndex = typeof (ame as any)?.contentIndex === 'number' ? (ame as any).contentIndex : 0
+          const streamed = this.streamingToolCalls.get(contentIndex)
           const toolCall =
-            // pi sometimes includes the tool call directly on the event
+            // `toolcall_end` includes the complete tool call directly on the event
             (ame as any)?.toolCall ??
-            // ...and always includes it in the partial assistant message at contentIndex
-            (ame as any)?.partial?.content?.[(ame as any)?.contentIndex ?? 0]
+            // pi <0.99 also included it in the cumulative partial assistant message
+            (ame as any)?.partial?.content?.[contentIndex]
 
-          const toolCallId = String((toolCall as any)?.id ?? '')
-          const toolName = String((toolCall as any)?.name ?? 'tool')
+          const toolCallId = String((toolCall as any)?.id ?? (ame as any)?.id ?? streamed?.id ?? '')
+          const toolName = String((toolCall as any)?.name ?? (ame as any)?.toolName ?? streamed?.name ?? 'tool')
+
+          // pi >=0.99 delta-only stream: accumulate serialized argument fragments ourselves.
+          let argsText = ame?.type === 'toolcall_start' ? '' : (streamed?.argsText ?? '')
+          if (!toolCall && ame?.type === 'toolcall_delta' && typeof (ame as any).delta === 'string') {
+            argsText += (ame as any).delta
+          }
+          if (ame?.type === 'toolcall_end') this.streamingToolCalls.delete(contentIndex)
+          else if (toolCallId) this.streamingToolCalls.set(contentIndex, { id: toolCallId, name: toolName, argsText })
 
           if (toolCallId) {
             const rawInput =
               (toolCall as any)?.arguments && typeof (toolCall as any).arguments === 'object'
                 ? (toolCall as any).arguments
                 : (() => {
-                    const s = String((toolCall as any)?.partialArgs ?? '')
+                    const s = String((toolCall as any)?.partialArgs ?? argsText)
                     if (!s) return undefined
                     try {
                       return JSON.parse(s)
@@ -774,6 +789,7 @@ export class PiAcpSession {
 
       case 'message_end': {
         const message = (ev as any).message
+        if (message?.role === 'assistant') this.streamingToolCalls.clear()
         if (message?.role === 'assistant' && message?.stopReason === 'error') {
           const detail = typeof message.errorMessage === 'string' ? message.errorMessage : 'Pi provider failed without an error message.'
           this.turnError = new Error(detail)

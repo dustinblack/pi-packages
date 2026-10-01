@@ -956,6 +956,11 @@ var PiAcpSession = class {
   // Some pi events can arrive out of order (e.g. late toolcall_* deltas after execution starts),
   // and clients may hide progress if we ever downgrade back to `pending`.
   currentToolCalls = /* @__PURE__ */ new Map();
+  // Pi >=0.99 JSON/RPC `message_update` records are delta-only: `toolcall_start` carries
+  // `id`/`toolName`, `toolcall_delta` carries only `contentIndex` + serialized argument text,
+  // and only `toolcall_end` carries the complete `toolCall`. Buffer per content block so
+  // streaming deltas can still be attributed to their tool call.
+  streamingToolCalls = /* @__PURE__ */ new Map();
   // pi can emit multiple `turn_end` and `agent_end` events for a single user prompt
   // when retry, compaction, or queued continuations run. The session-level prompt
   // completes only when `agent_settled` is emitted.
@@ -1145,16 +1150,24 @@ var PiAcpSession = class {
           break;
         }
         if (ame?.type === "toolcall_start" || ame?.type === "toolcall_delta" || ame?.type === "toolcall_end") {
+          const contentIndex = typeof ame?.contentIndex === "number" ? ame.contentIndex : 0;
+          const streamed = this.streamingToolCalls.get(contentIndex);
           const toolCall = (
-            // pi sometimes includes the tool call directly on the event
-            ame?.toolCall ?? // ...and always includes it in the partial assistant message at contentIndex
-            ame?.partial?.content?.[ame?.contentIndex ?? 0]
+            // `toolcall_end` includes the complete tool call directly on the event
+            ame?.toolCall ?? // pi <0.99 also included it in the cumulative partial assistant message
+            ame?.partial?.content?.[contentIndex]
           );
-          const toolCallId = String(toolCall?.id ?? "");
-          const toolName = String(toolCall?.name ?? "tool");
+          const toolCallId = String(toolCall?.id ?? ame?.id ?? streamed?.id ?? "");
+          const toolName = String(toolCall?.name ?? ame?.toolName ?? streamed?.name ?? "tool");
+          let argsText = ame?.type === "toolcall_start" ? "" : streamed?.argsText ?? "";
+          if (!toolCall && ame?.type === "toolcall_delta" && typeof ame.delta === "string") {
+            argsText += ame.delta;
+          }
+          if (ame?.type === "toolcall_end") this.streamingToolCalls.delete(contentIndex);
+          else if (toolCallId) this.streamingToolCalls.set(contentIndex, { id: toolCallId, name: toolName, argsText });
           if (toolCallId) {
             const rawInput = toolCall?.arguments && typeof toolCall.arguments === "object" ? toolCall.arguments : (() => {
-              const s = String(toolCall?.partialArgs ?? "");
+              const s = String(toolCall?.partialArgs ?? argsText);
               if (!s) return void 0;
               try {
                 return JSON.parse(s);
@@ -1337,6 +1350,7 @@ var PiAcpSession = class {
       }
       case "message_end": {
         const message = ev.message;
+        if (message?.role === "assistant") this.streamingToolCalls.clear();
         if (message?.role === "assistant" && message?.stopReason === "error") {
           const detail = typeof message.errorMessage === "string" ? message.errorMessage : "Pi provider failed without an error message.";
           this.turnError = new Error(detail);
