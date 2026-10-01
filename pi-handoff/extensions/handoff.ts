@@ -14,16 +14,16 @@
  */
 
 import { existsSync, readFileSync } from "node:fs";
-import { complete, type Message } from "@mariozechner/pi-ai";
+import { complete, type Message } from "@earendil-works/pi-ai/compat";
 import type {
 	ExtensionAPI,
 	ExtensionCommandContext,
 	ExtensionContext,
 	SessionEntry,
 	SessionHeader,
-} from "@mariozechner/pi-coding-agent";
-import { BorderedLoader, buildSessionContext, convertToLlm, serializeConversation } from "@mariozechner/pi-coding-agent";
-import { Type } from "@sinclair/typebox";
+} from "@earendil-works/pi-coding-agent";
+import { BorderedLoader, buildSessionContext, convertToLlm, serializeConversation } from "@earendil-works/pi-coding-agent";
+import { Type } from "typebox";
 
 // ---------------------------------------------------------------------------
 // System prompts

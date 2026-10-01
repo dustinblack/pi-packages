@@ -13,23 +13,24 @@
  */
 
 import { existsSync, mkdirSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import { Agent } from "@mariozechner/pi-agent-core";
-import { getModel } from "@mariozechner/pi-ai";
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import {
-	AgentSession,
-	AuthStorage,
+	type AgentSession,
+	createAgentSession,
 	createExtensionRuntime,
+	createSyntheticSourceInfo,
 	type Extension,
 	type ExtensionAPI,
 	type ExtensionCommandContext,
 	type ExtensionContext,
 	ModelRegistry,
+	ModelRuntime,
+	type ResourceLoader,
 	SessionManager,
 	SettingsManager,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 
 // Import the real extension and its system prompt
 import handoffExtension, { SYSTEM_PROMPT } from "../extensions/handoff.ts";
@@ -38,44 +39,23 @@ import handoffExtension, { SYSTEM_PROMPT } from "../extensions/handoff.ts";
 // Helpers
 // ---------------------------------------------------------------------------
 
+/** Pi's real auth storage, so stored API keys and OAuth credentials are available. */
+const REAL_AUTH_PATH = join(homedir(), ".pi", "agent", "auth.json");
+
 /**
  * Resolve API key from pi's auth storage (~/.pi/agent/auth.json).
- * Handles both plain API keys and OAuth credentials (with refresh).
+ * Handles both plain API keys and OAuth credentials (with refresh) through
+ * pi's ModelRuntime, which replaced AuthStorage/getOAuthApiKey.
  */
 async function resolveApiKey(provider: string): Promise<string | undefined> {
-	const { homedir } = await import("node:os");
-	const { join } = await import("node:path");
-	const { existsSync, readFileSync } = await import("node:fs");
-	const { getOAuthApiKey } = await import("@mariozechner/pi-ai");
-
-	const authPath = join(homedir(), ".pi", "agent", "auth.json");
-	if (!existsSync(authPath)) return undefined;
-
-	let storage: Record<string, any>;
+	if (!existsSync(REAL_AUTH_PATH)) return undefined;
+	const runtime = await ModelRuntime.create({ authPath: REAL_AUTH_PATH, refreshOnCreate: false });
 	try {
-		storage = JSON.parse(readFileSync(authPath, "utf-8"));
+		const result = await runtime.getAuth(provider);
+		return result?.auth.apiKey;
 	} catch {
 		return undefined;
 	}
-
-	const entry = storage[provider];
-	if (!entry) return undefined;
-
-	if (entry.type === "api_key") return entry.key;
-
-	if (entry.type === "oauth") {
-		const oauthCreds: Record<string, any> = {};
-		for (const [key, value] of Object.entries(storage)) {
-			if ((value as any).type === "oauth") {
-				const { type: _, ...creds } = value as any;
-				oauthCreds[key] = creds;
-			}
-		}
-		const result = await getOAuthApiKey(provider as any, oauthCreds);
-		return result?.apiKey;
-	}
-
-	return undefined;
 }
 
 const API_KEY = await resolveApiKey("anthropic");
@@ -128,9 +108,11 @@ function loadExtension(): { extension: Extension; pi: ExtensionAPI } {
 
 	handoffExtension(pi);
 
+	const resolvedPath = join(__dirname, "../extensions/handoff.ts");
 	const extension: Extension = {
 		path: "pi-handoff",
-		resolvedPath: join(__dirname, "../extensions/handoff.ts"),
+		resolvedPath,
+		sourceInfo: createSyntheticSourceInfo(resolvedPath, { source: "pi-handoff" }),
 		handlers,
 		tools,
 		messageRenderers: new Map(),
@@ -175,7 +157,7 @@ function createMockUI(overrides: Record<string, any> = {}) {
 	};
 }
 
-function createTestResourceLoader(extensions: Extension[] = []) {
+function createTestResourceLoader(extensions: Extension[] = [], systemPrompt?: string): ResourceLoader {
 	const runtime = createExtensionRuntime();
 	return {
 		getExtensions: () => ({ extensions, errors: [], runtime }),
@@ -183,9 +165,11 @@ function createTestResourceLoader(extensions: Extension[] = []) {
 		getPrompts: () => ({ prompts: [], diagnostics: [] }),
 		getThemes: () => ({ themes: [], diagnostics: [] }),
 		getAgentsFiles: () => ({ agentsFiles: [] }),
-		getSystemPrompt: () => undefined,
+		getSystemPrompt: () => systemPrompt,
+		getSystemPromptSource: () => undefined,
 		getAppendSystemPrompt: () => [],
-		getPathMetadata: () => new Map(),
+		getAppendSystemPromptSources: () => [],
+		extendResources: () => {},
 		reload: async () => {},
 	};
 }
@@ -1461,32 +1445,22 @@ describe.skipIf(!API_KEY)("Handoff e2e (real LLM)", () => {
 
 	it("compact hook generates real handoff prompt and switches session", async () => {
 		const { extension } = loadExtension();
-		const model = getModel("anthropic", "claude-haiku-4-5")!;
 		const sessionManager = SessionManager.create(tempDir);
 		const settingsManager = SettingsManager.create(tempDir, tempDir);
-		// Use pi's real auth storage so OAuth credentials are available
-		const { homedir } = await import("node:os");
-		const realAuthPath = join(homedir(), ".pi", "agent", "auth.json");
-		const authStorage = AuthStorage.create(realAuthPath);
-		const modelRegistry = new ModelRegistry(authStorage);
+		const modelRuntime = await ModelRuntime.create({ authPath: REAL_AUTH_PATH, refreshOnCreate: false });
+		const model = modelRuntime.getModel("anthropic", "claude-haiku-4-5")!;
+		const modelRegistry = new ModelRegistry(modelRuntime);
 
-		const agent = new Agent({
-			getApiKey: () => API_KEY!,
-			initialState: {
-				model,
-				systemPrompt: "Be concise.",
-				tools: [],
-			},
-		});
-
-		session = new AgentSession({
-			agent,
+		({ session } = await createAgentSession({
+			cwd: tempDir,
+			agentDir: tempDir,
+			modelRuntime,
+			model,
+			noTools: "all",
 			sessionManager,
 			settingsManager,
-			cwd: tempDir,
-			modelRegistry,
-			resourceLoader: createTestResourceLoader([extension]),
-		});
+			resourceLoader: createTestResourceLoader([extension], "Be concise."),
+		}));
 
 		// Build conversation
 		await session.prompt("I'm building an OAuth2 authentication module in src/auth.ts. I've implemented the token exchange flow and refresh logic. The next step is adding PKCE support for public clients. Keep replies brief.");
@@ -1503,8 +1477,7 @@ describe.skipIf(!API_KEY)("Handoff e2e (real LLM)", () => {
 			custom: mock(async (factory: any) => {
 				// We can't run the real BorderedLoader in tests,
 				// but we CAN call complete() directly
-				const { complete: realComplete } = await import("@mariozechner/pi-ai");
-				const { buildSessionContext, convertToLlm, serializeConversation } = await import("@mariozechner/pi-coding-agent");
+				const { buildSessionContext, convertToLlm, serializeConversation } = await import("@earendil-works/pi-coding-agent");
 
 				// Use buildSessionContext (compaction-aware) — same as the real extension
 				const branch = sessionManager.getBranch();
@@ -1512,7 +1485,7 @@ describe.skipIf(!API_KEY)("Handoff e2e (real LLM)", () => {
 				const { messages: msgs } = buildSessionContext(branch, leafId);
 				const text = serializeConversation(convertToLlm(msgs));
 
-				const response = await realComplete(
+				const response = await modelRuntime.complete(
 					model,
 					{
 						systemPrompt: SYSTEM_PROMPT,
