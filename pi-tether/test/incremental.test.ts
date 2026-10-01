@@ -22,6 +22,9 @@ test("the update contract carries the fixed chapter-state schema, provisional ch
 	assert.match(MOM_PROMPT, /Compare consecutive chapter states and the prior graph, then commit only material differences/);
 	assert.match(MOM_PROMPT, /one commit_graph transaction carries the whole diff/);
 	assert.match(MOM_PROMPT, /trailing chapter of a live batch is provisional/);
+	assert.match(MOM_PROMPT, /A bootstrap backlog is the whole session so far, so cover it/);
+	assert.match(MOM_PROMPT, /host fixes the root intent to the opening lead request verbatim/);
+	assert.match(MOM_PROMPT, /never promote a claim into an observation or a settled state/);
 	assert.match(MOM_PROMPT, /never a second ledger — they are written nowhere except the graph, and no record may exist per message, event, or tool result/);
 	assert.match(MOM_PROMPT, /the raw events win, and every changed claim must cite its raw source/);
 	// 038's narrowing obligation and 049's bounded-backlog chapter chain stay intact.

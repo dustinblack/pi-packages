@@ -70,7 +70,8 @@ test("later user evidence does not discard prior user authority", () => {
 	const result = acceptGraph(update, baseline, "one", known, new Set([second.ref]), new Set());
 	assert.deepEqual(result.graph.nodes.find(node => node.id === main.id)?.sources, [second.ref, first.ref]);
 	assert.equal((result.graph.nodes[0] as any).supersessions, undefined);
-	assert.deepEqual(result.repairs, [{ from: main.id, to: first.ref }]);
+	assert.equal(result.graph.nodes[0]?.intent, first.text, "the root intent stays the opening request; a later direction belongs in a child");
+	assert.deepEqual(result.repairs, [{ from: main.id, to: first.ref }, { from: `${main.id} intent`, to: "the opening request" }]);
 });
 
 test("batch-12 source, fold, and independently provable disposition defects are reported together", () => {

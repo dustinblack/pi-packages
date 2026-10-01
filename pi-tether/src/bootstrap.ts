@@ -129,7 +129,8 @@ function chapterBlock(chapter: Chapter, budget: number): string {
 	if (chapter.lastTodo) lines.push({ text: cite("TODO@end", chapter.lastTodo), rank: 0 });
 	if (chapter.closingClaim) {
 		const placeholder = /remote compaction applied/i.test(chapter.closingClaim.text);
-		lines.push({ text: cite(placeholder ? "CLAIM(placeholder — no content; inspect raw chapter)" : "CLAIM", chapter.closingClaim, CLAIM_CHARS), rank: 0 });
+		// The closing claim is the provider's summary: context for the chapter, never citable evidence.
+		lines.push({ text: `  ${placeholder ? "CLAIM(placeholder — no content)" : "CLAIM"} ${clamp(flat(chapter.closingClaim.text), CLAIM_CHARS)}`, rank: 0 });
 	} else if (!chapter.closingCompactions) {
 		const final = chapter.recentAssistants.at(-1);
 		for (const assistant of chapter.recentAssistants) lines.push({ text: cite(assistant === final ? "last assistant text" : "recent assistant text", assistant, ASSISTANT_CHARS), rank: 0 });
@@ -160,7 +161,7 @@ function chapterBlock(chapter: Chapter, budget: number): string {
  * 2-direction one.
  */
 export function chapterDigest(chapters: readonly Chapter[], policy: BootstrapPolicy): string | undefined {
-	const header = "BOOTSTRAP CHAPTER CHAIN — recorded evidence compressed by the host with source pointers. No semantic judgment is added; synthesize the work map from these directions, files, todo states and closing claims.";
+	const header = "BOOTSTRAP CHAPTER CHAIN — recorded evidence compressed by the host with source pointers. No semantic judgment is added; synthesize the work map from these directions, files and todo states; closing CLAIM lines are provider summaries for orientation and carry no citable source.";
 	const full = chapters.map(chapter => chapterBlock(chapter, Number.POSITIVE_INFINITY));
 	let remaining = policy.maxDigestChars - header.length - 2 * (chapters.length + 1), left = chapters.length;
 	const budgets = new Array<number>(chapters.length);

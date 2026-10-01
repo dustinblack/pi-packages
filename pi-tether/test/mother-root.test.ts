@@ -80,8 +80,11 @@ test("the host assigns public Why provenance while intent remains free text", ()
 	assert.throws(() => acceptGraph({ ...transaction, upsertNodes: [{ ...root, rationale: "Because efficiency demands it." }, rule] }, emptyGraph(), undefined,
 		known, new Set(known.keys()), new Set()), /Invalid graph transaction shape/);
 	const genericOverlap = { ...transaction, upsertNodes: [node("mother", null, "active", user.ref, "Keep this original goal for an unrelated deployment."), rule] };
-	assert.equal(acceptGraph(genericOverlap, emptyGraph(), undefined, known, new Set(known.keys()), new Set()).graph.nodes[0]?.intent,
-		"Keep this original goal for an unrelated deployment.");
+	const fixedRoot = acceptGraph(genericOverlap, emptyGraph(), undefined, known, new Set(known.keys()), new Set());
+	assert.equal(fixedRoot.graph.nodes[0]?.intent, user.text, "the root intent is the opening request verbatim, not the model's paraphrase");
+	assert.deepEqual(fixedRoot.repairs, [{ from: "mother intent", to: "the opening request" }]);
+	const rewrittenRoot = acceptGraph({ ...transaction, upsertNodes: [{ ...root, intent: "Something else now." }, rule] }, fixedRoot.graph, "saved", known, new Set(), new Set());
+	assert.equal(rewrittenRoot.graph.nodes[0]?.intent, user.text, "a continuation cannot rewrite the root intent");
 	const paraphrasedRule = { ...transaction, upsertNodes: [root, { ...rule, intent: "Never publish or finish this task." }] };
 	assert.equal(acceptGraph(paraphrasedRule, emptyGraph(), undefined, known, new Set(known.keys()), new Set()).graph.nodes[1]?.intent,
 		"Never publish or finish this task.");

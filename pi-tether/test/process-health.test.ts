@@ -81,3 +81,11 @@ test("resolution is explicit and a later recurrence requires genuinely new evide
 	const note = { text: "Commit the new release changes before more work makes them harder to recover.", riskClass: "uncommitted_work", target: "main", riskRefs: recur.map(x => x.ref), actionRefs: [recur[0].ref] };
 	assert.deepEqual(accept(note, recur, ["s:pile2"]).note, note);
 });
+
+test("unfinished declarations are dropped as a repair when the transaction closes no endeavor", () => {
+	const known = new Map([[purpose.ref, purpose]]);
+	const noise = { ...base, unfinished: [{ node: "main", label: "Main purpose", disposition: "carried", target: "main", sources: [purpose.ref] }] };
+	const result = acceptGraph(noise, graph, "saved", known, new Set(), new Set());
+	assert.deepEqual(result.graph.nodes.map(node => node.id), ["main"], "the map is intact, not rejected");
+	assert.deepEqual(result.repairs.filter(item => item.from.startsWith("unfinished ")), [{ from: "unfinished main", to: "dropped: this transaction closes no endeavor" }]);
+});

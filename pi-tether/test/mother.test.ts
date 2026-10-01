@@ -192,16 +192,16 @@ test("pending failed-update and skipped-gap recovery are never screened", { time
 		h.api.onUnscripted((request) => {
 			if (!isMomRequest(request)) return { text: "Lead continued." };
 			const ref = input(request).original.ref;
-			return reject ? replacement(request, { unfinished: [{ node: "main", label: "Main purpose", disposition: "carried", target: "main", sources: [ref] }] })
+			return reject ? replacement(request, { folds: [{ thread: "ghost", reason: "Deterministic test defect.", sources: [ref] }] })
 				: replacement(request);
 		});
 		await h.runtime.session.prompt("This range will fail deterministically.");
-		await assert.rejects(() => mom.update(), /closes no endeavor/);
+		await assert.rejects(() => mom.update(), /needs an endeavor from the previous saved map/);
 		assert.equal(screens, 1, "the ordinary batch screened before Mom's model ran");
 		assert.equal(mom.failure?.failures, 1);
 		await h.runtime.session.prompt("Newer evidence forces the pending recovery.");
 		const calls = h.requests().length;
-		await assert.rejects(() => mom.update(), /closes no endeavor/);
+		await assert.rejects(() => mom.update(), /needs an endeavor from the previous saved map/);
 		assert.equal(screens, 1, "a pending failed-update recovery is never screened");
 		assert.equal(h.requests().length, calls + 2, "recovery runs without a screen");
 		assert.equal(mom.gaps.length, 1);
@@ -295,9 +295,9 @@ test("a rejected background proposal gets one aggregated repair and background e
 			assert.deepEqual(request.tools.map((tool: any) => tool.function.name), ["commit_graph"]);
 			if (attempts++ === 0) {
 				const ref = input(request).original.ref;
-				return replacement(request, { unfinished: [{ node: "main", label: "Main purpose", disposition: "carried", target: "main", sources: [ref] }] });
+				return replacement(request, { folds: [{ thread: "ghost", reason: "Deterministic test defect.", sources: [ref] }] });
 			}
-			assert.match(JSON.stringify(request.messages), /transaction closes no endeavor.*Correct all reported defects.*1 model call remains/s);
+			assert.match(JSON.stringify(request.messages), /needs an endeavor from the previous saved map.*Correct all reported defects.*1 model call remains/s);
 			return replacement(request);
 		});
 		await mom.open(); await mom.update();
@@ -315,16 +315,16 @@ test("background failure waits for new material, gaps the second deterministic f
 			if (!isMomRequest(request)) return { text: "Lead continued." };
 			if (!reject) return replacement(request);
 			const ref = input(request).original.ref;
-			return replacement(request, { unfinished: [{ node: "main", label: "Main purpose", disposition: "carried", target: "main", sources: [ref] }] });
+			return replacement(request, { folds: [{ thread: "ghost", reason: "Deterministic test defect.", sources: [ref] }] });
 		});
 		await h.runtime.session.prompt("This range will fail deterministically."); reject = true;
 		const before = h.requests().length;
-		await assert.rejects(() => mom.update(), /closes no endeavor/);
+		await assert.rejects(() => mom.update(), /needs an endeavor from the previous saved map/);
 		assert.equal(h.requests().length, before + 2); assert.equal(mom.failure?.failures, 1); assert.equal(mom.gaps.length, 0);
 		await mom.update();
 		assert.equal(h.requests().length, before + 2, "no newer boundary means no immediate retry");
 		await h.runtime.session.prompt("Newer evidence must remain available after the skipped range.");
-		await assert.rejects(() => mom.update(), /closes no endeavor/);
+		await assert.rejects(() => mom.update(), /needs an endeavor from the previous saved map/);
 		assert.equal(h.requests().length, before + 4); assert.equal(mom.failure, undefined); assert.equal(mom.gaps.length, 1);
 		assert.equal((await readSidecar(h)).filter(record => record.type === "map" && record.data.gap?.action === "open").length, 1);
 		assert.equal(mom.detail().skippedEvidence.length, 1); assert.equal(mom.detail().sessionUsage.calls, before + 4);
@@ -486,10 +486,10 @@ test("a sidecar failure while opening a deterministic gap skips nothing and reta
 			if (!isMomRequest(request)) return { text: "Lead continued." };
 			if (!reject) return replacement(request);
 			const ref = input(request).original.ref;
-			return replacement(request, { unfinished: [{ node: "main", label: "Main purpose", disposition: "carried", target: "main", sources: [ref] }] });
+			return replacement(request, { folds: [{ thread: "ghost", reason: "Deterministic test defect.", sources: [ref] }] });
 		});
 		await h.runtime.session.prompt("Fail this exact range."); reject = true;
-		await assert.rejects(() => mom.update(), /closes no endeavor/);
+		await assert.rejects(() => mom.update(), /needs an endeavor from the previous saved map/);
 		const before = mom.checkpoint?.cut;
 		await h.runtime.session.prompt("Newer evidence survives the failed gap write."); failGap = true;
 		await assert.rejects(() => mom.update(), /Injected gap append failure/);

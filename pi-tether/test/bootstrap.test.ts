@@ -150,7 +150,7 @@ test("chapter segmentation and the digest are deterministic and carry pointers",
 	assert.match(digest, /BOOTSTRAP CHAPTER CHAIN/);
 	assert.match(digest, /\[src:s0:a1\] Ship the release safely\./);
 	assert.match(digest, /\[src:s0:a4\] Now investigate the failing upload\./);
-	assert.match(digest, /CLAIM \[src:s0:a3\] Release chapter closed\./);
+	assert.match(digest, /CLAIM Release chapter closed\./);
 });
 
 test("chapter schema preserves closing state, provisional diagnosis, file dedupe, and bounded fallback", () => {
@@ -170,7 +170,7 @@ test("chapter schema preserves closing state, provisional diagnosis, file dedupe
 	const digest = chapterDigest(chapters, DEFAULT_BOOTSTRAP_POLICY)!;
 	assert.match(digest, /TODO@end \[src:s:t2\] comp: Final state/);
 	assert.doesNotMatch(digest, /First state/);
-	assert.match(digest, /CLAIM\(placeholder — no content; inspect raw chapter\) \[src:s:c\]/);
+	assert.match(digest, /CLAIM\(placeholder — no content\)/);
 	assert.match(digest, /file \[src:s:f0\] \/repo\/f0\.ts \(write×2\)/);
 	assert.match(digest, /file \[src:s:f13\] \/repo\/f13\.ts \(write×1\)/, "under budget every touched file is listed");
 	assert.match(digest, /last assistant text \[src:s:a\] No active sidecar/);
@@ -205,7 +205,7 @@ test("chapter budget is fair-shared by demand: a small chapter keeps its block, 
 	const digest = chapterDigest(chapters, { ...DEFAULT_BOOTSTRAP_POLICY, maxDigestChars: 12000 })!;
 	const [, bigBlock] = digest.split(/^Chapter 2 /m);
 	assert.ok(bigBlock.length > 6000, `the heavy chapter receives most of the budget (${bigBlock.length} chars)`);
-	assert.match(digest, /CLAIM \[src:a:c\] done/);
+	assert.match(digest, /CLAIM done/);
 });
 
 test("a single-window backlog keeps the ordinary path: no compression, no bootstrap", { timeout: 60000 }, async () => {

@@ -58,3 +58,11 @@ test("acceptGraph still rejects a stray-space source whose stripped form is ambi
 	const evidence = new Map([...known, [other, { ...event, ref: other } as FeedEvent]]);
 	assert.throws(() => accept({ ...transaction, upsertNodes: [{ ...root, sources: [spaced], purposeSource: spaced }] }, evidence), /Unknown or unobserved source/);
 });
+
+test("acceptGraph drops an invented source when the record keeps observed evidence", () => {
+	const invented = "01a0e020-12a4-7474-819f-ad784bb5febd:6b477779";
+	const result = accept({ ...transaction, upsertNodes: [{ ...root, sources: [observed, invented], purposeSource: observed, observed: `Requested [src:${observed}] and [src:${invented}].` }] });
+	assert.deepEqual(result.graph.nodes[0]?.sources, [observed]);
+	assert.equal(result.graph.nodes[0]?.observed, `Requested [src:${observed}] and .`);
+	assert.deepEqual(result.repairs, [{ from: invented, to: "dropped: unobserved citation" }, { from: invented, to: "dropped: unobserved source" }]);
+});

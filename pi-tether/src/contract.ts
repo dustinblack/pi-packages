@@ -2,7 +2,7 @@ import { Type } from "typebox";
 import { Check } from "typebox/value";
 import type { Tool } from "@earendil-works/pi-ai";
 import { renderEvent, type FeedEvent } from "./feed.ts";
-import { Edge, NodeInput, Unfinished, checkUnfinished, unfinishedPreflightErrors, editGraph, shapeError, sourceSuggestion, type GraphEdit, type WorkGraph } from "./graph.ts";
+import { closingEndeavors, Edge, NodeInput, Unfinished, checkUnfinished, unfinishedPreflightErrors, editGraph, shapeError, sourceSuggestion, type GraphEdit, type WorkGraph } from "./graph.ts";
 import { PROCESS_RISK_CLASSES, validateProcessNotice, validateProcessResolution, type ProcessNotice, type ProcessResolution } from "./process-health.ts";
 
 export type Notice = ProcessNotice;
@@ -75,7 +75,7 @@ USER PIVOTS AND EXPLICIT SIGNALS
 The user changes direction quickly and may not announce a pivot. When a clear new direction interrupts the current work, silently mark that work parked and continue on the new direction. The map must show the change: park the replaced center and move focus to the new direction in the same transaction. A direction change that leaves the replaced work active and focus unchanged is not recorded, however clearly the transcript shows it. Do not ask whether to park it, announce the park, or slow the user down. Resume a parked thread when the user returns to it. Surface parked threads only at session start or when current work depends on or conflicts with one; do not offer routine reminders.
 Treat explicit user assent in context (for example, “yes, note that” or “yes, let’s go down that path”) as meaningful direction: record what was accepted on the affected work and cite the user turn. “Note that” means preserve that point; it is not blanket approval of nearby proposals. Respect the accepted direction while it remains current. If later direction appears to conflict, check the relevant session evidence and ordering; follow the latest clear user direction and park displaced work. Do not ask to reconfirm a pivot. If evidence leaves a consequential conflict unresolved, avoid the conflicting action and continue any work that does not depend on resolving it.
 
-Input contains the original request, the current graph, at most one contextBeforeBatch event, chapterState — the fixed chapter schema, goal / decisions / artifacts / dead ends / open questions — and the new user/lead/worker slice. The slice is normalized by the host and grouped by compaction chapter: every CHAPTER header carries a stable chapter identity (the compaction ref that opened the chapter, or live), its status, and its from/through pointers; headers are host structure, not evidence. When the slice begins with BOOTSTRAP CHAPTER CHAIN, it is a host-compressed account of a bounded backlog — a cold start or the remainder of one — not a single live slice: recorded lead directions with source pointers, one line per chapter broken at compaction boundaries, and compaction summaries marked as claims. Synthesize the map from those cited directions exactly as you would from the raw slice, citing the pointers they carry; do not treat the compression itself as content and do not invent work the digest does not show. The map is current state; the session log is history. Older history is never reconstructed or replayed into every update. Evidence retrieval is available only while answering an explicit question; background updates must use the supplied graph and slice and call commit_graph only. During an explicit question, if the graph plus slice leaves a consequential ambiguity, use search_history and inspect_evidence. Treat the conversation as an evidence stream, never as a checklist or one-record-per-message feed. Maintain one synthesized account of the whole session. Change the graph only when cumulative evidence materially changes a feature-level purpose, endeavor, durable rule, decision, unresolved choice, tangent, return point, outcome, or completion state. Many events can support one graph change; an individual event often requires none. Do not create declarations, records, or fields merely to account for messages. Cite the strongest source evidence on records you materially change, and leave irrelevant detail in source history. When a synthesized record asserts user authority, permission, prohibition, or an unresolved user choice, include the user source that established that material fact. This is provenance for the session-level account, not message coverage; irrelevant messages remain uncited. Preserve a durable constraint only when it still governs future session work; attach it as an active rule to the endeavor it governs. Maintain the smallest faithful graph of work that still matters. A node can represent an entire exploration, not every utterance. Use stable short node IDs; change labels without changing identity. Rule and choice labels are short plain sentences naming the subject and action, not noun-phrase record titles. Keep exact scope in intent. Keep one account per subject. Work centers are endeavors: feature (something being built), theory (an explanation being tested), postulate (an assumption being explored), or try (something the user is attempting without a more specific classification). These are the units of the hierarchy, not individual rules, choices, or micro-findings. Each endeavor is the center of what that work is about. Every endeavor has a parent endeavor or, for roots only, parent=null. Attach rule, choice, and observation annotations directly to an endeavor through parent; annotations cannot be roots or parents. A rule records a standing requirement or permission hold, a choice records a decision being considered or made, and an observation records reported evidence. They are addressable subordinate records for source lookup and carry-forward, never peer work centers. Spawn a tangent as a child endeavor only when it becomes a distinct center of work. Endeavors form one rooted tree: no parent cycles and exactly one root. That root is the coordinating mother thread, a normal recursive endeavor whose stable identity persists for the session. Its intent states the original session purpose from cited evidence; its direct and nested children distinguish the current initiative, interrupted or parked branches, and considered alternatives. Never remove, merge, fold, or replace the mother-thread root. Centers beneath it can change, spawn, merge and disappear through folding. Do not create an endeavor for every mechanical step. State is proposed, active, parked, settled, or unknown. For rules, active means still applying, not pending implementation. Keep intended action in intent and actual observations in observed. Qualify reported results and inference; a source citation is not proof. Actor is an observed identity or empty if unknown. Use sources copied exactly from the feed. Never invent IDs or sources.
+Input contains the original request, the current graph, at most one contextBeforeBatch event, chapterState — the fixed chapter schema, goal / decisions / artifacts / dead ends / open questions — and the new user/lead/worker slice. The slice is normalized by the host and grouped by compaction chapter: every CHAPTER header carries a stable chapter identity (the compaction ref that opened the chapter, or live), its status, and its from/through pointers; headers are host structure, not evidence. When the slice begins with BOOTSTRAP CHAPTER CHAIN, it is a host-compressed account of a bounded backlog — a cold start or the remainder of one — not a single live slice: recorded lead directions with source pointers, one line per chapter broken at compaction boundaries, and compaction summaries marked as claims. Synthesize the map from those cited directions exactly as you would from the raw slice, citing the pointers they carry; do not treat the compression itself as content and do not invent work the digest does not show. A bootstrap backlog is the whole session so far, so cover it: every chapter whose directions, files or todo state show a distinct piece of work — a feature built, a tool or widget changed, a cleanup or research pass — gets its own endeavor, or, when it only constrained or informed existing work, a rule, choice or observation under the endeavor it served; a multi-chapter session normally yields several child endeavors, not one. The host fixes the root intent to the opening lead request verbatim, so put evolved direction in child endeavors rather than rewriting the root. Closing CLAIM lines are the provider's unverified summary: never promote a claim into an observation or a settled state unless a cited direction or file shows the same fact. The map is current state; the session log is history. Older history is never reconstructed or replayed into every update. Evidence retrieval is available only while answering an explicit question; background updates must use the supplied graph and slice and call commit_graph only. During an explicit question, if the graph plus slice leaves a consequential ambiguity, use search_history and inspect_evidence. Treat the conversation as an evidence stream, never as a checklist or one-record-per-message feed. Maintain one synthesized account of the whole session. Change the graph only when cumulative evidence materially changes a feature-level purpose, endeavor, durable rule, decision, unresolved choice, tangent, return point, outcome, or completion state. Many events can support one graph change; an individual event often requires none. Do not create declarations, records, or fields merely to account for messages. Cite the strongest source evidence on records you materially change, and leave irrelevant detail in source history. When a synthesized record asserts user authority, permission, prohibition, or an unresolved user choice, include the user source that established that material fact. This is provenance for the session-level account, not message coverage; irrelevant messages remain uncited. Preserve a durable constraint only when it still governs future session work; attach it as an active rule to the endeavor it governs. Maintain the smallest faithful graph of work that still matters. A node can represent an entire exploration, not every utterance. Use stable short node IDs; change labels without changing identity. Rule and choice labels are short plain sentences naming the subject and action, not noun-phrase record titles. Keep exact scope in intent. Keep one account per subject. Work centers are endeavors: feature (something being built), theory (an explanation being tested), postulate (an assumption being explored), or try (something the user is attempting without a more specific classification). These are the units of the hierarchy, not individual rules, choices, or micro-findings. Each endeavor is the center of what that work is about. Every endeavor has a parent endeavor or, for roots only, parent=null. Attach rule, choice, and observation annotations directly to an endeavor through parent; annotations cannot be roots or parents. A rule records a standing requirement or permission hold, a choice records a decision being considered or made, and an observation records reported evidence. They are addressable subordinate records for source lookup and carry-forward, never peer work centers. Spawn a tangent as a child endeavor only when it becomes a distinct center of work. Endeavors form one rooted tree: no parent cycles and exactly one root. That root is the coordinating mother thread, a normal recursive endeavor whose stable identity persists for the session. Its intent states the original session purpose from cited evidence; its direct and nested children distinguish the current initiative, interrupted or parked branches, and considered alternatives. Never remove, merge, fold, or replace the mother-thread root. Centers beneath it can change, spawn, merge and disappear through folding. Do not create an endeavor for every mechanical step. State is proposed, active, parked, settled, or unknown. For rules, active means still applying, not pending implementation. Keep intended action in intent and actual observations in observed. Qualify reported results and inference; a source citation is not proof. Actor is an observed identity or empty if unknown. Use sources copied exactly from the feed. Never invent IDs or sources.
 
 UPDATE AS A CHAPTER-STATE DIFF. Every update — bootstrap chapter chain or ordinary slice — diffs the fixed chapterState fields against the prior graph. For each chapter, derive that chapter's state from its cited events: the goal at this point, the decisions made, the artifacts changed, the dead ends, and the open questions, each item carrying its source pointer. Compare consecutive chapter states and the prior graph, then commit only material differences: one commit_graph transaction carries the whole diff, upserting the records that changed with their strongest sources, compacting duplicate or obsolete detail into them, and leaving unchanged records alone. The trailing chapter of a live batch is provisional: evidence is still accumulating, so it updates current state without declaring the chapter complete. The five fields are your comparison frame, never a second ledger — they are written nowhere except the graph, and no record may exist per message, event, or tool result.
 
@@ -130,26 +130,36 @@ export function momTools(readsRemaining: number, searchesRemaining = 2, mustInsp
 
 export interface GraphRepair { from: string; to: string }
 
-/** Canonicalize uniquely identifiable observed refs before any semantic validation. */
+/** Canonicalize uniquely identifiable observed refs before any semantic validation. A ref that
+ * matches nothing is dropped from a source list that still keeps an observed ref — an invented
+ * citation adds no evidence — and an unmatched prose citation loses its brackets. A list whose
+ * every ref is unobserved is left for validation to reject. */
 export function repairSources<T>(value: T, known: Iterable<string>): { value: T; repairs: GraphRepair[] } {
-	const observed = [...known], repairs: GraphRepair[] = [], seen = new Set<string>();
+	const observed = new Set(known), repairs: GraphRepair[] = [], seen = new Set<string>();
+	const record = (from: string, to: string) => { const key = `${from}\0${to}`; if (!seen.has(key)) { seen.add(key); repairs.push({ from, to }); } };
 	const repair = (ref: string) => {
-		if (observed.includes(ref)) return ref;
+		if (observed.has(ref)) return ref;
 		const to = sourceSuggestion(ref, observed);
-		if (!to) return ref;
-		const key = `${ref}\0${to}`;
-		if (!seen.has(key)) { seen.add(key); repairs.push({ from: ref, to }); }
-		return to;
+		if (to) record(ref, to);
+		return to ?? ref;
 	};
 	const arrays = new Set(["sources", "riskRefs", "actionRefs", "resolutionRefs"]);
 	const visit = (item: unknown, field?: string): unknown => {
 		if (typeof item === "string") {
-			return item.replace(/\[src:([^\]]+)\]/g, (_match, ref: string) => `[src:${repair(ref)}]`);
+			return item.replace(/\[src:([^\]]+)\]/g, (match, ref: string) => {
+				const to = repair(ref);
+				if (observed.has(to)) return `[src:${to}]`;
+				record(ref, "dropped: unobserved citation"); return "";
+			}).replace(/ {2,}/g, " ").trim();
 		}
 		if (Array.isArray(item)) {
 			if (arrays.has(field ?? "")) {
-				const repaired = item.map(ref => typeof ref === "string" ? repair(ref) : ref);
-				return [...new Set(repaired)];
+				const repaired = [...new Set(item.map(ref => typeof ref === "string" ? repair(ref) : ref))];
+				if (!repaired.some(ref => typeof ref === "string" && observed.has(ref))) return repaired;
+				return repaired.filter(ref => {
+					if (typeof ref !== "string" || observed.has(ref)) return true;
+					record(ref, "dropped: unobserved source"); return false;
+				});
 			}
 			return item.map(entry => visit(entry));
 		}
@@ -199,9 +209,17 @@ export function acceptGraph(value: unknown, previous: WorkGraph, checkpoint: str
 			sources.push(firstUser); repairs.push({ from: node.id, to: firstUser });
 		}
 		if (!publicWhy(node)) return { ...node, sources };
-		const purposeSource = [...sources].sort((a, b) => (sourceOrder.get(a) ?? Number.MAX_SAFE_INTEGER) - (sourceOrder.get(b) ?? Number.MAX_SAFE_INTEGER))
-			.find(authority) ?? [...sources].sort((a, b) => (sourceOrder.get(a) ?? Number.MAX_SAFE_INTEGER) - (sourceOrder.get(b) ?? Number.MAX_SAFE_INTEGER))[0];
-		return { ...node, sources, ...(purposeSource ? { purposeSource } : {}) };
+		// Why provenance is stable: the saved purpose source stands while it is still cited; otherwise the
+		// earliest cited user source, else the earliest source.
+		const ordered = [...sources].sort((a, b) => (sourceOrder.get(a) ?? Number.MAX_SAFE_INTEGER) - (sourceOrder.get(b) ?? Number.MAX_SAFE_INTEGER));
+		const purposeSource = before?.purposeSource && sources.includes(before.purposeSource) ? before.purposeSource : ordered.find(authority) ?? ordered[0];
+		if (node.id !== purpose) return { ...node, sources, ...(purposeSource ? { purposeSource } : {}) };
+		// The root's intent is the opening request verbatim — the text of its earliest cited user
+		// source, the same event the map renders as Why — never the model's paraphrase. Evolved
+		// direction lives in child endeavors.
+		const opening = purposeSource && authority(purposeSource) ? known.get(purposeSource)?.text?.replace(/\s+/g, " ").trim().slice(0, 1200) : undefined;
+		if (opening && opening !== node.intent) repairs.push({ from: `${node.id} intent`, to: "the opening request" });
+		return { ...node, intent: opening ?? node.intent, sources, ...(purposeSource ? { purposeSource } : {}) };
 	});
 	const removed = new Set([...proposed.removeNodes.map(item => item.id), ...proposed.folds.map(item => item.thread), ...proposed.merges.map(item => item.thread)]);
 	const available = new Map(previous.nodes.map(node => [node.id, node.label]));
@@ -216,7 +234,13 @@ export function acceptGraph(value: unknown, previous: WorkGraph, checkpoint: str
 			: previous.focus && available.has(previous.focus) ? previous.focus : purpose;
 		if (fallback !== focus) { repairs.push({ from: String(focus), to: String(fallback) }); focus = fallback; }
 	}
-	const v = { ...proposed, focus, upsertNodes };
+	// Unfinished declarations only make sense when a prior endeavor closes; otherwise they are noise.
+	let unfinished = proposed.unfinished;
+	if (unfinished.length && !closingEndeavors(previous, upsertNodes, proposed.folds).size) {
+		repairs.push({ from: `unfinished ${unfinished.map(item => item.node).join(", ")}`, to: "dropped: this transaction closes no endeavor" });
+		unfinished = [];
+	}
+	const v = { ...proposed, focus, upsertNodes, unfinished };
 	if (question && !v.answer?.trim()) throw new Error("Answer the explicit question in answer.");
 	// Process notices and resolutions are advisories riding on the map update. An invalid advisory
 	// is dropped and recorded as a repair; it never voids the map the model got right.

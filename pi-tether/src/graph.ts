@@ -159,12 +159,11 @@ export function normalizeMotherRoot(value: unknown): { graph: WorkGraph; changed
 	return { graph, changed: true };
 }
 
-/** Errors provable from the declared closing scopes alone, before applying any edit. */
-export function unfinishedPreflightErrors(previous: WorkGraph, upserts: readonly GraphNode[], folds: readonly { thread: string }[], items: UnfinishedItems): string[] {
-	const old = new Map(previous.nodes.map(node => [node.id, node])), proposed = new Map(old);
-	for (const node of upserts) proposed.set(node.id, node);
-	// Only a prior endeavor and its prior descendants are safe to reason about before edits validate.
-	// Proposed moves/new nodes are checked later against the successfully edited graph.
+/** Prior endeavors this transaction closes: folded, or newly settled by an upsert. Only a prior
+ * endeavor and its prior descendants are safe to reason about before edits validate; proposed
+ * moves/new nodes are checked later against the successfully edited graph. */
+export function closingEndeavors(previous: WorkGraph, upserts: readonly GraphNode[], folds: readonly { thread: string }[]): Set<string> {
+	const old = new Map(previous.nodes.map(node => [node.id, node]));
 	const closing = new Set(folds.filter(fold => {
 		const node = old.get(fold.thread); return Boolean(node && isEndeavor(node));
 	}).map(fold => fold.thread));
@@ -172,6 +171,14 @@ export function unfinishedPreflightErrors(previous: WorkGraph, upserts: readonly
 		const before = old.get(node.id);
 		if (before && isEndeavor(before) && node.state === "settled" && before.state !== "settled") closing.add(node.id);
 	}
+	return closing;
+}
+
+/** Errors provable from the declared closing scopes alone, before applying any edit. */
+export function unfinishedPreflightErrors(previous: WorkGraph, upserts: readonly GraphNode[], folds: readonly { thread: string }[], items: UnfinishedItems): string[] {
+	const old = new Map(previous.nodes.map(node => [node.id, node])), proposed = new Map(old);
+	for (const node of upserts) proposed.set(node.id, node);
+	const closing = closingEndeavors(previous, upserts, folds);
 	const required = new Set<string>();
 	for (const node of old.values()) {
 		if (node.state !== "active" && node.state !== "parked") continue;
