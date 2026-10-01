@@ -5,16 +5,16 @@
  * The answer is ephemeral: shown inline and NEVER added to history.
  */
 
-import type { AgentMessage } from "@mariozechner/pi-agent-core";
-import { streamSimple } from "@mariozechner/pi-ai";
-import type { Message } from "@mariozechner/pi-ai";
+import type { AgentMessage } from "@earendil-works/pi-agent-core";
+import { streamSimple } from "@earendil-works/pi-ai/compat";
+import type { Message } from "@earendil-works/pi-ai";
 import {
 	buildSessionContext,
 	convertToLlm,
 	type Theme,
-} from "@mariozechner/pi-coding-agent";
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { wrapTextWithAnsi, Key, matchesKey, truncateToWidth } from "@mariozechner/pi-tui";
+} from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { wrapTextWithAnsi, Key, matchesKey, truncateToWidth } from "@earendil-works/pi-tui";
 
 const QQ_CUSTOM_TYPE = "qq";
 const QQ_SYSTEM_PROMPT_SUFFIX = `
@@ -181,8 +181,7 @@ export default function qqExtension(pi: ExtensionAPI): void {
 					{ 
 						apiKey, 
 						signal: abortController.signal, 
-						reasoning: thinkingLevel,
-						tools: []
+						reasoning: thinkingLevel === "off" ? undefined : thinkingLevel,
 					},
 				);
 				for await (const event of eventStream) {
