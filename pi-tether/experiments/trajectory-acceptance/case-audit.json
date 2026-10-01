@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "title": "Option C audit of the 15 exposed todo-008 cases",
+  "method": "Per-case comparison of what the gold validators saw (5 decisive context refs, boundary + before/after), what the blind scorers saw (every lead direction from corpus start through the aligned horizon), the before→after map delta, and the three labels (gold, blind, structural). Classification categories: boundary-interval mismatch, representation ambiguity, possible map defect. Extracted by pi-tether/experiments/trajectory-acceptance/case-audit.ts into a PRIVATE input; only this classification and refs are committed.",
+  "measuredAsymmetry": {
+    "blindEvidenceWindow": "from corpus event 1 through the aligned horizon in every case",
+    "goldContextItems": "5 per case (4 for two cases)",
+    "casesWhereBlindSawEvidenceGoldDidNot": 14,
+    "unseenRange": "0–29 events",
+    "nodesAddedWithSourcesAfterTheBoundary": "present in 11 of 15 cases",
+    "edgeChanges": "1 edge added across all 15 cases (ssmp-assent-01); 0 removed"
+  },
+  "counts": {
+    "labelMatch": 3,
+    "boundaryIntervalMismatch": 4,
+    "representationAmbiguity": 6,
+    "possibleMapDefect": 2
+  },
+  "cases": [
+    {
+      "caseId": "buzz-pivot-01", "gold": "redirect", "blind": "redirect", "structural": "redirect", "match": true,
+      "primary": "match", "secondary": [],
+      "finding": "Clean redirect: prior center parked, new center + settled choices added. Both the session movement and its map signature agree."
+    },
+    {
+      "caseId": "buzz-conflict-01", "gold": "expand", "blind": "expand", "structural": "expand", "match": true,
+      "primary": "match", "secondary": [],
+      "finding": "Clean expansion: three added nodes, all evidence-grounded, no state churn."
+    },
+    {
+      "caseId": "buzz-stale-01", "gold": "contract", "blind": "contract", "structural": "expand", "match": true,
+      "primary": "match", "secondary": ["representation-evidence"],
+      "finding": "Blind scorers correctly read the contraction even though the map represents it as an ADDED constraint rule (drop-management). The structural heuristic scores expand on the same artifact. This is direct evidence that the five-label vocabulary has no canonical map signature."
+    },
+    {
+      "caseId": "pi-assent-01", "gold": "accept", "blind": "expand", "structural": "expand", "match": false,
+      "primary": "boundary-interval-mismatch", "secondary": ["representation-ambiguity"],
+      "finding": "Boundary is the adoption of a proposed option. The map adds a choice node sourced only at the boundary AND a postulate node sourced only from an event beyond the boundary. Gold judged the adoption; the blind interval includes the later postulate. drift."
+    },
+    {
+      "caseId": "pi-conflict-01", "gold": "accept", "blind": "expand", "structural": "redirect", "match": false,
+      "primary": "boundary-interval-mismatch", "secondary": [],
+      "finding": "The only added node is sourced entirely from events after the boundary (both sources post-horizon-relative). Two other changes are state promotions. Gold judged the boundary moment."
+    },
+    {
+      "caseId": "buzz-assent-01", "gold": "accept", "blind": "expand", "structural": "expand", "match": false,
+      "primary": "boundary-interval-mismatch", "secondary": [],
+      "finding": "The added choice node is sourced from the boundary plus the horizon event; a second node's label/intent was rewritten by post-boundary evidence. This is the case the independent review named: gold's label deliberately excludes the subsequent expansion, the scored interval contains it."
+    },
+    {
+      "caseId": "buzz-return-01", "gold": "accept", "blind": "expand", "structural": "expand", "match": false,
+      "primary": "boundary-interval-mismatch", "secondary": ["possible-map-defect-mild"],
+      "finding": "Boundary turn is a bare continuation. The only map change is an added rule sourced from two post-boundary instructions (a standing auto-continue permission). The map addition is defensible content, but it is interval scope, not boundary movement — exactly the confound the mismatch predicts."
+    },
+    {
+      "caseId": "pi-return-01", "gold": "contract", "blind": "expand", "structural": "redirect", "match": false,
+      "primary": "representation-ambiguity", "secondary": [],
+      "finding": "Cleanest representation case: the single added node is a constraint rule sourced only at the boundary, and its meaning narrows permissible designs. Scorers read +node as expansion; the semantic content is a contraction. No interval asymmetry (zero post-boundary sources), no map defect."
+    },
+    {
+      "caseId": "ssmp-pivot-01", "gold": "reorganize", "blind": "redirect", "structural": "redirect", "match": false,
+      "primary": "representation-ambiguity", "secondary": ["boundary-interval-mismatch"],
+      "finding": "Map parks the prior center and adds a new center plus a cadence rule. Purpose and scope are preserved (gold: reorganize), but the park-and-add signature is shared with redirect. One of the two added nodes is sourced post-boundary."
+    },
+    {
+      "caseId": "ssmp-stale-01", "gold": "contract", "blind": "redirect", "structural": "redirect", "match": false,
+      "primary": "representation-ambiguity", "secondary": ["possible-map-defect-mild"],
+      "finding": "Map performs a state shuffle (two reactivations, one park) and adds a cadence rule; nothing is removed. A session-level narrowing produces no map-level contraction signature, so any structural judge reads focus movement. The retained nodes are the same weakness seen in pi-stale-01."
+    },
+    {
+      "caseId": "pi-pivot-01", "gold": "reorganize", "blind": "expand", "structural": "redirect", "match": false,
+      "primary": "representation-ambiguity", "secondary": ["boundary-interval-mismatch"],
+      "finding": "Structural change is recorded as a single added feature node with no edge or hierarchy change, so 'reorganize' has no distinctive map signature. The node is sourced from the boundary plus two post-boundary refs."
+    },
+    {
+      "caseId": "ssmp-assent-01", "gold": "accept", "blind": "redirect", "structural": "redirect", "match": false,
+      "primary": "representation-ambiguity", "secondary": [],
+      "finding": "CONTROL CASE: the blind scorers saw exactly the same evidence the gold validators saw (zero unseen refs), and the labels still disagree. The map adds a feature center, parks the review node, and adds a returns_to edge — a focus-move signature — while the session adopted a roadmap without changing scope. This isolates representation from interval."
+    },
+    {
+      "caseId": "ssmp-conflict-01", "gold": "redirect", "blind": "contract", "structural": "accept", "match": false,
+      "primary": "possible-map-defect", "secondary": [],
+      "finding": "DEFECT CANDIDATE: a broken-project rejection and a redirect decision occur inside the interval, yet the only map change is a settled choice reopening to proposed. No redirection, replacement center, or blocker is represented at the aligned horizon. The blocker does appear in a later case's map, so this reads as delayed representation of a consequential redirect rather than a permanent miss."
+    },
+    {
+      "caseId": "pi-stale-01", "gold": "contract", "blind": "accept", "structural": "redirect", "match": false,
+      "primary": "possible-map-defect", "secondary": ["representation-ambiguity"],
+      "finding": "DEFECT CANDIDATE: the session narrows scope and the gold label is contract, but the map removes nothing, parks nothing, and narrows nothing — one proposed choice settles and three nodes update observations. A narrowing that leaves the node set unchanged is indistinguishable from no movement."
+    },
+    {
+      "caseId": "ssmp-return-01", "gold": "redirect", "blind": "accept", "structural": "redirect", "match": false,
+      "primary": "representation-ambiguity", "secondary": ["possible-map-defect-mild"],
+      "finding": "The map reactivates a parked center and adds a returns_to edge — a defensible representation of returning. But because the redirect that created the detour was never recorded (see ssmp-conflict-01), the return has nothing in the map to be a return from. Blind 'accept' vs gold 'redirect' is a signature ambiguity made worse by that upstream miss."
+    }
+  ],
+  "summary": {
+    "scoreIsNotAMomMeasurement": "Of the 12 non-matching cases, 4 are boundary/interval mismatches and 6 are representation ambiguity — both properties of the measurement design, not of Mom. Two cases contain possible map defects.",
+    "defectSignalIsReal": "Both defect candidates are the same known weakness: contractions and redirections that leave the node set unchanged are invisible in the map. This matches the earlier production finding that retiring stale records is unreliable.",
+    "controlCase": "ssmp-assent-01 (zero interval asymmetry, labels still disagree) separates representation from interval and should anchor any corrected rubric.",
+    "negativeControl": "buzz-stale-01 (blind right, structural wrong) proves a rule-based labeler cannot be the sole judge."
+  }
+}
