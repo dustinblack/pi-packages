@@ -9,7 +9,7 @@ dependencies: []
 
 ## Where we are
 
-trunk:    037 — Option C chosen: audit the 15 exposed cases, then preregister an obligation rubric (what must be current/narrow/unresolved/rejected) with controls
+trunk:    038 — prove on a live session that narrowing and redirection visibly change the map (prompt obligation landed; todo 037 closed, the 008 label gate retired as an instrument)
 tangents: 016 — ready (buried-history recall experiment); 008/011/012/014/015/036 — complete (008 ran clean and scored 3/15)
 
 008 is pending/inconclusive; resume only after the user promotes it once a stable bounded replay path is available.
@@ -45,7 +45,8 @@ tangents: 016 — ready (buried-history recall experiment); 008/011/012/014/015/
 - 014 — complete — `58ac5a0` — Alt+T Mom conversation; actual-terminal switch/answer/return preserves the lead transcript and draft, including the combined 011/widget-fix rerun
 - 015 — ready — making-mom, delegates
 - 015 — complete — `d512be8` — live-cadence cost replay: Mom 0.68% of the lead's nominal cost, cache share 52.99% vs 44.75%, independent recompute matched
-- 037 — pending — blind scorer set vs gold set movement-semantics calibration; owns the explanation of 008's 3/15 before any further map-quality claim
+- 037 — complete — audit established the label gate cannot be attributed to Mom (10 of 12 non-matches were measurement confounds); direction: obligations, not labels; no further label study
+- 038 — pending — live proof that narrowing shrinks the map and redirection parks the replaced center with focus moved
 - 016 — pending — richer labeled map handles and original-source selection
 
 ## Outcome
