@@ -4,6 +4,7 @@ import type { ModelRegistry } from "@earendil-works/pi-coding-agent";
 import type { AccountConfig, SecretSource } from "@/types";
 import { commonUtil } from "./common";
 import { fileUtil } from "./files";
+import { piCredentialUtil } from "./pi-credentials";
 import { providerUtil } from "./providers";
 
 export const accountUtil = {
@@ -14,7 +15,7 @@ export const accountUtil = {
         delete process.env[envName];
       }
     }
-    modelRegistry?.authStorage.removeRuntimeApiKey(authProvider);
+    if (modelRegistry) await piCredentialUtil.removeRuntimeApiKey(modelRegistry, authProvider);
   },
 
   applyAccountEnv: async (
@@ -24,8 +25,7 @@ export const accountUtil = {
   ): Promise<string[]> => {
     if (account.piAuth) {
       const authProvider = authProviderOverride ?? account.piAuth.provider;
-      modelRegistry?.authStorage.set(authProvider, account.piAuth.entry);
-      modelRegistry?.authStorage.reload();
+      if (modelRegistry) await piCredentialUtil.setStoredCredential(modelRegistry, authProvider, account.piAuth.entry);
       closeCachedSessions();
       return [];
     }
@@ -46,12 +46,12 @@ export const accountUtil = {
     return resolvedEntries;
   },
 
-  applyResolvedAccountEnv: (
+  applyResolvedAccountEnv: async (
     account: AccountConfig,
     resolvedEntries: Array<[string, string]>,
     modelRegistry?: ModelRegistry,
     authProviderOverride?: string,
-  ): string[] => {
+  ): Promise<string[]> => {
     const authProvider = authProviderOverride ?? providerUtil.normalizeProvider(account.provider);
     const applied: string[] = [];
     for (const [envName, value] of resolvedEntries) {
@@ -60,8 +60,10 @@ export const accountUtil = {
     }
 
     const firstValue = resolvedEntries[0]?.[1];
-    if (firstValue) modelRegistry?.authStorage.setRuntimeApiKey(authProvider, firstValue);
-    else modelRegistry?.authStorage.removeRuntimeApiKey(authProvider);
+    if (modelRegistry) {
+      if (firstValue) await piCredentialUtil.setRuntimeApiKey(modelRegistry, authProvider, firstValue);
+      else await piCredentialUtil.removeRuntimeApiKey(modelRegistry, authProvider);
+    }
 
     return applied;
   },

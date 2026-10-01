@@ -1,4 +1,4 @@
-import { createJiti } from "@mariozechner/jiti";
+import { createJiti } from "jiti";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
