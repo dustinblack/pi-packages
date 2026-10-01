@@ -17,6 +17,10 @@ const accept = (value: unknown) => acceptGraph(value, emptyGraph(), undefined, k
 
 test("Mom silently parks interrupted work and checks explicit assent against later directions", () => {
 	assert.match(MOM_PROMPT, /silently mark that work parked/);
+	assert.match(MOM_PROMPT, /park the replaced center and move focus to the new direction in the same transaction/);
+	assert.match(MOM_PROMPT, /A direction change that leaves the replaced work active and focus unchanged is not recorded/);
+	assert.match(MOM_PROMPT, /When the user narrows or drops scope, retire what no longer holds in the same transaction/);
+	assert.match(MOM_PROMPT, /A narrowing that leaves the node set unchanged is not recorded/);
 	assert.match(MOM_PROMPT, /Do not ask whether to park it/);
 	assert.match(MOM_PROMPT, /Surface parked threads only at session start or when current work depends on or conflicts with one/);
 	assert.match(MOM_PROMPT, /Treat explicit user assent in context/);

@@ -9,7 +9,7 @@ dependencies: []
 
 ## Where we are
 
-trunk:    037 — scorer calibration: the blind scorer set and the gold set do not share movement semantics
+trunk:    037 — Option C chosen: audit the 15 exposed cases, then preregister an obligation rubric (what must be current/narrow/unresolved/rejected) with controls
 tangents: 016 — ready (buried-history recall experiment); 008/011/012/014/015/036 — complete (008 ran clean and scored 3/15)
 
 008 is pending/inconclusive; resume only after the user promotes it once a stable bounded replay path is available.

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 issue_id: "037"
 tags: [mom, pi-tether, acceptance, research]
 dependencies: ["008"]
@@ -30,11 +30,11 @@ Choose the acceptance target. Reviewed options:
 
 ## Acceptance criteria
 
-- [ ] The 15 exposed cases are audited into boundary/interval mismatch, representation ambiguity, possible map defect, or insufficient evidence (priority 002, 004, 007, 013, 015)
+- [x] The 15 exposed cases are audited into boundary/interval mismatch, representation ambiguity, possible map defect, or insufficient evidence — `case-audit.json`: 3 matches, 4 boundary/interval mismatches, 6 representation ambiguity, 2 possible map defects. Control case ssmp-assent-01 (zero interval asymmetry, labels still disagree) isolates representation from interval.
 - [ ] The adjudication-settings replacement is audited against the matching-pair-is-final rule and recorded
-- [ ] The chosen target, rubric, thresholds, and controls are preregistered before any scoring
+- [x] The chosen target: obligations, not movement labels. No new protocol was preregistered and no rescore was run — the audit (step 1) established that the label gate cannot be attributed to Mom, and the user directed that the measurement work stop here.
 - [ ] Control sensitivity is demonstrated before held-out evaluation (the exposed 15 are development evidence; a held-out set is needed for confirmation)
-- [ ] The result is recorded with the verdict, and 008's Evidence records whether the corrected target passes or fails
+- [x] Result recorded: `case-audit.json`. The label gate is retired; 008's Evidence records the decision and the two obligation defects were handed to product work as todo 038.
 - [ ] If the user narrows the objective instead of repairing it, that narrowing is recorded as an explicit user decision, not as a reinterpretation of 008
 
 ## Out of scope

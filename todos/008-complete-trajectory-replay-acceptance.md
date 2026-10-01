@@ -42,7 +42,9 @@ The V2 aligned replay finished cleanly and blind semantic scoring ran to the pre
 
 The blind distribution differs from gold: expand 7 vs 1, accept 2 vs 5, contract 2 vs 4, redirect 4 vs 3, reorganize 0 vs 2. The scorers agreed with each other on 11/15 movements, so the pair is internally consistent while systematically disagreeing with the gold set's movement semantics. A parent-run diagnostic (the retired structural classifier over the same 15 map pairs) also scored **3/15** with distribution redirect 9 / expand 5 / accept 1, agreeing with gold on only cases 006 and 008 — so the label vocabulary is not stable across judging configurations. Follow-up filed as todo 037 (scorer calibration). Mom's runtime, prompt, and retrieval are unchanged by this todo.
 
-### Where this record was wrong, and the deeper measurement problem
+### Gate retired as an acceptance instrument (2026-10-01, user decision)
+
+The Option C audit of all 15 exposed cases (`pi-tether/experiments/trajectory-acceptance/case-audit.json`) classified the 12 non-matches as 4 boundary/interval measurement mismatches, 6 representation ambiguity, and 2 possible map defects. Ten of twelve were properties of the measurement, not of Mom. The strict-label gate is therefore retired as an acceptance instrument: its result stays recorded as **3/15 fail**, and no further label study will be run. Map-quality acceptance moves to obligations, and the only real defects the audit found were carried into product work (todo 038). Mom's runtime, prompt behaviour toward obligations, retrieval, and sidecar are unaffected except that obligation fix.
 
 An independent review (GPT Astra, fresh context) corrected this todo's numbers and found the more fundamental misalignment. Verified corrections now applied: 11/15 first-round agreement with 4 adjudications (not 12/15 and 3); reused 0/5 vs replayed 3/10; the structural classifier distribution is redirect 9 / expand 5 / accept 1; and “both scorers cleared every gate” is false — scorerB flagged `revived_rejected_alternative` as a violation on case-013, and the final clear came from A+C adjudication.
 
