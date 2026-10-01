@@ -10,9 +10,10 @@
  * 4. Show the recap as an ephemeral widget above the editor
  */
 
-import { complete, type Message } from "@mariozechner/pi-ai";
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { buildSessionContext, convertToLlm, serializeConversation } from "@mariozechner/pi-coding-agent";
+import { complete } from "@earendil-works/pi-ai/compat";
+import type { Message } from "@earendil-works/pi-ai";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { buildSessionContext, convertToLlm, serializeConversation } from "@earendil-works/pi-coding-agent";
 
 // ---------------------------------------------------------------------------
 // Constants
