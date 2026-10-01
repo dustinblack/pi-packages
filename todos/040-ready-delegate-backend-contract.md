@@ -53,4 +53,14 @@ Moving code (041), provider implementation, real credentials, Orb mutation.
 
 ## Evidence
 
-Pending implementation.
+Closing commit `6a77b8b`: `pi-delegate/src/backend.ts` (contract and validators), `test/backend-contract.test.ts` (17 cases, plus compile-time type checks), `docs/adr/0001-delegate-backends.md` (the ADR, with the `op_*` table). Run with real npm on that tree: `npm run typecheck` clean; `npm test` 225 tests, 206 pass, 0 fail, 19 skipped (E2E-gated); before, 208/189/0/19.
+
+Choices made in the contract, which 042 builds on:
+- `agent` is required on acp.
+- `role` means a role name on pi and `read-only|writer` on acp.
+- An opened run may have no task and is then `idle`. The renderer must handle `idle` in 042.
+- `context` and steer `restart` are pi-only.
+- pi reports open and close as unsupported.
+- ACP cancel scope is `own-turns`; `observe` is supported only on opened Amp runs.
+- `status(runIds?)` also lists.
+- The observed-message shape is left to 044, and Amp `mode` to 058.
