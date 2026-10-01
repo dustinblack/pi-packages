@@ -10,7 +10,7 @@ forked_from: ""
 
 ## Where we are
 
-trunk: 039 — fold-in approved 2026-09-30; Pi 0.99 dependency bump across all packages in flight (prerequisite for 041)
+trunk: 039 — Pi 0.99 bump pushed (`5f8a330`); 041 move landed (`1dee4e8`); 040 contract in progress, then 042
 tangents: native Amp plugin deployment → separate 031 gate; does not block the fold-in
 
 ## Findings
@@ -31,6 +31,9 @@ tangents: native Amp plugin deployment → separate 031 gate; does not block the
 - 044 — ready — native Amp/Orb opening through `delegate`; depends on 043
 - 045 — ready — pi-delegate installs and loads alone on Pi 0.99 with ACP deps; depends on 041
 - 053 — ready — retire the pi-strings package and `op_*` tools; depends on 044, 045
+- 058 — ready — Amp cost in status/result, Amp `mode`, labels on created threads; depends on 042
+- 059 — pending — Amp runner executor and live watch of human activity; deferred
+- 041 — done at `1dee4e8` (awaiting user close); 031 closed as superseded (no plugin bridge)
 - 046 — ready — contract/install tests; depends on 043–045
 - 047 — ready — docs; depends on 042, 043
 - 048 — ready — live smoke; depends on 046, 047, 053
