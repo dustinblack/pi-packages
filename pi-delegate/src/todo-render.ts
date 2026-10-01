@@ -17,7 +17,7 @@
  * testable with a stub; the real pi `Theme` satisfies it structurally.
  */
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-import type { TodoState, TodoItem } from "./todo";
+import type { TodoState, TodoItem } from "./todo.js";
 
 /** Subset of pi's ThemeColor used by the todo panel. */
 export type TodoColor =

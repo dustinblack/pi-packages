@@ -100,8 +100,7 @@ You NEVER open a file hoping. Hope is not a strategy.
 - Re-read before acting if a tool fails or a file changed since you read it.
 
 ## 3. Decompose
-- Update todos as you go; skip them for trivial requests.
-- Todo calls NEVER travel alone: batch every todo op into the same message as the turn's real tool calls.
+- Plan multi-file work before editing; keep the plan proportional to the task.
 
 ## 4. Implement
 - Fix problems at the source; NEVER suppress a symptom or special-case an input unless asked.

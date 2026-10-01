@@ -1,7 +1,10 @@
 /**
  * Pure phased-todo state machine with Markdown round-trip.
- * Modeled on omp's `tools/todo.ts`. Immutable operations — each returns a new
- * state. Tasks are addressed by their content string (omp convention).
+ *
+ * Ported from pi-omp's `src/todo.ts` (itself modeled on omp's `tools/todo.ts`),
+ * which pi-delegate now owns as the canonical `todo` implementation for stock
+ * Pi. Immutable operations — each returns a new state. Tasks are addressed by
+ * their content string (omp convention).
  */
 
 export type TodoStatus = "pending" | "in_progress" | "completed" | "abandoned" | "blocked";
@@ -21,6 +24,8 @@ export interface TodoState {
 	phases: TodoPhase[];
 }
 
+const STATUSES: readonly TodoStatus[] = ["pending", "in_progress", "completed", "abandoned", "blocked"];
+
 export function emptyState(): TodoState {
 	return { phases: [] };
 }
@@ -39,6 +44,36 @@ export function markToStatus(mark: string): TodoStatus | undefined {
 		if (m === mark) return status as TodoStatus;
 	}
 	return undefined;
+}
+
+/**
+ * Validate untrusted persisted state (a session entry written by this
+ * extension, by legacy pi-omp, or by hand). Returns `undefined` for anything
+ * that is not a well-formed phased todo state, so a corrupt entry is skipped
+ * instead of crashing the widget, the tool, or branch restore.
+ */
+export function parseTodoState(value: unknown): TodoState | undefined {
+	if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+	const phases = (value as { phases?: unknown }).phases;
+	if (!Array.isArray(phases)) return undefined;
+	const out: TodoPhase[] = [];
+	for (const rawPhase of phases) {
+		if (!rawPhase || typeof rawPhase !== "object" || Array.isArray(rawPhase)) return undefined;
+		const { name, tasks } = rawPhase as { name?: unknown; tasks?: unknown };
+		if (typeof name !== "string" || !Array.isArray(tasks)) return undefined;
+		const parsedTasks: TodoItem[] = [];
+		for (const rawTask of tasks) {
+			if (!rawTask || typeof rawTask !== "object" || Array.isArray(rawTask)) return undefined;
+			const { content, status, blocker } = rawTask as { content?: unknown; status?: unknown; blocker?: unknown };
+			if (typeof content !== "string" || typeof status !== "string" || !STATUSES.includes(status as TodoStatus)) {
+				return undefined;
+			}
+			if (blocker !== undefined && typeof blocker !== "string") return undefined;
+			parsedTasks.push(blocker === undefined ? { content, status: status as TodoStatus } : { content, status: status as TodoStatus, blocker });
+		}
+		out.push({ name, tasks: parsedTasks });
+	}
+	return { phases: out };
 }
 
 export function countOpen(state: TodoState): number;
@@ -64,6 +99,18 @@ function mapState(state: TodoState, fn: (phase: TodoPhase) => TodoPhase): TodoSt
 
 function mapTasks(state: TodoState, fn: (task: TodoItem) => TodoItem): TodoState {
 	return mapState(state, (phase) => ({ name: phase.name, tasks: phase.tasks.map(fn) }));
+}
+
+/**
+ * Rebuild one task with a new status, keeping the canonical shape: the
+ * `blocker` key is present only when there is a blocker to report. Persisted
+ * state, Markdown, and validation all agree on that shape, so a round-trip is
+ * byte-comparable.
+ */
+function reStatus(t: TodoItem, status: TodoStatus, blocker?: string): TodoItem {
+	const next: TodoItem = { content: t.content, status };
+	if (blocker !== undefined) next.blocker = blocker;
+	return next;
 }
 
 /** Append a pending task to a phase (creating the phase if needed). */
@@ -93,8 +140,8 @@ export function startTask(state: TodoState, content: string): TodoState {
 		return {
 			name: phase.name,
 			tasks: phase.tasks.map((t) => {
-				if (t.content === content) return { ...t, status: "in_progress" };
-				if (t.status === "in_progress") return { ...t, status: "pending" };
+				if (t.content === content) return reStatus(t, "in_progress", t.blocker);
+				if (t.status === "in_progress") return reStatus(t, "pending", t.blocker);
 				return t;
 			}),
 		};
@@ -109,18 +156,14 @@ export function completeTask(state: TodoState, content: string): TodoState {
 	const target = findTask(state, content);
 	if (!target) return state;
 	const targetPhaseName = target.phase.name;
-	let next = mapTasks(state, (t) =>
-		t.content === content ? { ...t, status: "completed" as const, blocker: undefined } : t,
-	);
+	let next = mapTasks(state, (t) => (t.content === content ? reStatus(t, "completed") : t));
 	if (!next.phases.some((p) => p.tasks.some((t) => t.status === "in_progress"))) {
 		// Promote earliest pending task (same phase first, then any phase).
 		const candidate =
 			next.phases.find((p) => p.name === targetPhaseName)?.tasks.find((t) => t.status === "pending") ??
 			next.phases.flatMap((p) => p.tasks).find((t) => t.status === "pending");
 		if (candidate) {
-			next = mapTasks(next, (t) =>
-				t.content === candidate.content ? { ...t, status: "in_progress" as const } : t,
-			);
+			next = mapTasks(next, (t) => (t.content === candidate.content ? reStatus(t, "in_progress", t.blocker) : t));
 		}
 	}
 	return next;
@@ -128,16 +171,16 @@ export function completeTask(state: TodoState, content: string): TodoState {
 
 /** Mark a task blocked and optionally record a blocker reason. */
 export function blockTask(state: TodoState, content: string, blocker?: string): TodoState {
-	return mapTasks(state, (t) => (t.content === content ? { ...t, status: "blocked", blocker } : t));
+	return mapTasks(state, (t) => (t.content === content ? reStatus(t, "blocked", blocker) : t));
 }
 
 export function unblockTask(state: TodoState, content: string): TodoState {
-	return mapTasks(state, (t) => (t.content === content ? { ...t, status: "pending", blocker: undefined } : t));
+	return mapTasks(state, (t) => (t.content === content ? reStatus(t, "pending") : t));
 }
 
 /** Drop (abandon) a task without deleting it. */
 export function dropTask(state: TodoState, content: string): TodoState {
-	return mapTasks(state, (t) => (t.content === content ? { ...t, status: "abandoned" } : t));
+	return mapTasks(state, (t) => (t.content === content ? reStatus(t, "abandoned", t.blocker) : t));
 }
 
 /** Remove a task entirely. */
@@ -205,7 +248,7 @@ export function markdownToPhases(markdown: string): TodoState {
 			current = { name: "Tasks", tasks: [] };
 			state.phases.push(current);
 		}
-		current.tasks.push({ content, status, blocker });
+		current.tasks.push(blocker === undefined ? { content, status } : { content, status, blocker });
 	}
 	return state;
 }

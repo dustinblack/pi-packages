@@ -13,7 +13,6 @@ Each feature is opt-in and toggled in the settings view:
 | **Personas** | omp's terse evidence-first `default` voice, plus `friendly` / `pragmatic` — `/personality` | on |
 | **Engineering policy** | omp's tool-policy / verification / "never yield incomplete" prose | on |
 | **Model roles** | labeled presets (`@smol`, `@slow`, `@plan`, `@vision`, `@commit`, `@task`) — `/role`, `ctrl+shift+r` | on |
-| **Phased todos** | omp-style phased `todo` tool + `/todo`, bounded above-editor task widget, `TODO.md` round-trip, and bounded reminders | on |
 | **`ultrathink`** | standalone prose keyword that injects a reasoning notice | on |
 | **Agent role pack** | `scout`, `reviewer`, `security-reviewer`, `librarian`, `designer` skills | on |
 | **Auto-thinking** | classify the prompt with a cheap model, then set thinking level before the turn | off |
@@ -44,7 +43,6 @@ pi install @ssweens/pi-omp
 {
   "persona": "default",
   "engineeringPrompt": true,
-  "todo": { "enabled": true, "file": "TODO.md", "reminders": true },
   "ultrathink": true,
   "autoThinking": { "enabled": false }
 }
@@ -55,6 +53,6 @@ pi install @ssweens/pi-omp
 ```bash
 cd /Users/ssweens/src/pi-packages/pi-omp
 bun install
-bun test          # pure-logic tests (todo-markdown, role-resolver, keyword-detect, auto-think)
+bun test          # pure-logic tests (role-resolver, keyword-detect, auto-think)
 pi -e extensions/index.ts   # quick smoke against a live session
 ```

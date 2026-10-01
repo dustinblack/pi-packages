@@ -15,7 +15,6 @@ export const FEATURE_KEYS = [
 	"engineering",
 	"keywords",
 	"roles",
-	"todo",
 	"autoThinking",
 	"autoLearn",
 	"commit",
@@ -24,17 +23,6 @@ export const FEATURE_KEYS = [
 export type FeatureKey = (typeof FEATURE_KEYS)[number];
 
 export type PersonaName = "default" | "friendly" | "pragmatic";
-
-export interface TodoConfig {
-	/** Default phase name for new tasks. */
-	defaultPhase: string;
-	/** TODO.md path (relative to cwd). */
-	file: string;
-	/** Emit incomplete-work reminders on agent_end. */
-	reminders: boolean;
-	/** Max reminders sent per session. */
-	maxReminders: number;
-}
 
 export interface AutoThinkingConfig {
 	/** Classifier model: a model id, "provider/model", or role name. */
@@ -72,7 +60,6 @@ export interface RoleModelConfig {
 export interface PiOmpConfig {
 	features: Record<FeatureKey, boolean>;
 	persona: PersonaName;
-	todo: TodoConfig;
 	autoThinking: AutoThinkingConfig;
 	autoLearn: AutoLearnConfig;
 	commit: CommitConfig;
@@ -86,18 +73,11 @@ export const DEFAULT_CONFIG: PiOmpConfig = {
 		engineering: true,
 		keywords: true,
 		roles: true,
-		todo: true,
 		autoThinking: false,
 		autoLearn: false,
 		commit: false,
 	},
 	persona: "default",
-	todo: {
-		defaultPhase: "Tasks",
-		file: "TODO.md",
-		reminders: true,
-		maxReminders: 2,
-	},
 	autoThinking: {
 		classifierModel: "@smol",
 		timeoutMs: 4000,
@@ -147,8 +127,7 @@ function mergeConfig(base: PiOmpConfig, patch: unknown): PiOmpConfig {
 	if (typeof p.persona === "string") {
 		next.persona = p.persona as PersonaName;
 	}
-	const sections = p as unknown as Partial<Pick<PiOmpConfig, "todo" | "autoThinking" | "autoLearn" | "commit">>;
-	if (asRecord(sections.todo)) next.todo = mergeSection(base.todo, sections.todo);
+	const sections = p as unknown as Partial<Pick<PiOmpConfig, "autoThinking" | "autoLearn" | "commit">>;
 	if (asRecord(sections.autoThinking)) next.autoThinking = mergeSection(base.autoThinking, sections.autoThinking);
 	if (asRecord(sections.autoLearn)) next.autoLearn = mergeSection(base.autoLearn, sections.autoLearn);
 	if (asRecord(sections.commit)) next.commit = mergeSection(base.commit, sections.commit);

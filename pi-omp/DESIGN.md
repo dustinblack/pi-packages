@@ -17,7 +17,6 @@ Everything here is grounded in the actual oh-my-pi source under `~/src/oh-my-pi/
 | `ultrathink` keyword | 1 | ✅ | extension |
 | Model-role presets | 1 | ✅ | extension |
 | Agent role prompt pack | 1 | ✅ | skills |
-| Phased todo tool | 1 | ✅ | extension |
 | Auto-thinking classifier | 2 | ✅ | extension |
 | Auto-learn (reduced) | 2 | ✅ | extension |
 | AI `/commit` | 2 | ✅ | extension |
@@ -25,7 +24,7 @@ Everything here is grounded in the actual oh-my-pi source under `~/src/oh-my-pi/
 | **Web search / fallback** | 2 | ❌ **skipped** | — |
 | Tier-3 (park/revive, IRC, hub, vibe, `local://`, model-hub catalog, advisor, live) | 3 | ❌ out of scope | — |
 
-Two reasons we can bundle all of this as **one** extension instead of eight:
+Two reasons we can bundle all of this as **one** extension instead of seven:
 
 1. They share one loading surface and one domain model. Each feature is a self-contained module under a single `ExtensionAPI` factory, so there is no packaging cost to co-locate them.
 2. Most are *always-on behavioral* features that append to the system prompt / register a tool — they compose cleanly in one startup pass with a single config file.
@@ -48,7 +47,6 @@ pi-omp/
 │   ├── engineering.ts    # policy prose + tool-conditional prompt append
 │   ├── keywords.ts       # ultrathink prose-aware detection + notice injection
 │   ├── roles.ts          # model-role resolution (port of priority.json) + /role
-│   ├── todo.ts           # phased todo tool + /todo + completion reminders
 │   ├── autothinking.ts   # classifier + clamp + setThinkingLevel
 │   ├── autolearn.ts      # agent_end gate → managed skills
 │   └── commit.ts         # /commit command (git diff + conventional validation)
@@ -67,7 +65,6 @@ pi-omp/
 │   ├── notices/{ultrathink, engineering-policy}.md
 │   └── commit/{system,type-scope,validate}.md
 └── src/                              # pure logic (no pi imports) — unit-testable
-    ├── todo-markdown.ts              # phasesToMarkdown / markdownToPhases round-trip
     ├── role-resolver.ts              # labeled role → ordered model patterns
     ├── keyword-detect.ts             # prose-aware keyword boundaries
     └── auto-think.ts                 # label parse + effort clamp against model ladder
@@ -90,12 +87,6 @@ Single object in `~/.pi/agent/pi-omp.json` merged with `.pi/pi-omp.json` (projec
     "pragmatic": "./prompts/personalities/pragmatic.md"
   },
   "engineeringPrompt": true,          // append engineering-policy block
-  "todo": {
-    "enabled": true,
-    "file": "TODO.md",                // export/import path
-    "defaultPhase": "Tasks",
-    "reminders": true
-  },
   "roles": {                          // port of omp priority.json, order = preference
     "smol":  ["provider/model*…"],
     "slow":  ["provider/model*…"],
@@ -174,19 +165,7 @@ Optional: mirror the one-shot review entrypoint as a `prompts/review.md` **templ
 
 **pi API:** none at runtime — pure content via `pi.skills`; optional `prompts/*` template.
 
-### 4.6 Phased todo tool (`extensions/todo.ts`)
-
-**Port from:** `src/tools/todo.ts` (schema + ops + `phasesToMarkdown`/`markdownToPhases`), `src/session/todo-tracker.ts` (reminder behavior only).
-
-- `registerTool("todo", …)` with sub-ops `init|start|done|drop|block|unblock|rm|append|view`. Tasks addressed by content string; one `in_progress`; completing auto-promotes the next open task.
-- Persistence via `pi.appendEntry()`/`ctx.sessionManager` rebuild from last successful result (omp-style), **plus** optional `TODO.md` export/import through pure functions in `src/todo-markdown.ts`.
-- `registerCommand("todo", …)` with `edit|copy|export|import|append|start|done|drop|rm` subcommands.
-- Reminders: `agent_end` detects unfinished items → `ctx.sendUserMessage()` bounded nag; suppress while asking a question, and cap reminder count (port the *rules*, not the async-toggle internals).
-- A bounded `ctx.ui.setWidget` todo panel above the editor, synchronized after every state transition and restored on session/branch navigation.
-
-**pi API:** `registerTool`, `registerCommand`, `pi.appendEntry`, `ctx.sessionManager`, `agent_end`, `before_agent_start`, `ctx.sendUserMessage`, `ctx.ui`.
-
-### 4.7 Auto-thinking (`extensions/autothinking.ts`)
+### 4.6 Auto-thinking (`extensions/autothinking.ts`)
 
 **Port from:** `src/auto-thinking/classifier.ts` (prompts + control flow), `src/thinking.ts` (clamping). Opt-in.
 
@@ -202,7 +181,7 @@ Optional: mirror the one-shot review entrypoint as a `prompts/review.md` **templ
 
 > Stock pi tops out at `xhigh`; omp's `max` tier is dropped (documented).
 
-### 4.8 Auto-learn (`extensions/autolearn.ts`)
+### 4.7 Auto-learn (`extensions/autolearn.ts`)
 
 **Port from:** `src/autolearn/controller.ts` (gate) + `src/autolearn/managed-skills.ts` (secure manager). Opt-in.
 
@@ -212,7 +191,7 @@ Optional: mirror the one-shot review entrypoint as a `prompts/review.md` **templ
 
 **pi API:** `agent_end`, `ctx.sendUserMessage`, `pi.appendEntry`, fs + managed-skill helpers.
 
-### 4.9 `/commit` (`extensions/commit.ts`)
+### 4.8 `/commit` (`extensions/commit.ts`)
 
 **Port from:** `src/commit/pipeline.ts` + `src/commit/prompts/` (concept). Opt-in / command-driven.
 
@@ -236,7 +215,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { PiOmpConfig } from "../src/config";
 import { installPersonality } from "./personality";
 import { installEngineering } from "./engineering";
-// …installKeywords, installRoles, installTodo, installAutoThinking,
+// …installKeywords, installRoles, installAutoThinking,
 //   installAutoLearn, installCommit
 
 export default function (pi: ExtensionAPI) {
@@ -245,7 +224,6 @@ export default function (pi: ExtensionAPI) {
   installEngineering(pi, cfg);
   installKeywords(pi, cfg);
   installRoles(pi, cfg);
-  installTodo(pi, cfg);
   if (cfg.autoThinking.enabled) installAutoThinking(pi, cfg);
   if (cfg.autoLearn.enabled) installAutoLearn(pi, cfg);
   if (cfg.commit.enabled) installCommit(pi, cfg);
@@ -256,10 +234,10 @@ export default function (pi: ExtensionAPI) {
 
 ## 6. Commands, tools, events — total surface
 
-- **Commands:** `/personality`, `/role`, `/todo`, `/commit` (+ optional `/review` template)
-- **Tools:** `todo`, (optional `role`), (optional learn/commit helpers)
+- **Commands:** `/personality`, `/role`, `/commit` (+ optional `/review` template)
+- **Tools:** (optional `role`, learn, or commit helpers)
 - **Events used:** `session_start`, `before_agent_start`, `input`, `agent_end`, `turn_start`
-- **UI:** `ctx.ui.select/confirm`, `ctx.ui.setStatus`, `ctx.ui.setWidget` (sticky todo widget)
+- **UI:** `ctx.ui.select/confirm`, `ctx.ui.setStatus`
 - **Model:** `pi.setModel`, `pi.setThinkingLevel`; read `ctx.modelRegistry`, `ctx.model`
 
 ---
@@ -269,19 +247,18 @@ export default function (pi: ExtensionAPI) {
 1. **personality** — smallest, highest immediate fidelity (~15 min).
 2. **engineering** — static append reusing #1's hook.
 3. **keywords (ultrathink)** — standalone detection + injection.
-4. **todo** — highest daily value; the biggest single module.
-5. **roles** — on top of pi's `preset.ts` shape.
-6. **skills role pack** — pure content, no code.
-7. **autothinking** — needs #5's resolver + classifier model; opt-in.
-8. **autolearn** — opt-in.
-9. **commit** — opt-in.
+4. **roles** — on top of pi's `preset.ts` shape.
+5. **skills role pack** — pure content, no code.
+6. **autothinking** — needs #4's resolver + classifier model; opt-in.
+7. **autolearn** — opt-in.
+8. **commit** — opt-in.
 
 ---
 
 ## 8. Verification
 
-- Each module ships a `bun test` for its `src/` pure logic: `todo-markdown.ts` round-trip, `role-resolver.ts` pattern matching, `keyword-detect.ts` boundary cases, `auto-think.ts` clamp.
-- Behavioral validation in a live pi session: `/personality friendly` then confirm the system prompt changes; run `todo` ops and confirm persistence across `/new`; `/role @smol` then confirm `model_select`; `ultrathink` prompt → confirm notice present; `agent_end` reminder fires once with unfinished todos.
+- Each module ships a `bun test` for its `src/` pure logic: `role-resolver.ts` pattern matching, `keyword-detect.ts` boundary cases, and `auto-think.ts` clamp.
+- Behavioral validation in a live pi session: `/personality friendly` then confirm the system prompt changes; `/role @smol` then confirm `model_select`; `ultrathink` prompt → confirm notice present; opt-in `agent_end` features produce their expected follow-up.
 - UI changes are screenshotted per `pi-packages/README.md` capture flow.
 
 ---

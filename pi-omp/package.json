@@ -1,12 +1,11 @@
 {
   "name": "@ssweens/pi-omp",
   "version": "0.1.0",
-  "description": "Consolidated extension that ports omp's best self-contained behaviors to stock pi — personas, engineering policy, model roles, phased todos, auto-thinking, auto-learn, and commit.",
+  "description": "Consolidated extension that ports omp's best self-contained behaviors to stock pi — personas, engineering policy, model roles, auto-thinking, auto-learn, and commit.",
   "keywords": [
     "pi-package",
     "pi-extension",
     "persona",
-    "todo",
     "model-roles",
     "auto-thinking",
     "auto-learn",

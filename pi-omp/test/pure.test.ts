@@ -82,157 +82,6 @@ describe("roles", () => {
 	});
 });
 
-import { visibleWidth } from "@earendil-works/pi-tui";
-import { type TodoState, emptyState, addTask, startTask, completeTask, blockTask, dropTask } from "../src/todo";
-import { renderTodoLines, renderTodoWidgetLines, romanNumeral, CHECKED, UNCHECKED, type TodoStyler } from "../src/todo-render";
-
-/** Stub styler that wraps text in `⟨color:›text` markers for assertion. */
-const stubTheme: TodoStyler = {
-	fg: (color, text) => `⟨${color}›${text}`,
-	bold: (text) => `[${text}]`,
-	strikethrough: (text) => `~${text}~`,
-};
-
-describe("todo-render", () => {
-	test("romanNumeral covers phases up to 14", () => {
-		expect(romanNumeral(1)).toBe("I");
-		expect(romanNumeral(4)).toBe("IV");
-		expect(romanNumeral(12)).toBe("XII");
-		expect(romanNumeral(20)).toBe("20");
-	});
-
-	test("renderTodoLines emits a status header plus flat task tree with status-styled tasks", () => {
-		let s = emptyState();
-		s = addTask(s, "Base", "Wire the router");
-		s = addTask(s, "Base", "Add tests");
-		s = addTask(s, "Base", "Scaffold blockers");
-		s = startTask(s, "Wire the router");
-		s = blockTask(s, "Scaffold blockers", "waiting on API");
-		s = completeTask(s, "Wire the router");
-
-		const lines = renderTodoLines(s, stubTheme, 80);
-
-		// Framed status header in the top border: `╭─── ☑ Todo · N tasks ───╮`.
-		expect(lines[0]).toContain("Todo");
-		expect(lines[0]).toContain("3 tasks");
-
-		// Single-phase: no phase header — tasks start at lines[1].
-		// Completed task: checked glyph, success + strike.
-		expect(lines[1]).toContain(CHECKED);
-		expect(lines[1]).toContain("~Wire the router~");
-
-		// Auto-promoted in-progress task: accent.
-		expect(lines[2]).toContain(UNCHECKED);
-		expect(lines[2]).toContain("⟨accent›☐ Add tests");
-
-		// Blocked task: warning + blocker note.
-		expect(lines[3]).toContain("⟨warning›");
-		expect(lines[3]).toContain("(blocked: waiting on API)");
-	});
-
-	test("renderTodoLines clips a long task label to width with an ellipsis", () => {
-		// Identity styler: clipping is measured on visible width, so use no-op markers.
-		const plainTheme: TodoStyler = {
-			fg: (_c, t) => t,
-			bold: (t) => t,
-			strikethrough: (t) => t,
-		};
-		let s = emptyState();
-		s = addTask(s, "Base", "this is an extremely long task description that must be truncated");
-		const lines = renderTodoLines(s, plainTheme, 20);
-		// Line must not exceed the width budget on visible parts (20).
-		// Single-phase: no phase header, task is at lines[1].
-		const taskLine = lines[1];
-		expect(lines.every((line) => visibleWidth(line) <= 20)).toBe(true);
-		expect(taskLine).toContain("…");
-	});
-
-	test("empty phases produce only the header", () => {
-		const lines = renderTodoLines(emptyState(), stubTheme, 60);
-		// Framed block with header in top border + bottom border (no body).
-		expect(lines).toHaveLength(2);
-		expect(lines[0]).toContain("0 tasks");
-	});
-
-	test("panel and widget stay within width for every rendered task status", () => {
-		const plainTheme: TodoStyler = {
-			fg: (_color, text) => text,
-			bold: (text) => text,
-			strikethrough: (text) => text,
-		};
-		let s = emptyState();
-		s = addTask(s, "Tasks", "Pending task with a long label");
-		s = addTask(s, "Tasks", "In-progress task with a long label");
-		s = addTask(s, "Tasks", "Blocked task with a very long blocker reason");
-		s = addTask(s, "Tasks", "Abandoned task with a long label");
-		s = startTask(s, "In-progress task with a long label");
-		s = blockTask(s, "Blocked task with a very long blocker reason", "waiting for a very long external dependency");
-		s = completeTask(s, "Abandoned task with a long label");
-		s = dropTask(s, "Abandoned task with a long label");
-
-		const panel = renderTodoLines(s, plainTheme, 12);
-		const widget = renderTodoWidgetLines(s, plainTheme, 12);
-		expect(panel.every((line) => visibleWidth(line) <= 12)).toBe(true);
-		expect(widget.every((line) => visibleWidth(line) <= 12)).toBe(true);
-	});
-
-	test("widget keeps the active phase visible while bounding its task preview", () => {
-		let s = emptyState();
-		for (let i = 1; i <= 8; i++) s = addTask(s, "Research", `Research task ${i}`);
-		s = addTask(s, "Verify", "Run unit tests");
-		s = addTask(s, "Verify", "Smoke-test the widget");
-		s = completeTask(s, "Research task 1");
-		s = startTask(s, "Research task 4");
-		s = blockTask(s, "Research task 5", "waiting on CI");
-
-		const lines = renderTodoWidgetLines(s, stubTheme, 80);
-
-		// Leading blank line, then the omp-style header: "Todos · 1/2".
-		expect(lines[0]).toBe("");
-		expect(lines[1]).toContain("Todos");
-		expect(lines[1]).toContain("1/2");
-
-		// Tree-prefixed active phase header.
-		expect(lines[2]).toContain("I. Research");
-		expect(lines[3]).toContain("Research task 4");
-		expect(lines.some((line) => line.includes("Research task 1"))).toBe(false);
-		expect(lines.some((line) => line.includes("2 more tasks"))).toBe(true);
-		expect(lines.some((line) => line.includes("II. Verify"))).toBe(true);
-	});
-
-	test("widget keeps blocked work in the active phase", () => {
-		let s = addTask(emptyState(), "Blocked", "Wait for CI");
-		s = addTask(s, "Later", "Already complete");
-		s = blockTask(s, "Wait for CI", "waiting on CI");
-		s = completeTask(s, "Already complete");
-
-		const lines = renderTodoWidgetLines(s, stubTheme, 80);
-		// Leading blank line shifts indices by 1.
-		expect(lines[2]).toContain("I. Blocked");
-		expect(lines.some((line) => line.includes("Wait for CI"))).toBe(true);
-	});
-
-	test("widget clips every row at narrow widths", () => {
-		const plainTheme: TodoStyler = {
-			fg: (_color, text) => text,
-			bold: (text) => text,
-			strikethrough: (text) => text,
-		};
-		let s = emptyState();
-		for (let i = 1; i <= 6; i++) s = addTask(s, "Research", `Task ${i}`);
-		for (let i = 1; i <= 6; i++) s = addTask(s, `Later ${i}`, `Follow-up ${i}`);
-
-		// Width 16 accommodates the 4-char tree prefix + checkbox while still
-		// exercising content clipping for long task labels.
-		const lines = renderTodoWidgetLines(s, plainTheme, 16);
-		expect(lines.every((line) => visibleWidth(line) <= 16)).toBe(true);
-	});
-
-	test("widget has no rows after all work is complete", () => {
-		expect(renderTodoWidgetLines(emptyState(), stubTheme, 40)).toEqual([]);
-	});
-});
-
 import { buildRows, renderSettingsLines, wrapText, type SettingsStyler, FEATURE_DESCRIPTIONS } from "../src/settings-render";
 import { DEFAULT_CONFIG } from "../src/config";
 
@@ -246,7 +95,7 @@ describe("settings-render", () => {
 		const rows = buildRows();
 		expect(rows[0]?.kind).toBe("roles");
 		expect(rows[1]?.kind).toBe("persona");
-		expect(rows.filter((r) => r.kind === "feature")).toHaveLength(7);
+		expect(rows.filter((r) => r.kind === "feature")).toHaveLength(6);
 		expect(buildRows().every((r) => r.description.length > 40)).toBe(true);
 	});
 
@@ -255,7 +104,7 @@ describe("settings-render", () => {
 		for (const r of rows) {
 			expect(r.description.trim().length).toBeGreaterThan(60);
 		}
-		expect(Object.keys(FEATURE_DESCRIPTIONS).length).toBe(8);
+		expect(Object.keys(FEATURE_DESCRIPTIONS).length).toBe(7);
 	});
 
 	test("renderSettingsLines shows label row, ON/OFF, and a fully-wrapped description", () => {
@@ -267,12 +116,12 @@ describe("settings-render", () => {
 			settingsTheme,
 			70,
 		);
-		// Rows: 0 roles, 1 persona, 2 engineering (default ON), 6 autoThinking (OFF).
+		// Rows: 0 roles, 1 persona, 2 engineering (default ON), 5 autoThinking (OFF).
 		expect(rowStart[0]).toBe(6);
 		const engLine = lines[rowStart[2]!]!;
 		expect(engLine).toContain("⟨success›[ON ]");
 		expect(lines.some((l) => l.includes("wrapped"))).toBe(false);
-		const content = lines[rowStart[6]!]!; // autoThinking is OFF by default
+		const content = lines[rowStart[5]!]!; // autoThinking is OFF by default
 		expect(content).toContain("⟨dim›off");
 	});
 

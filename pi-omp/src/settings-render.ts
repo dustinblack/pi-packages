@@ -24,7 +24,6 @@ export const FEATURE_LABELS: Record<FeatureKey, string> = {
 	engineering: "Engineering policy",
 	keywords: "Reasoning keywords",
 	roles: "Model roles",
-	todo: "Phased todos",
 	autoThinking: "Auto-thinking",
 	autoLearn: "Auto-learn",
 	commit: "AI commit",
@@ -40,8 +39,6 @@ export const FEATURE_DESCRIPTIONS: Record<FeatureKey, string> = {
 		"Scans your message for trigger words — 'ultrathink' by default — and injects an omp-style <system-notice> telling the agent to reason carefully. Enable to force deeper multi-step reasoning on a single message by typing the keyword.",
 	roles:
 		"Activates model-role presets (@smol, @slow, @plan, @vision, @task, commit) and the ctrl+shift+r shortcut. Each role pins a model and a thinking level for that turn. Enable to switch model + reasoning per request instead of changing it manually.",
-	todo:
-		"Adds the 'todo' tool and /todo commands. The agent can plan phased tasks, mark work in-progress, auto-promote the next task on completion, render the colored todo panel, and export/import TODO.md. Also enables the bounded incomplete-work reminder when the agent stops.",
 	autoThinking:
 		"Classifies each prompt's difficulty (low→xhigh) and automatically sets the thinking level before the turn, so trivial requests don't overspend on reasoning and hard ones get the depth they need. Enable to stop tuning thinking level by hand.",
 	autoLearn:
