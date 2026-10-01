@@ -6,13 +6,15 @@ import type { AdvisorScreenRecord, SessionAdvisor } from "./advisor.ts";
 import { branchCheckpoints, emptyUsage, graphChange, loadState, noticeKey, sumUsage, type Checkpoint, type CursorFailure, type SkippedGap, type Usage } from "./checkpoint.ts";
 import { LiveFeed, renderEvent, renderEvents, suffix, type Cut, type FeedEvent } from "./feed.ts";
 import type { CompactionReview } from "./compaction.ts";
+import { bootstrapDigest, DEFAULT_BOOTSTRAP_POLICY, type BootstrapPolicy } from "./bootstrap.ts";
 import { acceptGraph, MOM_PROMPT, momTools, validateSearchQuery } from "./contract.ts";
 import { emptyGraph, graphSlice } from "./graph.ts";
 
 export const DEFAULT_MODEL = "openai-codex/gpt-5.6-luna";
 export const CONTEXT_LIMIT = 90000;
 type StagedBatch = Awaited<ReturnType<LiveFeed["capture"]>> & { revision: number; from: Cut; startIndex: number; endIndex: number;
-	retryGapId?: string; retryGapRemaining?: string[] };
+	retryGapId?: string; retryGapRemaining?: string[]; /** Bootstrap only: replaces the raw slice as this proposal's evidence. */
+	digest?: string };
 
 /** Gap evidence was originally admitted under the same 24k feed budget. Keep
  * recovery bounded too, including for sidecars produced by older/broken builds. */
@@ -29,6 +31,8 @@ function boundedGapEvents(events: readonly FeedEvent[], limit = 24000): { events
 export interface MomHost {
 	ctx: ExtensionContext;
 	model: string;
+	/** Cold catch-up: one bounded proposal over a chapter-chain digest, not one per capture window. */
+	bootstrapPolicy?: BootstrapPolicy;
 	advisor?: SessionAdvisor;
 	/** Durable state lives beside the session transcript, never inside it. */
 	store: MomStore;
@@ -175,7 +179,7 @@ export class Mom {
 					gaps: [], more: chunk.remaining.length > 0, revision, startIndex: gapStart, endIndex: this.committed,
 					retryGapId: gap.id, retryGapRemaining: chunk.remaining };
 			}
-			const batch = this.staged;
+			let batch = this.staged;
 			this.valid(batch.cut);
 			this.more = batch.more;
 			if (!question && this.feed.hasRunningWorkers) {
@@ -187,6 +191,21 @@ export class Mom {
 			this.waitingForWorkers = false;
 			if (!batch.events.length && !question && !compactionReview) { this.coveredRevision = batch.revision; this.staged = undefined; return undefined; }
 			this.error = undefined;
+			// Cold backlog: the ordinary path would spend one proposal per 24,000-character window.
+			// Bootstrap instead drains the backlog locally (no model calls) and synthesizes the map
+			// from one bounded chapter-chain digest whose cut matches the drained evidence exactly.
+			let bootstrapChapters = 0;
+			if (this.host.bootstrapPolicy && !question && !compactionReview && !this.checkpoint && !this.failure && !batch.retryGapId && batch.more) {
+				const digest = await bootstrapDigest(this.feed, batch.more, this.host.bootstrapPolicy!);
+				if (digest) {
+					// The digest replaces the raw slice for this one proposal; every ref it cites is
+					// among the drained events, and the checkpoint commits the drain's own cut.
+					this.staged = { ...batch, events: this.feed.events.slice(batch.startIndex), cut: digest.cut,
+						endIndex: this.feed.events.length, more: digest.remainingMore, digest: digest.text };
+					batch = this.staged;
+					bootstrapChapters = digest.chapters;
+				}
+			}
 			// The map is current state; the session log is history. Include only one boundary
 			// event so a short assent can resolve the preceding proposal, then use evidence tools.
 			const prior = this.feed.events.slice(0, batch.startIndex).findLast((e) => e.actor === "lead" && Boolean(e.text) && ["assistant", "tool_call"].includes(e.kind));
@@ -240,7 +259,7 @@ export class Mom {
 			const messages: Message[] = [{ role: "user", timestamp: Date.now(), content: JSON.stringify({
 				original: original ? { ref: original.ref, text: original.text } : null,
 				graph: this.graph, contextBeforeBatch: prior ? renderEvent(prior) : null,
-				newEvents: renderEvents(batch.events), gaps: batch.gaps, pendingMore: batch.more,
+				newEvents: batch.digest ?? renderEvents(batch.events), gaps: batch.gaps, pendingMore: batch.more,
 				compactionReview: compactionReview ?? null,
 				unresolvedProcessRisks: [...unresolved],
 				question: question ?? null, evidencePagesRemaining: readPages, metadataSearchesRemaining: searches,

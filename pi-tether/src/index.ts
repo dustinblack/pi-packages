@@ -5,6 +5,7 @@ import { SettingsManager, type ExtensionAPI, type ExtensionContext } from "@eare
 import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import { SystemOneAdvisor } from "./advisor.ts";
+import { DEFAULT_BOOTSTRAP_POLICY } from "./bootstrap.ts";
 import { NOTICE, noticeKey } from "./checkpoint.ts";
 import { CORRECTION } from "./feed.ts";
 import { finishCompactionReview, prepareCompactionReview, type PendingCompactionReview } from "./compaction.ts";
@@ -30,6 +31,9 @@ export default function piTether(pi: ExtensionAPI) {
 	pi.registerFlag("mom-advisor-model", { description: "System One model used to screen settled batches", type: "string", default: "kev-latest" });
 	pi.registerFlag("mom-advisor-threshold", { description: "Screen probability at or above which Mom's model wakes", type: "string", default: "0.25" });
 	pi.registerFlag("mom-advisor-timeout-ms", { description: "Session-level screening timeout in milliseconds", type: "string", default: "1500" });
+	pi.registerFlag("mom-bootstrap", { description: "Cold catch-up: one bounded proposal over a compression of the whole backlog, instead of one proposal per capture window", type: "string", default: "1" });
+	pi.registerFlag("mom-bootstrap-chapters", { description: "Maximum chapters (compaction-bounded segments) entering one cold-catch-up proposal", type: "string", default: "24" });
+	pi.registerFlag("mom-bootstrap-chars", { description: "Maximum characters of cold-catch-up compression sent in one proposal", type: "string", default: "48000" });
 	let ctx: ExtensionContext | undefined;
 	let mom: Mom | undefined;
 	let ready: Promise<void> = Promise.resolve();
@@ -185,7 +189,11 @@ export default function piTether(pi: ExtensionAPI) {
 		revision = 0; coveredRevision = -1; dirty = true; pendingCompaction = undefined;
 		const token = epoch, priorNoticePersistence = noticePersistence;
 		const advisorUrl = String(pi.getFlag("mom-advisor-url") ?? "").trim();
+		const bootstrapChapters = Number(pi.getFlag("mom-bootstrap-chapters") ?? DEFAULT_BOOTSTRAP_POLICY.maxChapters);
+		const bootstrapChars = Number(pi.getFlag("mom-bootstrap-chars") ?? DEFAULT_BOOTSTRAP_POLICY.maxDigestChars);
 		const instance: Mom = new Mom({ ctx: context, model: String(pi.getFlag("mom-model") ?? DEFAULT_MODEL),
+			...(String(pi.getFlag("mom-bootstrap") ?? "1") !== "0" && Number.isSafeInteger(bootstrapChapters) && bootstrapChapters > 0 && Number.isSafeInteger(bootstrapChars) && bootstrapChars > 0
+				? { bootstrapPolicy: { ...DEFAULT_BOOTSTRAP_POLICY, maxChapters: bootstrapChapters, maxDigestChars: bootstrapChars } } : {}),
 			...(advisorUrl ? { advisor: new SystemOneAdvisor({ url: advisorUrl, model: String(pi.getFlag("mom-advisor-model") ?? "kev-latest"),
 				threshold: Number(pi.getFlag("mom-advisor-threshold") ?? 0.25), timeoutMs: Number(pi.getFlag("mom-advisor-timeout-ms") ?? 1500) }) } : {}),
 			// Durable state lives beside the session transcript, never inside it.
