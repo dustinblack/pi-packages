@@ -1,5 +1,5 @@
 ---
-status: ready
+status: complete
 issue_id: "041"
 tags: [pi-delegate, pi-strings, acpx, move]
 dependencies: ["039"]
@@ -22,11 +22,11 @@ pi-strings' Coordinator, ACPX runtime, providers, vendored sources and tests liv
 
 ## Acceptance criteria
 
-- [ ] All moved pi-strings tests pass under pi-delegate's test runner; pi-delegate's existing suite stays green.
-- [ ] `npm run typecheck` in pi-delegate covers the moved code and the vendor tsconfig.
-- [ ] A test proves the extension registers nothing under `PI_STRINGS_WORKER=1`.
-- [ ] `git log --follow` on a moved file shows its pi-strings history.
-- [ ] No second Coordinator construction path exists.
+- [x] All moved pi-strings tests pass under pi-delegate's test runner; pi-delegate's existing suite stays green.
+- [x] `npm run typecheck` in pi-delegate covers the moved code and the vendor tsconfig.
+- [x] A test proves the extension registers nothing under `PI_STRINGS_WORKER=1`.
+- [x] `git log --follow` on a moved file shows its pi-strings history.
+- [x] No second Coordinator construction path exists.
 
 ## Out of scope
 

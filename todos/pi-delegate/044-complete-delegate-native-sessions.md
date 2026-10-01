@@ -1,5 +1,5 @@
 ---
-status: ready
+status: complete
 issue_id: "044"
 tags: [pi-delegate, acpx, amp, native-opening]
 dependencies: ["043"]
@@ -18,11 +18,11 @@ The moved Coordinator already verifies native identity, account scope, cwd, exec
 
 ## Acceptance criteria
 
-- [ ] New ACP Amp runs select local or Orb execution explicitly.
-- [ ] Existing native IDs open only with verified identity and settings, plus explicit executor hints where required.
-- [ ] Native sends through `delegate_ctl` stay undecorated and user-attributed.
-- [ ] Closing or disconnecting an opened run does not archive, delete or cancel it.
-- [ ] Fixture tests from `native-amp.test.ts` pass through the delegate surface.
+- [x] New ACP Amp runs select local or Orb execution explicitly.
+- [x] Existing native IDs open only with verified identity and settings, plus explicit executor hints where required.
+- [x] Native sends through `delegate_ctl` stay undecorated and user-attributed.
+- [x] Closing or disconnecting an opened run does not archive, delete or cancel it.
+- [x] Fixture tests from `native-amp.test.ts` pass through the delegate surface.
 
 ## Out of scope
 

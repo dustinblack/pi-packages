@@ -1,5 +1,5 @@
 ---
-status: ready
+status: complete
 issue_id: "040"
 tags: [pi-delegate, acpx, contract]
 dependencies: ["039"]
@@ -40,12 +40,12 @@ Decided 2026-09-30 (user): no plugin bridge and no new verbs. Delete `src/acp/ru
 
 ## Acceptance criteria
 
-- [ ] Contract covers create, open-existing (`sessionId`), send/steer, wait, result, status, cancel and close for both backends.
-- [ ] ACP-only fields (agent, sessionId, executionEnvironment) are explicit and rejected on `pi`. There is no silent fallback from ACP to Pi.
-- [ ] Run ID, provider request IDs, native ID, delivery and remote outcome stay distinct in the result shape.
-- [ ] A table maps each of the 12 `op_*` tools to its new home or to "dropped" with a reason.
-- [ ] A short ADR names the lifecycle and compatibility tradeoffs.
-- [ ] Type-level or fixture tests pin the contract before backend wiring.
+- [x] Contract covers create, open-existing (`sessionId`), send/steer, wait, result, status, cancel and close for both backends.
+- [x] ACP-only fields (agent, sessionId, executionEnvironment) are explicit and rejected on `pi`. There is no silent fallback from ACP to Pi.
+- [x] Run ID, provider request IDs, native ID, delivery and remote outcome stay distinct in the result shape.
+- [x] A table maps each of the 12 `op_*` tools to its new home or to "dropped" with a reason.
+- [x] A short ADR names the lifecycle and compatibility tradeoffs.
+- [x] Type-level or fixture tests pin the contract before backend wiring.
 
 ## Out of scope
 

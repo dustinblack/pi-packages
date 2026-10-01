@@ -1,5 +1,5 @@
 ---
-status: ready
+status: complete
 issue_id: "047"
 tags: [pi-delegate, docs, migration]
 dependencies: ["042", "043"]
@@ -18,10 +18,10 @@ pi-strings' README, `docs/AGENT_GUIDE.md` and `skills/pi-strings` teach the `op_
 
 ## Acceptance criteria
 
-- [ ] The README and delegation skill show natural-language `delegate` examples for both backends.
-- [ ] A migration note maps each old `op_*` call to its `delegate` equivalent, using 040's table.
-- [ ] Backend-specific authority, identity, timeout, delivery and cancellation limits are stated.
-- [ ] Examples match the schemas, and docs/resource path checks pass.
+- [x] The README and delegation skill show natural-language `delegate` examples for both backends.
+- [x] A migration note maps each old `op_*` call to its `delegate` equivalent, using 040's table.
+- [x] Backend-specific authority, identity, timeout, delivery and cancellation limits are stated.
+- [x] Examples match the schemas, and docs/resource path checks pass.
 
 ## Out of scope
 

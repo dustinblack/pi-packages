@@ -1,5 +1,5 @@
 ---
-status: ready
+status: complete
 issue_id: "043"
 tags: [pi-delegate, acpx, lifecycle]
 dependencies: ["042"]
@@ -18,11 +18,11 @@ Pi children support durable run segments and revival. ACP workers support provid
 
 ## Acceptance criteria
 
-- [ ] Each `delegate_ctl` action maps to the run's backend.
-- [ ] Wait/result preserve request IDs, native IDs, delivery, output bounds and terminal causes.
-- [ ] Steer and cancel check capabilities explicitly; unsupported ACP steering fails instead of falling back.
-- [ ] Close/disconnect never implicitly cancels externally owned native work.
-- [ ] Lifecycle tests cover success, timeout, provider failure, ambiguous delivery and cancellation on `acp`.
+- [x] Each `delegate_ctl` action maps to the run's backend.
+- [x] Wait/result preserve request IDs, native IDs, delivery, output bounds and terminal causes.
+- [x] Steer and cancel check capabilities explicitly; unsupported ACP steering fails instead of falling back.
+- [x] Close/disconnect never implicitly cancels externally owned native work.
+- [x] Lifecycle tests cover success, timeout, provider failure, ambiguous delivery and cancellation on `acp`.
 
 ## Out of scope
 

@@ -1,5 +1,5 @@
 ---
-status: ready
+status: complete
 issue_id: "045"
 tags: [pi-delegate, packaging, compatibility]
 dependencies: ["041"]
@@ -18,10 +18,10 @@ Originally filed for the pi-strings (`<0.84`) vs pi-delegate (`>=0.86.1`) confli
 
 ## Acceptance criteria
 
-- [ ] `files`/`pi` manifest entries include the moved `dist/`, `vendor/` and skills; the pack contents are verified.
-- [ ] Install smoke asserts `errors=[]`, the three tools, and that the ACP runtime binaries resolve from the installed package.
-- [ ] Peer range covers installed Pi 0.99.2.
-- [ ] No unrelated dependency is widened without evidence.
+- [x] `files`/`pi` manifest entries include the moved `dist/`, `vendor/` and skills; the pack contents are verified.
+- [x] Install smoke asserts `errors=[]`, the three tools, and that the ACP runtime binaries resolve from the installed package.
+- [x] Peer range covers installed Pi 0.99.2.
+- [x] No unrelated dependency is widened without evidence.
 
 ## Out of scope
 

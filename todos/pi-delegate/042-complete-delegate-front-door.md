@@ -1,5 +1,5 @@
 ---
-status: ready
+status: complete
 issue_id: "042"
 tags: [pi-delegate, delegation, dispatch]
 dependencies: ["040", "041"]
@@ -18,10 +18,10 @@ The pi-delegate extension assumes an in-process Pi child; its run log, role reso
 
 ## Acceptance criteria
 
-- [ ] `delegate` calls with no backend behave exactly as before; the existing suite proves it.
-- [ ] A caller can select `acp` plus agent, model, cwd, timeout and task.
-- [ ] Output shows the backend and session evidence without low-level noise.
-- [ ] Unknown backends and agents, and fields a backend does not support, fail explicitly.
+- [x] `delegate` calls with no backend behave exactly as before; the existing suite proves it.
+- [x] A caller can select `acp` plus agent, model, cwd, timeout and task.
+- [x] Output shows the backend and session evidence without low-level noise.
+- [x] Unknown backends and agents, and fields a backend does not support, fail explicitly.
 
 ## Out of scope
 

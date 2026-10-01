@@ -1,5 +1,5 @@
 ---
-status: ready
+status: complete
 issue_id: "046"
 tags: [pi-delegate, acpx, tests]
 dependencies: ["043", "044", "045"]
@@ -18,11 +18,11 @@ pi-delegate's suite covers in-process lifecycle. The ACP suite moved in by 041 c
 
 ## Acceptance criteria
 
-- [ ] The `pi` backend regression suite stays green.
-- [ ] `acp` backend tests through `delegate`/`delegate_ctl` cover create, open, result, wait, failure, cancellation and capability errors.
-- [ ] A test proves the worker guard: under `PI_STRINGS_WORKER=1`, pi-delegate registers no tools.
-- [ ] Install smoke from 045 runs in the check script.
-- [ ] Verification records exact counts and any skipped prerequisites.
+- [x] The `pi` backend regression suite stays green.
+- [x] `acp` backend tests through `delegate`/`delegate_ctl` cover create, open, result, wait, failure, cancellation and capability errors.
+- [x] A test proves the worker guard: under `PI_STRINGS_WORKER=1`, pi-delegate registers no tools.
+- [x] Install smoke from 045 runs in the check script.
+- [x] Verification records exact counts and any skipped prerequisites.
 
 ## Out of scope
 

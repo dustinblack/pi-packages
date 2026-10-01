@@ -10,7 +10,7 @@ forked_from: ""
 
 ## Where we are
 
-trunk: 039 — Pi 0.99 bump pushed (`5f8a330`); 041 move landed (`1dee4e8`); 040 contract in progress, then 042
+trunk: 039 — fold-in shipped and pushed (`11ae604`); 040–048, 053, 058 complete; open children 059–061
 tangents: native Amp plugin deployment → separate 031 gate; does not block the fold-in
 
 ## Findings
@@ -24,19 +24,21 @@ tangents: native Amp plugin deployment → separate 031 gate; does not block the
 
 ## Children / execution graph
 
-- 040 — ready — backend-neutral contract + `op_*` → delegate mapping decision
-- 041 — ready — move pi-strings code/vendor/tests into pi-delegate, green in new home
-- 042 — ready — `delegate` dispatches `pi` or `acp`; depends on 040, 041
-- 043 — ready — lifecycle controls across backends; depends on 042
-- 044 — ready — native Amp/Orb opening through `delegate`; depends on 043
-- 045 — ready — pi-delegate installs and loads alone on Pi 0.99 with ACP deps; depends on 041
-- 053 — ready — retire the pi-strings package and `op_*` tools; depends on 044, 045
-- 058 — ready — Amp cost in status/result, Amp `mode`, labels on created threads; depends on 042
+- 040 — complete — backend-neutral contract + `op_*` → delegate mapping decision
+- 041 — complete — move pi-strings code/vendor/tests into pi-delegate, green in new home
+- 042 — complete — `delegate` dispatches `pi` or `acp`; depends on 040, 041
+- 043 — complete — lifecycle controls across backends; depends on 042
+- 044 — complete — native Amp/Orb opening through `delegate`; depends on 043
+- 045 — complete — pi-delegate installs and loads alone on Pi 0.99 with ACP deps; depends on 041
+- 053 — complete — retire the pi-strings package and `op_*` tools; depends on 044, 045
+- 058 — complete — Amp cost in status/result, Amp `mode`, labels on created threads; depends on 042
 - 059 — pending — Amp runner executor and live watch of human activity; deferred
-- 041 — done at `1dee4e8` (awaiting user close); 031 closed as superseded (no plugin bridge)
-- 046 — ready — contract/install tests; depends on 043–045
-- 047 — ready — docs; depends on 042, 043
-- 048 — ready — live smoke; depends on 046, 047, 053
+- 060 — pending — confine ACP writers to their worktree (Codex escapes today)
+- 061 — pending — fix the E2E-gated ACP tests
+- 031 closed as superseded (no plugin bridge)
+- 046 — complete — contract/install tests; depends on 043–045
+- 047 — complete — docs; depends on 042, 043
+- 048 — complete — live smoke; depends on 046, 047, 053
 
 040 and 041 run in parallel. 045 and 042 follow 041.
 

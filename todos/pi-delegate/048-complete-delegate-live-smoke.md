@@ -1,5 +1,5 @@
 ---
-status: ready
+status: complete
 issue_id: "048"
 tags: [pi-delegate, acpx, smoke]
 dependencies: ["046", "047", "053"]
@@ -23,11 +23,11 @@ Approved targets (user, 2026-10-01):
 
 ## Acceptance criteria
 
-- [ ] A real Pi child delegates, completes, reports its result and leaves no orphan.
-- [ ] A real ACP provider child delegates, completes and reports provider/session evidence.
-- [ ] The existing Amp native/Orb proof preserves the exact T-ID, executor and user attribution.
-- [ ] Timeout, cancel and disconnect are observed without claiming remote cancellation when it is unknown.
-- [ ] Anything temporary is cleaned up or archived, with evidence.
+- [x] A real Pi child delegates, completes, reports its result and leaves no orphan.
+- [x] A real ACP provider child delegates, completes and reports provider/session evidence.
+- [x] The existing Amp native/Orb proof preserves the exact T-ID, executor and user attribution.
+- [x] Timeout, cancel and disconnect are observed without claiming remote cancellation when it is unknown.
+- [x] Anything temporary is cleaned up or archived, with evidence.
 
 ## Out of scope
 
@@ -55,8 +55,16 @@ What passed:
 - **Park and revive:** worked across two processes, for both Codex and the Orb thread.
 - **Cost:** about $0.34 metered.
 
-**Blocker:** the ACP backend worked in only one Pi process per machine, because the machine-wide Coordinator lock gave `COORDINATOR_OWNED` to every other process. The smoke ran with `PI_AGENT_DIR` pointed at a scratch dir. The user chose one Coordinator per process on 2026-10-01; this todo needs re-proof after that fix.
+**Blocker (resolved):** the ACP backend worked in only one Pi process per machine, because the machine-wide Coordinator lock gave `COORDINATOR_OWNED` to every other process. The smoke ran with `PI_AGENT_DIR` pointed at a scratch dir. The user chose one Coordinator per process on 2026-10-01; this todo needs re-proof after that fix.
 
 Smaller bugs found are being fixed with review round 2: the Codex native ID is never shown, `[status]` lines leak into reports, a steer after a timeout says `WORKER_BUSY`, a cancel also wakes the parent, and the cost in a wait result is stale.
 
 Logs: the session scratchpad `runA.log` … `runD2.log`.
+
+**Re-proof after the fix**, at `11ae604` (per-process Coordinator `95ac552` plus round-3 claim fixes), real Pi 0.99.2 with the default agent dir, alongside ~27 older Pi processes:
+- Two parent processes (PIDs 13874, 13875) ran Codex at the same time, each with its own `proc/<pid>-<token>` state dir. Neither got `COORDINATOR_OWNED`.
+- B's open of `T-01a0f0b4…` failed `SESSION_IN_USE … held by Pi process 13874` while A held it. After A closed, B opened it and observed 16 messages.
+- The thread export is byte-identical before and after; nothing was posted.
+- The locks dir is empty and no processes are left.
+- Opening the Orb thread appears to bill Orb runtime (thread total $2.45 → $2.67, with no model calls).
+
