@@ -3,9 +3,9 @@
  * Allows scrolling back while the prompt is displayed.
  */
 
-import type { Component, Focusable } from "@mariozechner/pi-tui";
-import { Input, Key, matchesKey, truncateToWidth, wrapTextWithAnsi } from "@mariozechner/pi-tui";
-import type { Theme } from "@mariozechner/pi-coding-agent";
+import type { Component, Focusable } from "@earendil-works/pi-tui";
+import { Input, Key, matchesKey, truncateToWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+import type { Theme } from "@earendil-works/pi-coding-agent";
 
 const BLOCK_CURSOR = "\x1b[7m \x1b[27m";
 

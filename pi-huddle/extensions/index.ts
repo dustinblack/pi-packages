@@ -12,10 +12,10 @@
  * - gather_input tool for structured elicitation during planning
  */
 
-import type { AgentMessage } from "@mariozechner/pi-agent-core";
-import type { TextContent } from "@mariozechner/pi-ai";
-import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
-import { Type } from "@sinclair/typebox";
+import type { AgentMessage } from "@earendil-works/pi-agent-core";
+import type { TextContent } from "@earendil-works/pi-ai";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { Type } from "typebox";
 import { GatherInputDialog, type GatherInputDialogResult, type QuestionDef } from "./lib/gather-input-dialog.js";
 import { PermissionDialog, type PermissionDialogResult } from "./lib/permission-dialog.js";
 import { isSafeCommand } from "./lib/utils.js";

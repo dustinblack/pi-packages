@@ -2,12 +2,12 @@
  * GatherInputDialog - TUI component matching the Claude Code AskUserQuestion UI.
  */
 
-import type { Component, Focusable } from "@mariozechner/pi-tui";
-import { Input, Key, matchesKey, truncateToWidth, wrapTextWithAnsi } from "@mariozechner/pi-tui";
+import type { Component, Focusable } from "@earendil-works/pi-tui";
+import { Input, Key, matchesKey, truncateToWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
 
 // Inline block cursor: inverse-video character (used after typed text)
 const BLOCK_CURSOR = "\x1b[7m \x1b[27m";
-import type { Theme } from "@mariozechner/pi-coding-agent";
+import type { Theme } from "@earendil-works/pi-coding-agent";
 
 export interface QuestionOption {
 	label: string;
