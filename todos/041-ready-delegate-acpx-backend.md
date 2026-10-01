@@ -34,4 +34,10 @@ Tool surface changes, deleting the pi-strings directory (053), renaming `PI_STRI
 
 ## Evidence
 
-Pending implementation.
+Closing commit `1dee4e8` (290 `git mv` renames). Gathered on that tree with real npm (`command npm`, because `npm` is aliased to bun):
+- `pi-delegate`: `npm run typecheck` clean; `npm test` gives 208 tests, 189 pass, 0 fail, 19 skipped (E2E-gated). Before the move: 71 + 134, 19 skipped. `npm run check:install` PASS.
+- `pi-tether`: `npm test` 145/145. It imports `pi-delegate/test/fixture.ts`, which is unchanged.
+- Guard: `test/worker-guard.test.ts` covers the control case, `PI_STRINGS_WORKER=1` and `PI_STRINGS_OPENED=1`. It fails without the guard.
+- History: `git log --follow pi-delegate/src/acp/orchestration/coordinator.ts` shows `49f42a2`, `a40fc3c`.
+- The only Coordinator construction is `pi-delegate/src/acp/index.ts:17`, loaded today only by the `pi-strings/extensions/index.ts` shim.
+- Left for later: pi-strings' build/test scripts and `files` list point at moved paths (053); the root README, `tasks/*.md` and todos 021, 024, 026–031 still cite `pi-strings/` paths (053); the pi-delegate README (047).
