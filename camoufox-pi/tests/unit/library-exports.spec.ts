@@ -1,5 +1,5 @@
 import "../../src/tools/formats.js";
-import { Type } from "@sinclair/typebox";
+import { Type } from "typebox";
 import { describe, expect, it } from "vitest";
 
 import { CamoufoxErrorBox } from "../../src/errors.js";

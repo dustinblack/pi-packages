@@ -1,6 +1,6 @@
 import "./formats.js";
 
-import { Type } from "@sinclair/typebox";
+import { Type } from "typebox";
 
 import type { CamoufoxClient } from "../client/camoufox-client.js";
 import type { ToolDefinition } from "./types.js";

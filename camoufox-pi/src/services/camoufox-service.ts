@@ -9,7 +9,7 @@ import { DEFAULT_CONFIG } from "../types.js";
 /**
  * Minimal shapes for the PI extension API surface this service depends on.
  * Kept structural so the service can be unit-tested without the peer
- * @mariozechner/pi-coding-agent dep installed.
+ * @earendil-works/pi-coding-agent dep installed.
  */
 interface MinimalPiEvents {
 	emit(event: string, payload: unknown): boolean;

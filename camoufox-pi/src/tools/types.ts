@@ -1,6 +1,6 @@
-import type { Static, TObject } from "@sinclair/typebox";
+import type { Static, TObject } from "typebox";
 
-// Structural ToolDefinition compatible with @mariozechner/pi-coding-agent's
+// Structural ToolDefinition compatible with @earendil-works/pi-coding-agent's
 // ExtensionAPI.registerTool signature. Spec: §3.3. `execute` receives the
 // PI turn AbortSignal; use AbortSignal.any to combine with internal timeouts.
 export interface ToolDefinition<S extends TObject = TObject> {

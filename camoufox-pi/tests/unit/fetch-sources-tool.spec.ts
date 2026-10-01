@@ -49,7 +49,7 @@ describe("tff-fetch_sources tool", () => {
 
 	it("rejects when sources is empty (TypeBox validation)", async () => {
 		const tool = createFetchSourcesTool(fakeClient([]));
-		const { Value } = await import("@sinclair/typebox/value");
+		const { Value } = await import("typebox/value");
 		expect(Value.Check(tool.parameters, { query: "q", sources: [] })).toBe(false);
 	});
 });

@@ -19,7 +19,7 @@ describe("module isolation (structural)", () => {
 		const offenders: string[] = [];
 		for (const f of files) {
 			const body = readFileSync(f, "utf8");
-			if (/@mariozechner\/pi-(coding-agent|ai|tui)/.test(body)) offenders.push(f);
+			if (/@earendil-works\/pi-(coding-agent|ai|tui)/.test(body)) offenders.push(f);
 		}
 		expect(offenders).toEqual([]);
 	});

@@ -1,5 +1,5 @@
-import type { TObject } from "@sinclair/typebox";
-import { Value } from "@sinclair/typebox/value";
+import type { TObject } from "typebox";
+import { Value } from "typebox/value";
 
 import { type Launcher, RealLauncher } from "./client/launcher.js";
 import type { CommandContext, CommandDefinition } from "./commands/index.js";
@@ -71,7 +71,7 @@ export type { HttpFetch, HttpFetchInit, HttpResponse } from "./client/http-fetch
 export type { SourceFetchEvent, HttpFetchEvent } from "./client/events.js";
 
 // ---------------------------------------------------------------------------
-// Structural PI API — minimal subset of what @mariozechner/pi-coding-agent
+// Structural PI API — minimal subset of what @earendil-works/pi-coding-agent
 // exposes at runtime. We deliberately avoid importing the real type so this
 // package can be imported and unit-tested without the peer dep installed.
 // ---------------------------------------------------------------------------
@@ -155,7 +155,7 @@ function wrapTool<S extends TObject>(def: ToolDefinition<S>): PiRegisteredTool {
 				const first = [...Value.Errors(def.parameters, input)][0];
 				throw new CamoufoxErrorBox({
 					type: "config_invalid",
-					field: first?.path ?? "(root)",
+					field: first?.instancePath ?? "(root)",
 					reason: first?.message ?? "validation failed",
 				});
 			}

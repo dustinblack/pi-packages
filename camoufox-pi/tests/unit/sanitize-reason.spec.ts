@@ -37,6 +37,8 @@ describe("sanitizeReason", () => {
 	});
 
 	it("does not strip package names like @scope/pkg", () => {
-		expect(sanitizeReason("load failed for @mariozechner/pi-ai")).toContain("@mariozechner/pi-ai");
+		expect(sanitizeReason("load failed for @earendil-works/pi-ai")).toContain(
+			"@earendil-works/pi-ai",
+		);
 	});
 });

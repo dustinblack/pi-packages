@@ -1,9 +1,9 @@
 import "../../src/tools/formats.js";
-import { FormatRegistry } from "@sinclair/typebox";
+import { Format } from "typebox/format";
 import { describe, expect, it } from "vitest";
 
 describe("uri format", () => {
-	const check = (v: unknown): boolean => FormatRegistry.Get("uri")?.(v as string) ?? false;
+	const check = (v: unknown): boolean => Format.Get("uri")?.(v as string) ?? false;
 
 	it("accepts http and https URLs", () => {
 		expect(check("https://example.com")).toBe(true);
