@@ -11,8 +11,8 @@ supersedes: []
 
 ## Where we are
 
-trunk: 049 — bounded cold catch-up and continuation behavior independently replayed against the real transcript shape; file-level release complete, stable-SHA and real-model semantic capture remain open.
-tangents: 051 — cadence implementation integrated in the shared working tree; 052 — incremental thread-map state/diff implementation integrated in the shared working tree. Both have focused tests and are awaiting stable-SHA verification/commit.
+trunk: 049 — bounded cold catch-up and continuation behavior committed at `8473018`; frozen-copy replay and stable-SHA Tether checks pass. Real-model semantic capture remains open.
+tangents: 051 — cadence implementation committed at `8473018`; replay evidence/tuning remains open. 052 — incremental thread-map implementation committed and verified at `8473018`.
 
 ## Findings
 
@@ -28,9 +28,9 @@ tangents: 051 — cadence implementation integrated in the shared working tree; 
 
 ## Children
 
-- 049 — implementation/replay verified at the working diff; `todos/049-ready-mom-cold-catchup.md`. Still uncommitted and no real-model semantic capture; do not close its stable-SHA criterion yet.
-- 051 — implementation integrated; focused and full working-tree checks pass; stable-SHA/commit gate remains — `todos/051-ready-mom-live-cadence.md`.
-- 052 — implementation integrated; focused and full working-tree checks pass; stable-SHA/commit gate remains — `todos/052-ready-mom-incremental-thread-map.md`.
+- 049 — committed at `8473018`; fixture/replay and stable-SHA Tether checks pass; real-model semantic capture remains open — `todos/049-ready-mom-cold-catchup.md`.
+- 051 — committed at `8473018`; Tether checks pass; cadence replay evidence/tuning and green applicable delegate verification remain open — `todos/051-ready-mom-live-cadence.md`.
+- 052 — complete at `8473018` — `todos/052-complete-ready-mom-incremental-thread-map.md`.
 
 ## Outcome
 
@@ -38,7 +38,7 @@ Mom catches up on long histories without one proposal per feed slice and keeps t
 
 ## Context
 
-pi-tether owns Mom's event feed, graph, checkpoint, prompt, and widget. `capture(24000)` is a size bound. Bootstrap code landed at `8e6ed0c`; replay exposed and the 049 diff fixes per-window continuation proposals. The 049/051/052 changes remain in the shared working tree pending stable-SHA verification and commit. Preserve `.mom` as the only durable graph state; no second ledger, no pi-intercom changes.
+pi-tether owns Mom's event feed, graph, checkpoint, prompt, and widget. `capture(24000)` is a size bound. Bootstrap code landed at `8e6ed0c`; replay exposed and the 049/051/052 changes committed together at `8473018`. Tether typecheck and 158/158 tests pass at that SHA. The shared pi-delegate ACP edits remain outside this commit and their current working-tree check is not green. Preserve `.mom` as the only durable graph state; no second ledger, no pi-intercom changes.
 
 ## Acceptance criteria
 
@@ -55,5 +55,5 @@ pi-tether owns Mom's event feed, graph, checkpoint, prompt, and widget. `capture
 
 ## Evidence
 
-- Integrated cadence + incremental thread-map implementation: `cd pi-tether && npm run check` passed typecheck and 158/158 tests in the shared working tree. Focused suites also passed: extension 14/14; incremental + bootstrap 11/11; compaction + recovery 7/7. No stable committed SHA yet; 049/051/052 remain open under the file-todo commit rule.
+- Integrated cadence + incremental thread-map implementation: commit `8473018`; `cd pi-tether && npm run check` passed typecheck and 158/158 tests at that stable SHA. Focused suites also passed: extension 14/14; incremental + bootstrap 11/11; compaction + recovery 7/7. 049 still needs a real-model cold-catch-up capture; 051 still needs replay-based cadence/evidence-lag/cost analysis.
 - Cross-package verification is not green: `cd pi-delegate && npm run check` stops at typecheck with errors in `src/render.ts` and `src/transcript.ts`. Separate `npm test` built successfully but ended 246 pass / 2 fail / 19 skipped: padded-Amp normalization (`test/backend-contract.test.ts`) and automatic Mom capture (`test/tether-feed.test.ts`). No pi-delegate files were edited here; the shared ACP/backend work is outside this batch, so these failures are recorded, not attributed or repaired here.
