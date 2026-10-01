@@ -16,7 +16,6 @@ const nodeFields = {
 	label: Type.String({ minLength: 1, maxLength: 160 }),
 	intent: Type.String({ maxLength: 1200 }), observed: Type.String({ maxLength: 2400 }),
 	actor: Type.String({ maxLength: 200, description: "Observed actor identity, or empty if unknown/not applicable." }), sources: refs,
-	purposeSource: Type.Optional(Type.String({ minLength: 1, description: "The one source in sources containing the complete intent at normalized token-sequence boundaries." })),
 };
 export const NodeInput = Type.Object(nodeFields, object);
 const History = Type.Object({ checkpoint: Type.String({ minLength: 1 }), nodes: Type.Array(id, { minItems: 1, uniqueItems: true }),
@@ -24,12 +23,12 @@ const History = Type.Object({ checkpoint: Type.String({ minLength: 1 }), nodes: 
 	// Original endpoints in the prior checkpoint, not new self-edges in the active map.
 	returns: Type.Array(Type.Object({ from: id, to: id }, object)),
 }, object);
-const Node = Type.Object({ ...nodeFields, history: Type.Optional(History) }, object);
+const Node = Type.Object({ ...nodeFields, purposeSource: Type.Optional(Type.String({ minLength: 1 })), history: Type.Optional(History) }, object);
 const edgeFields = { from: id, relation, to: id };
 export const Edge = Type.Object({ ...edgeFields, sources: refs }, object);
 const reason = { reason: Type.String({ minLength: 1 }), sources: refs };
 export const Edit = Type.Union([
-	Type.Object({ op: Type.Literal("put_node"), node: NodeInput }, object),
+	Type.Object({ op: Type.Literal("put_node"), node: Node }, object),
 	Type.Object({ op: Type.Literal("put_edge"), edge: Edge }, object),
 	Type.Object({ op: Type.Literal("remove_edge"), ...edgeFields }, object),
 	Type.Object({ op: Type.Literal("remove_node"), id, ...reason }, object),
@@ -53,10 +52,11 @@ export type GraphEdge = Static<typeof Edge>;
 export type GraphEdit = Static<typeof Edit>;
 export const GRAPH_CHAR_LIMIT = 24000;
 
-/** Suggest a full observed source when a partial ref or wrong stream prefix still
- * identifies exactly one source. Block suffixes do not change the entry identity. */
-export function sourceSuggestion(ref: string, known: Iterable<string>): string | undefined {
-	const candidates = [...known];
+/** Suggest a full observed source when a partial ref, wrong stream prefix, or stray
+ * whitespace still identifies exactly one source. Block suffixes do not change the entry identity. */
+export function sourceSuggestion(mangled: string, known: Iterable<string>): string | undefined {
+	const candidates = [...known], ref = mangled.replace(/\s+/g, "");
+	if (ref !== mangled && candidates.includes(ref)) return ref;
 	const prefix = candidates.filter(observed => observed.startsWith(ref));
 	if (prefix.length === 1) return prefix[0];
 	const base = ref.replace(/(:[^:]+):b\d+$/, "$1"), terminal = base.slice(base.lastIndexOf(":") + 1);
@@ -398,4 +398,3 @@ export function graphSlice(graph: WorkGraph, selected?: readonly string[], depth
 		boundaryNodes: graph.nodes.filter(n => boundary.has(n.id)),
 		totalNodes: graph.nodes.length, omittedNodes: graph.nodes.length - included.size };
 }
-

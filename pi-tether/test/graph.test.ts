@@ -11,6 +11,8 @@ const outcome = () => put({ ...node("main", null, "active"), observed: "Research
 
 test("wrong-stream source diagnostics suggest only a unique terminal entry identity", () => {
 	assert.equal(sourceSuggestion("wrong-stream:entry-42", ["lead-stream:entry-42"]), "lead-stream:entry-42");
+	assert.equal(sourceSuggestion("01a0e020-12a4-7474-819f-ad69-0d1013ad5066:5d21d97a", ["01a0e020-12a4-7474-819f-ad784bb5febd:5d21d97a"]),
+		"01a0e020-12a4-7474-819f-ad784bb5febd:5d21d97a");
 	assert.equal(sourceSuggestion("wrong-stream:entry-42:b9", ["worker-stream:entry-42:b1"]), "worker-stream:entry-42:b1");
 	assert.equal(sourceSuggestion("wrong-stream:b1234567", ["lead-stream:b1234567"]), "lead-stream:b1234567");
 	assert.equal(sourceSuggestion("wrong-stream:entry-42", ["lead-stream:entry-42", "worker-stream:entry-42"]), undefined);

@@ -45,6 +45,24 @@ test("the bounded feed keeps dialog direction verbatim while tool payloads and M
 	assert.deepEqual(extractEvents(s, { ...entry("mom", "Mom's view"), message: { role: "custom", customType: "pi-tether.mom-notice", content: "Do not recursively observe this." } }), []);
 });
 
+test("structured custom evidence and compaction claims are extracted without entering live narrative", () => {
+	const s = { key: "s", actor: "lead" };
+	const file = extractEvents(s, { type: "custom", customType: "file_op", id: "file", timestamp: stamp,
+		data: { op: "write", path: "/repo/src/index.ts" } });
+	assert.deepEqual(file, [{ ref: "s:file", at: stamp, actor: "lead", kind: "file_op", name: "write", text: "/repo/src/index.ts" }]);
+	const todo = extractEvents(s, { type: "custom", customType: "pi_omp.todo", id: "todo", timestamp: stamp, data: { phases: [
+		{ tasks: [{ status: "completed", content: "Ship   the fix" }, { status: "pending", content: "Verify it" }] },
+	] } });
+	assert.equal(todo[0].kind, "todo");
+	assert.equal(todo[0].text, "comp: Ship the fix | pend: Verify it");
+	const compaction = extractEvents(s, { type: "compaction", id: "compact", timestamp: stamp, summary: "Provider summary claim." });
+	assert.equal(compaction[0].claim, "Provider summary claim.");
+	assert.equal(compaction[0].text, undefined, "a claim is not user narrative");
+	assert.doesNotMatch(renderEvents(compaction), /Provider summary claim/, "ordinary live rendering deliberately omits claims");
+	assert.deepEqual(extractEvents(s, { type: "custom", customType: "pi-tether.private", id: "mom", timestamp: stamp,
+		data: { path: "secret" } }), []);
+});
+
 test("output-phrase search finds parent arguments and worker payloads without exposing them in the feed", async () => {
 	const f = await workerFixture();
 	try {

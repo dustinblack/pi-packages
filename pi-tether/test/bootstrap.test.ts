@@ -138,19 +138,74 @@ test("chapter segmentation and the digest are deterministic and carry pointers",
 	const events = [
 		{ ref: "s0:a1", at: "", actor: "lead", kind: "user", text: "Ship the release safely." },
 		{ ref: "s0:a2", at: "", actor: "lead", kind: "assistant", text: "Working." },
-		{ ref: "s0:a3", at: "", actor: "lead", kind: "compaction" },
+		{ ref: "s0:a3", at: "", actor: "lead", kind: "compaction", claim: "Release chapter closed." },
 		{ ref: "s0:a4", at: "", actor: "lead", kind: "user", text: "Now investigate the failing upload." },
 	] as any;
 	const chapters = segmentChapters(events);
 	assert.equal(chapters.length, 2, "a compaction entry closes its chapter");
-	assert.equal(chapters[0].firstDirection?.ref, "s0:a1");
-	assert.equal(chapters[1].firstDirection?.ref, "s0:a4");
+	assert.equal(chapters[0].directions[0]?.ref, "s0:a1");
+	assert.equal(chapters[1].directions[0]?.ref, "s0:a4");
 	assert.equal(chapters.at(-1)!.endRef, "s0:a4");
 	const digest = chapterDigest(chapters, DEFAULT_BOOTSTRAP_POLICY)!;
 	assert.match(digest, /BOOTSTRAP CHAPTER CHAIN/);
 	assert.match(digest, /\[src:s0:a1\] Ship the release safely\./);
 	assert.match(digest, /\[src:s0:a4\] Now investigate the failing upload\./);
-	assert.match(digest, /compaction\(s\) closed this chapter/);
+	assert.match(digest, /CLAIM \[src:s0:a3\] Release chapter closed\./);
+});
+
+test("chapter schema preserves closing state, provisional diagnosis, file dedupe, and bounded fallback", () => {
+	const events: any[] = [
+		{ ref: "s:u", at: "", actor: "lead", kind: "user", text: "Investigate." },
+		{ ref: "s:t1", at: "", actor: "lead", kind: "todo", text: "pend: First state" },
+		{ ref: "s:t2", at: "", actor: "lead", kind: "todo", text: "comp: Final state" },
+		...Array.from({ length: 14 }, (_, i) => ({ ref: `s:f${i}`, at: "", actor: "lead", kind: "file_op", name: "write", text: `/repo/f${i}.ts` })),
+		{ ref: "s:f-again", at: "", actor: "lead", kind: "file_op", name: "write", text: "/repo/f0.ts" },
+		{ ref: "s:c", at: "", actor: "lead", kind: "compaction", claim: "OpenAI remote compaction applied for provider." },
+		{ ref: "s:a", at: "", actor: "lead", kind: "assistant", text: "No active sidecar has been written today; the archived file is obsolete." },
+	];
+	const chapters = segmentChapters(events);
+	assert.equal(chapters[0].lastTodo?.ref, "s:t2");
+	assert.equal(chapters[0].files.length, 14, "paths are deduplicated");
+	assert.equal(chapters[0].files[0].operations.get("write"), 2, "operation counts are retained");
+	const digest = chapterDigest(chapters, DEFAULT_BOOTSTRAP_POLICY)!;
+	assert.match(digest, /TODO@end \[src:s:t2\] comp: Final state/);
+	assert.doesNotMatch(digest, /First state/);
+	assert.match(digest, /CLAIM\(placeholder — no content; inspect raw chapter\) \[src:s:c\]/);
+	assert.match(digest, /file \[src:s:f0\] \/repo\/f0\.ts \(write×2\)/);
+	assert.match(digest, /file \[src:s:f13\] \/repo\/f13\.ts \(write×1\)/, "under budget every touched file is listed");
+	assert.match(digest, /last assistant text \[src:s:a\] No active sidecar/);
+	assert.equal(chapterDigest(chapters, { ...DEFAULT_BOOTSTRAP_POLICY, maxDigestChars: 100 }), undefined);
+	const trimmed = chapterDigest(chapters, { ...DEFAULT_BOOTSTRAP_POLICY, maxDigestChars: 4000 })!;
+	assert.equal((trimmed.match(/^Chapter /gm) ?? []).length, 2, "detail is trimmed before any chapter is dropped");
+});
+
+test("a budgeted chapter drops old directions and files before its frontier, and says what it omitted", () => {
+	const events: any[] = [
+		...Array.from({ length: 12 }, (_, i) => ({ ref: `s:u${i}`, at: "", actor: "lead", kind: "user", text: `Direction number ${i} ${"x".repeat(150)}` })),
+		...Array.from({ length: 6 }, (_, i) => ({ ref: `s:f${i}`, at: "", actor: "lead", kind: "file_op", name: "edit", text: `/repo/file-${i}.ts` })),
+		{ ref: "s:a0", at: "", actor: "lead", kind: "assistant", text: "Earlier assistant note." },
+		{ ref: "s:a1", at: "", actor: "lead", kind: "assistant", text: "Final diagnosis: nothing is written." },
+	];
+	const [chapter] = segmentChapters(events);
+	const digest = chapterDigest([chapter], { ...DEFAULT_BOOTSTRAP_POLICY, maxDigestChars: 1700 })!;
+	assert.match(digest, /first direction \[src:s:u0\]/);
+	assert.match(digest, /last direction \[src:s:u11\]/);
+	assert.match(digest, /last assistant text \[src:s:a1\] Final diagnosis/);
+	assert.match(digest, /direction \[src:s:u10\]/, "the most recent middle direction survives before older ones");
+	assert.doesNotMatch(digest, /\[src:s:u1\]/, "the oldest middle direction is dropped first");
+	assert.match(digest, /recent assistant text \[src:s:a0\] Earlier assistant note/, "the frontier chapter keeps its recent assistant texts");
+	assert.match(digest, /… \d+ lead directions, \d+ files touched omitted for budget/);
+	assert.ok(digest.length <= 1700, `digest ${digest.length} chars stays within budget`);
+});
+
+test("chapter budget is fair-shared by demand: a small chapter keeps its block, the heavy one takes the surplus", () => {
+	const small: any[] = [{ ref: "a:u", at: "", actor: "lead", kind: "user", text: "Small." }, { ref: "a:c", at: "", actor: "lead", kind: "compaction", claim: "done" }];
+	const big: any[] = Array.from({ length: 40 }, (_, i) => ({ ref: `b:u${i}`, at: "", actor: "lead", kind: "user", text: `Big direction ${i} ${"y".repeat(400)}` }));
+	const chapters = segmentChapters([...small, ...big]);
+	const digest = chapterDigest(chapters, { ...DEFAULT_BOOTSTRAP_POLICY, maxDigestChars: 12000 })!;
+	const [, bigBlock] = digest.split(/^Chapter 2 /m);
+	assert.ok(bigBlock.length > 6000, `the heavy chapter receives most of the budget (${bigBlock.length} chars)`);
+	assert.match(digest, /CLAIM \[src:a:c\] done/);
 });
 
 test("a single-window backlog keeps the ordinary path: no compression, no bootstrap", { timeout: 60000 }, async () => {

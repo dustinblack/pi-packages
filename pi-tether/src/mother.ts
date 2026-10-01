@@ -28,6 +28,24 @@ function boundedGapEvents(events: readonly FeedEvent[], limit = 24000): { events
 	return { events: selected, remaining: events.slice(selected.length).map(event => event.ref) };
 }
 
+function recordedRange(events: readonly FeedEvent[], range: Pick<CursorFailure, "firstRef" | "lastRef" | "count">, error: string): FeedEvent[] {
+	const first = events.findIndex(event => event.ref === range.firstRef);
+	const last = events.findIndex(event => event.ref === range.lastRef);
+	if (first < 0 || last < first || last - first + 1 !== range.count) throw new Error(error);
+	return events.slice(first, last + 1);
+}
+
+function rangeFields(events: readonly FeedEvent[]): Pick<CursorFailure, "firstRef" | "lastRef" | "count"> {
+	if (!events.length) throw new Error("Mom cannot record an empty evidence range for retry.");
+	return { firstRef: events[0].ref, lastRef: events[events.length - 1].ref, count: events.length };
+}
+
+function refsRange(feed: LiveFeed, refs: readonly string[]): Pick<CursorFailure, "firstRef" | "lastRef" | "count"> {
+	const events = refs.map(ref => feed.byRef.get(ref));
+	if (events.some(event => !event)) throw new Error("Mom cannot retry a skipped range because its recorded sources are unreadable.");
+	return rangeFields(events as FeedEvent[]);
+}
+
 export interface MomHost {
 	ctx: ExtensionContext;
 	model: string;
@@ -99,8 +117,7 @@ export class Mom {
 			if (!this.feed.byRef.has(ref)) throw new Error(`Checkpoint cites an unknown or unobserved source: ${ref}`);
 		}
 		if (state.failure) {
-			const events = state.failure.refs.map(ref => this.feed.byRef.get(ref)).filter((event): event is NonNullable<typeof event> => Boolean(event));
-			if (events.length !== state.failure.refs.length) throw new Error("Mom cannot restore the evidence range recorded for retry.");
+			const events = recordedRange(this.feed.events, state.failure, "Mom cannot restore the evidence range recorded for retry.");
 			this.committed = this.feed.events.length - events.length;
 			this.staged = { events, cut: state.failure.through, from: state.failure.from, gaps: [], more: false, revision: 0,
 				startIndex: this.committed, endIndex: this.feed.events.length };
@@ -172,8 +189,7 @@ export class Mom {
 			}
 			if (refresh && this.gaps.length) {
 				const gap = this.gaps[0], pending = this.staged!;
-				const old = gap.refs.map(ref => this.feed.byRef.get(ref)).filter((event): event is NonNullable<typeof event> => Boolean(event));
-				if (old.length !== gap.refs.length) throw new Error("Mom cannot retry a skipped range because its recorded sources are unreadable.");
+				const old = recordedRange(this.feed.events, gap, "Mom cannot retry a skipped range because its recorded sources are unreadable.");
 				const chunk = boundedGapEvents(old);
 				// A durable gap is retried alone. Pending later evidence remains staged in
 				// source order and cannot inflate recovery past the context ceiling or be
@@ -350,7 +366,7 @@ export class Mom {
 						|| JSON.stringify(next.unfinished) !== JSON.stringify(this.checkpoint.unfinished ?? []);
 					const retriedGap = batch.retryGapId ? this.gaps.find(gap => gap.id === batch.retryGapId) : undefined;
 					const gapUpdate = !batch.retryGapId ? {} : batch.retryGapRemaining?.length && retriedGap
-						? { gap: { action: "open", ...retriedGap, refs: batch.retryGapRemaining } }
+						? { gap: { action: "open", ...retriedGap, ...refsRange(this.feed, batch.retryGapRemaining) } }
 						: { gap: { action: "resolved", id: batch.retryGapId } };
 					const resolutionUpdate = resolutionKeys.size ? { resolvedNotices: [...resolutionKeys] } : {};
 					if (material) {
@@ -373,7 +389,7 @@ export class Mom {
 					this.usage = acceptedUsage;
 					if (batch.retryGapId) {
 						if (batch.retryGapRemaining?.length && retriedGap) this.gaps = this.gaps.map(gap => gap.id === batch.retryGapId
-							? { ...retriedGap, refs: batch.retryGapRemaining! } : gap);
+							? { ...retriedGap, ...refsRange(this.feed, batch.retryGapRemaining!) } : gap);
 						else this.gaps = this.gaps.filter(gap => gap.id !== batch.retryGapId);
 					}
 					// Usage is its own compact stream; a failed write never invalidates an accepted map.
@@ -432,10 +448,10 @@ export class Mom {
 				this.staged = this.queued; this.queued = undefined;
 				throw failureError;
 			}
-			const refs = batch.events.map(event => event.ref);
-			const key = JSON.stringify({ from: batch.from, through: batch.cut, refs });
+			const range = rangeFields(batch.events);
+			const key = JSON.stringify({ from: batch.from, through: batch.cut, ...range });
 			const failures = this.failure?.key === key ? this.failure.failures + 1 : 1;
-			const failure: CursorFailure = { key, from: batch.from, through: batch.cut, refs, error: String(failureError), failures };
+			const failure: CursorFailure = { key, from: batch.from, through: batch.cut, ...range, error: String(failureError), failures };
 			if (failures < 2) {
 				await this.host.store.append("map", { failure });
 				this.failure = failure;

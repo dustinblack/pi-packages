@@ -62,17 +62,29 @@ test("failure and skipped-gap state share the map stream and restore without tra
 	const current = { ...checkpoint(sessionId), cut: { parent: root, workers: [] } };
 	const store = memoryStore(sessionId, [mapSnapshot("keep", sessionId, current, 1)]);
 	const from = current.cut, through = { parent: leaf, workers: [] };
-	await store.append("map", { failure: { key: "range", from, through, refs: [], error: "rejected", failures: 1 } });
+	await store.append("map", { failure: { key: "range", from, through, firstRef: "first", lastRef: "last", count: 2, error: "rejected", failures: 1 } });
 	assert.equal((await loadState(store, manager)).failure?.failures, 1);
 	await store.append("map", { base: "keep", cut: through, failure: null,
-		gap: { action: "open", id: "gap-one", key: "range", from, through, refs: [], error: "rejected", failures: 2 } });
+		gap: { action: "open", id: "gap-one", key: "range", from, through, firstRef: "first", lastRef: "last", count: 2, error: "rejected", failures: 2 } });
 	const skipped = await loadState(store, manager);
 	assert.equal(skipped.failure, undefined); assert.equal(skipped.coverageCut?.parent, leaf); assert.equal(skipped.gaps[0]?.id, "gap-one");
 	await store.append("map", { base: "keep", cut: through,
-		gap: { action: "open", ...skipped.gaps[0], refs: ["remaining-ref"] } });
-	assert.deepEqual((await loadState(store, manager)).gaps[0]?.refs, ["remaining-ref"], "an atomic open record narrows durable remaining-gap coverage");
+		gap: { action: "open", ...skipped.gaps[0], firstRef: "remaining-ref", lastRef: "remaining-ref", count: 1 } });
+	assert.deepEqual((await loadState(store, manager)).gaps[0] && {
+		firstRef: (await loadState(store, manager)).gaps[0].firstRef,
+		lastRef: (await loadState(store, manager)).gaps[0].lastRef,
+		count: (await loadState(store, manager)).gaps[0].count,
+	}, { firstRef: "remaining-ref", lastRef: "remaining-ref", count: 1 }, "an atomic open record narrows durable remaining-gap coverage");
 	await store.append("map", { base: "keep", cut: through, gap: { action: "resolved", id: "gap-one" } });
 	assert.deepEqual((await loadState(store, manager)).gaps, []);
+});
+
+test("old refs-array failure records are rejected instead of migrated", async () => {
+	const manager = SessionManager.inMemory("/tmp"), sessionId = manager.getSessionId();
+	const cut = { parent: null, workers: [] };
+	const store = memoryStore(sessionId);
+	await store.append("map", { failure: { key: "old-range", from: cut, through: cut, refs: ["old-ref"], error: "rejected", failures: 1 } });
+	await assert.rejects(() => loadState(store, manager), /Invalid Mom failure state/);
 });
 
 test("a sibling-branch cursor cannot clear the selected branch's retry failure", async () => {
@@ -84,7 +96,7 @@ test("a sibling-branch cursor cannot clear the selected branch's retry failure",
 	const rootCut = { parent: root, workers: [] }, selectedCut = { parent: selected, workers: [] };
 	const store = memoryStore(sessionId, [mapSnapshot("keep", sessionId, { ...checkpoint(sessionId), cut: rootCut }, 1)]);
 	await store.append("map", { base: "keep", cut: selectedCut });
-	await store.append("map", { failure: { key: "selected-range", from: rootCut, through: selectedCut, refs: [], error: "retry", failures: 1 } });
+	await store.append("map", { failure: { key: "selected-range", from: rootCut, through: selectedCut, firstRef: "selected", lastRef: "selected", count: 1, error: "retry", failures: 1 } });
 	await store.append("map", { base: "keep", cut: { parent: sibling, workers: [] }, failure: null });
 	await store.append("map", { base: "other-map", cut: selectedCut, failure: null });
 	const restored = await loadState(store, manager);
@@ -117,7 +129,7 @@ test("a sibling-branch cursor cannot resolve the selected branch's skipped gap",
 	const rootCut = { parent: root, workers: [] }, selectedCut = { parent: selected, workers: [] };
 	const store = memoryStore(sessionId, [mapSnapshot("keep", sessionId, { ...checkpoint(sessionId), cut: rootCut }, 1)]);
 	await store.append("map", { base: "keep", cut: selectedCut,
-		gap: { action: "open", id: "selected-gap", key: "selected-range", from: rootCut, through: selectedCut, refs: [], error: "rejected", failures: 2 } });
+		gap: { action: "open", id: "selected-gap", key: "selected-range", from: rootCut, through: selectedCut, firstRef: "selected", lastRef: "selected", count: 1, error: "rejected", failures: 2 } });
 	await store.append("map", { base: "keep", cut: { parent: sibling, workers: [] }, gap: { action: "resolved", id: "selected-gap" } });
 	await store.append("map", { base: "other-map", cut: selectedCut, gap: { action: "resolved", id: "selected-gap" } });
 	const restored = await loadState(store, manager);
@@ -150,7 +162,9 @@ test("source validator rejects invented citations and malformed process notices"
 	const accept = (value: unknown, refs = fresh, question?: string) => acceptGraph(value, emptyGraph(), undefined, known, refs, inspected, question);
 	assert.equal(accept(base).note, null);
 	assert.throws(() => accept({ ...base, upsertNodes: [{ ...node, sources: ["s:nope"] }] }), /Unknown/);
-	assert.throws(() => accept({ ...base, upsertNodes: [{ ...node, sources: ["s:u", "s:u"] }] }), /Duplicate/);
-	assert.throws(() => accept({ ...base, note: { text: "Check it", riskClass: "purpose_drift", target: "main", riskRefs: ["s:u"], actionRefs: ["s:r"] } }), /shape|visible/);
+	assert.deepEqual(accept({ ...base, upsertNodes: [{ ...node, sources: ["s:u", "s:u"] }] }).graph.nodes[0]?.sources, ["s:u"]);
+	const malformed = accept({ ...base, note: { text: "Check it", riskClass: "purpose_drift", target: "main", riskRefs: ["s:u"], actionRefs: ["s:r"] } });
+	assert.equal(malformed.note, null, "a malformed notice is dropped, not fatal");
+	assert.match(malformed.repairs.find((item) => item.from.startsWith("note "))!.to, /shape|visible/);
 	assert.throws(() => accept(base, fresh, "Why?"), /explicit question/);
 });

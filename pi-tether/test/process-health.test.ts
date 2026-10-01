@@ -12,6 +12,14 @@ function accept(note: Record<string, unknown> | null, events: FeedEvent[], fresh
 	const known = new Map([purpose, ...events].map(item => [item.ref, item]));
 	return acceptGraph({ ...base, note }, graph, "saved", known, new Set(fresh), new Set(), undefined, compaction, unresolved);
 }
+/** An invalid advisory never voids the map: the note is dropped and the reason recorded as a repair. */
+function dropped(result: ReturnType<typeof acceptGraph>, expected: RegExp) {
+	assert.equal(result.note, null, "the invalid note is dropped");
+	assert.equal(result.graph.revision, graph.revision, "the map update itself still lands");
+	const repair = result.repairs.find(item => item.from.startsWith("note ") || item.from.startsWith("resolution "));
+	assert.ok(repair, "the drop is recorded as a repair");
+	assert.match(repair!.to, expected);
+}
 
 const cases = [
 	{
@@ -37,23 +45,23 @@ for (const item of cases) {
 		const note = { text: item.text, riskClass: item.klass, target: "main", riskRefs: [...item.risk], actionRefs: [...item.action] };
 		assert.deepEqual(accept(note, [...item.events], [...item.fresh], "compaction" in item ? item.compaction : false).note, note);
 	});
-	test(`${item.name}: evidence missing the class prerequisite is rejected`, () => {
+	test(`${item.name}: evidence missing the class prerequisite drops the advisory, not the map`, () => {
 		const note = { text: item.text, riskClass: item.klass, target: "main", riskRefs: [...item.risk] as string[], actionRefs: [...item.action] as string[] };
 		let expected: RegExp;
 		if (item.klass === "uncommitted_work") { note.actionRefs = ["s:pile"]; expected = /user authority/; }
 		else if (item.klass === "purpose_drift") { note.riskRefs = ["s:other", "s:drift"]; expected = /current grounded purpose/; }
 		else if (item.klass === "repeated_fix_failure") { note.riskRefs = ["s:goal", "s:fail2"]; expected = /two distinct observed attempts/; }
 		else expected = /current compaction/;
-		assert.throws(() => accept(note, [...item.events, event("s:other", "assistant", "Other current work.")], [...item.fresh]), expected);
+		dropped(accept(note, [...item.events, event("s:other", "assistant", "Other current work.")], [...item.fresh]), expected);
 	});
 }
 
-test("notice protocol rejects jargon, unknown references and stale risk evidence", () => {
+test("notice protocol drops jargon, unknown references and stale risk evidence", () => {
 	const events = [event("s:permission", "user", "Commits are allowed. Commit the completed changes now."), event("s:pile", "assistant", "Many completed files remain uncommitted.")];
 	const make = (text: string, actionRefs = ["s:permission"]) => ({ text, riskClass: "uncommitted_work", target: "main", riskRefs: ["s:permission", "s:pile"], actionRefs });
-	assert.throws(() => accept(make("Commit the release changes before more work makes them harder to recover."), events, []), /new evidence/);
-	assert.throws(() => accept(make("Commit the sidecar checkpoint before more work changes the files."), events, ["s:pile"]), /plain English/);
-	assert.throws(() => accept(make("Commit the release changes before more work makes them harder to recover.", ["s:nope"]), events, ["s:pile"]), /visible current evidence/);
+	dropped(accept(make("Commit the release changes before more work makes them harder to recover."), events, []), /new evidence/);
+	dropped(accept(make("Commit the sidecar checkpoint before more work changes the files."), events, ["s:pile"]), /plain English/);
+	dropped(accept(make("Commit the release changes before more work makes them harder to recover.", ["s:nope"]), events, ["s:pile"]), /visible current evidence/);
 });
 
 test("strict provider null resolutions mean no resolutions", () => {
@@ -66,7 +74,9 @@ test("resolution is explicit and a later recurrence requires genuinely new evide
 	const known = new Map([purpose, resolved].map(item => [item.ref, item]));
 	const transaction = { ...base, note: null, resolutions: [{ riskClass: "uncommitted_work", target: "main", resolutionRefs: [resolved.ref] }] };
 	assert.equal(acceptGraph(transaction, graph, "saved", known, new Set([resolved.ref]), new Set(), undefined, false, unresolved).resolutions.length, 1);
-	assert.throws(() => acceptGraph(transaction, graph, "saved", known, new Set(), new Set(), undefined, false, unresolved), /new current evidence/);
+	const stale = acceptGraph(transaction, graph, "saved", known, new Set(), new Set(), undefined, false, unresolved);
+	assert.equal(stale.resolutions.length, 0, "a resolution without new evidence is dropped");
+	assert.match(stale.repairs.find(item => item.from.startsWith("resolution "))!.to, /new current evidence/);
 	const recur = [event("s:allowed2", "user", "Commits remain allowed. Commit this new completed release work now."), event("s:pile2", "assistant", "A later set of completed release files is again uncommitted.")];
 	const note = { text: "Commit the new release changes before more work makes them harder to recover.", riskClass: "uncommitted_work", target: "main", riskRefs: recur.map(x => x.ref), actionRefs: [recur[0].ref] };
 	assert.deepEqual(accept(note, recur, ["s:pile2"]).note, note);

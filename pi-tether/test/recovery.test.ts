@@ -70,3 +70,24 @@ test("sidecar append failure publishes nothing; a reopened Mom resumes from dura
 		assert(!cold.getEntries().some(momState), "the session file holds no Mom state");
 	} finally { mom.close(); await h.close(); }
 });
+
+test("large failed batches persist a bounded range and reopen with identical staged evidence", { timeout: 15000 }, async () => {
+	const h = await setup(); let mom = h.createMom();
+	try {
+		await h.runtime.session.prompt("Preserve the original purpose."); await mom.open(); await mom.update();
+		for (let i = 0; i < 500; i++) h.runtime.session.sessionManager.appendMessage({ role: "user", content: `event-${i}`, timestamp: Date.now() + i });
+		h.api.onUnscripted((request) => isMomRequest(request) ? { text: "not a graph transaction" } : { text: "Lead continued." });
+		const failedAt = h.requests().length;
+		await assert.rejects(() => mom.update(), /expected one operation/);
+		const firstEvidence = input(h.requests()[failedAt]).newEvents;
+		const record = (await readSidecar(h)).findLast(item => item.type === "map" && item.data.failure)?.data.failure;
+		assert(record); assert(record.count > 200, "the fixture produces a large bounded failure batch");
+		assert.equal(typeof record.firstRef, "string"); assert.equal(typeof record.lastRef, "string"); assert.equal(record.refs, undefined);
+		assert(Buffer.byteLength(JSON.stringify(record)) < 2000, "the failure record stays bounded as the batch grows");
+
+		mom.close(); mom = h.createMom(); await mom.open();
+		const reopenedAt = h.requests().length;
+		await assert.rejects(() => mom.update(), /expected one operation/);
+		assert.equal(input(h.requests()[reopenedAt]).newEvents, firstEvidence, "cold reopen restores exactly the failed event range");
+	} finally { mom.close(); await h.close(); }
+});

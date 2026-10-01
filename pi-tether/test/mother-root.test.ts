@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
-import { acceptGraph, directlyGrounded } from "../src/contract.ts";
+import { acceptGraph } from "../src/contract.ts";
 import { checkGraph, editGraph, emptyGraph, graphSlice, normalizeMotherRoot, type GraphEdit, type GraphNode } from "../src/graph.ts";
 import { presentGraph, readText } from "../src/presentation.ts";
 import { SidecarStore } from "../src/sidecar.ts";
@@ -60,9 +60,7 @@ test("roots and alternatives preserve the mother-thread structural contract", ()
 		"mother", "current_work", refs), /endpoints must both be endeavors/);
 });
 
-test("public Why accepts token-boundary quotes with one explicit grounding owner", () => {
-	assert.equal(directlyGrounded("No push", "Please: NO push!"), true);
-	assert.equal(directlyGrounded("map work", "Roadmap work is separate."), false);
+test("the host assigns public Why provenance while intent remains free text", () => {
 	const user: FeedEvent = { ref: "s:user", actor: "lead", kind: "user", at: "", text: "Keep this original session purpose while mapping work." };
 	const ruleSource: FeedEvent = { ref: "s:rule", actor: "lead", kind: "user", at: "", text: "Do not push or close the todo." };
 	const known = new Map([[user.ref, user], [ruleSource.ref, ruleSource]]), root = node("mother", null, "active", user.ref, "Keep this original session purpose");
@@ -72,26 +70,46 @@ test("public Why accepts token-boundary quotes with one explicit grounding owner
 	const accepted = acceptGraph(transaction, emptyGraph(), undefined, known, new Set(known.keys()), new Set());
 	assert.equal(accepted.graph.nodes.length, 2);
 	const rendered = readText(presentGraph(graphSlice(accepted.graph)));
-	assert.match(rendered, /Why: Do not push or close the todo \[src:s:rule\]/);
-	assert.doesNotMatch(rendered, /Why: Do not push[^\n]*s:user/);
+	assert.match(rendered, /Why: Do not push or close the todo \[src:s:user\]/);
 	const canonical = acceptGraph({ ...transaction, upsertNodes: [
 		{ ...root, sources: [ruleSource.ref, user.ref], purposeSource: ruleSource.ref },
 		{ ...rule, purposeSource: user.ref },
 	] }, emptyGraph(), undefined, known, new Set(known.keys()), new Set());
 	assert.equal(canonical.graph.nodes.find(item => item.id === "mother")?.purposeSource, user.ref, "initial root chooses grounded user evidence");
-	assert.equal(canonical.graph.nodes.find(item => item.id === "hold")?.purposeSource, ruleSource.ref, "wrong owner is canonicalized without a repair");
+	assert.equal(canonical.graph.nodes.find(item => item.id === "hold")?.purposeSource, user.ref, "earliest cited user source owns public Why");
 	assert.throws(() => acceptGraph({ ...transaction, upsertNodes: [{ ...root, rationale: "Because efficiency demands it." }, rule] }, emptyGraph(), undefined,
 		known, new Set(known.keys()), new Set()), /Invalid graph transaction shape/);
-	// The former three-word anchor accepted "Keep this original" even though the
-	// rest was invented and unrelated. Full-intent grounding must reject it.
 	const genericOverlap = { ...transaction, upsertNodes: [node("mother", null, "active", user.ref, "Keep this original goal for an unrelated deployment."), rule] };
-	assert.throws(() => acceptGraph(genericOverlap, emptyGraph(), undefined, known, new Set(known.keys()), new Set()), /complete normalized token sequence/);
+	assert.equal(acceptGraph(genericOverlap, emptyGraph(), undefined, known, new Set(known.keys()), new Set()).graph.nodes[0]?.intent,
+		"Keep this original goal for an unrelated deployment.");
 	const paraphrasedRule = { ...transaction, upsertNodes: [root, { ...rule, intent: "Never publish or finish this task." }] };
-	assert.throws(() => acceptGraph(paraphrasedRule, emptyGraph(), undefined, known, new Set(known.keys()), new Set()), /Public Why for hold/);
+	assert.equal(acceptGraph(paraphrasedRule, emptyGraph(), undefined, known, new Set(known.keys()), new Set()).graph.nodes[1]?.intent,
+		"Never publish or finish this task.");
 	const assistant: FeedEvent = { ref: "s:assistant", actor: "lead", kind: "assistant", at: "", text: "I invented a purpose." };
 	const assistantKnown = new Map([[assistant.ref, assistant]]);
 	assert.throws(() => acceptGraph({ ...transaction, upsertNodes: [node("mother", null, "active", assistant.ref, "I invented a purpose")] }, emptyGraph(), undefined,
-		assistantKnown, new Set([assistant.ref]), new Set()), /user purpose evidence/);
+		assistantKnown, new Set([assistant.ref]), new Set()), /needs an observed lead user event/);
+});
+
+test("cold start rejects multiple roots and names every candidate", () => {
+	const user: FeedEvent = { ref: "s:user", actor: "lead", kind: "user", at: "", text: "Map both." };
+	const transaction = { focus: "one", unfinished: [], upsertNodes: [
+		node("one", null, "active", user.ref, "One."), node("two", null, "active", user.ref, "Two."),
+	], upsertEdges: [], removeEdges: [], merges: [], folds: [], removeNodes: [] };
+	assert.throws(() => acceptGraph(transaction, emptyGraph(), undefined, new Map([[user.ref, user]]), new Set([user.ref]), new Set()),
+		/Cold-start graph needs exactly one upserted root; candidates: one, two/);
+});
+
+test("live-shaped prose pointers are derived or repaired without a revision", () => {
+	const user: FeedEvent = { ref: "s:user", actor: "lead", kind: "user", at: "", text: "Build a reliable work map." };
+	const transaction = { purpose: "Build a reliable work map for this session", focus: "Current Work", unfinished: [], upsertNodes: [
+		{ ...node("mother", null, "active", user.ref, "Build a reliable work map."), label: "Session purpose" },
+		{ ...node("current", "mother", "active", user.ref, "Continue current work."), label: "Current Work" },
+	], upsertEdges: [], removeEdges: [], merges: [], folds: [], removeNodes: [] };
+	const result = acceptGraph(transaction, emptyGraph(), undefined, new Map([[user.ref, user]]), new Set([user.ref]), new Set());
+	assert.equal(result.graph.purpose, "mother");
+	assert.equal(result.graph.focus, "current");
+	assert.deepEqual(result.repairs, [{ from: "Current Work", to: "current" }]);
 });
 
 test("current-format forest cutover is deterministic, idempotent, source-preserving, and cold-stable", { timeout: 15000 }, async () => {

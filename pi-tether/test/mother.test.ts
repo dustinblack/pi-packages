@@ -360,11 +360,12 @@ test("oversized durable gaps recover in bounded ordered chunks across cold reloa
 			refs.push(...captured.events.map(event => event.ref)); through = captured.cut; more = captured.more;
 		}
 		assert(refs.length > 4, "fixture includes user and lead events across multiple feed pages");
-		const gap = { id: "oversized-gap", key: "oversized-range", from, through, refs, error: "deterministic rejection", failures: 2 };
+		const range = (list: string[]) => ({ firstRef: list[0], lastRef: list[list.length - 1], count: list.length });
+		const gap = { id: "oversized-gap", key: "oversized-range", from, through, ...range(refs), error: "deterministic rejection", failures: 2 };
 		const store = new SidecarStore(() => h.parent, h.runtime.session.sessionManager.getSessionId());
 		await store.append("map", { base: checkpointId, cut: through, failure: null, gap: { action: "open", ...gap } });
 		mom.close(); await h.runtime.session.reload(); mom = h.createMom(); await mom.open();
-		assert.deepEqual(mom.gaps[0]?.refs, refs);
+		assert.deepEqual({ firstRef: mom.gaps[0]?.firstRef, lastRef: mom.gaps[0]?.lastRef, count: mom.gaps[0]?.count }, range(refs));
 		h.api.script("Later material after the skipped range.", { text: "Distinct later assistant material." });
 		await h.runtime.session.prompt("Later material after the skipped range."); await mom.update();
 		assert.equal(mom.gaps.length, 1, "ordinary catch-up does not discard an older open gap");
@@ -384,12 +385,13 @@ test("oversized durable gaps recover in bounded ordered chunks across cold reloa
 		assert(firstRefs.length > 0 && firstRefs.length < refs.length, "the first refresh is a bounded proper prefix");
 		assert.deepEqual(firstRefs, refs.slice(0, firstRefs.length), "recovery preserves source order");
 		const remaining = refs.slice(firstRefs.length);
-		assert.deepEqual(mom.gaps[0]?.refs, remaining, "accepted chunk leaves an explicit in-memory suffix");
-		assert.deepEqual((await readSidecar(h)).findLast(record => record.type === "map" && record.data.gap?.action === "open")?.data.gap.refs,
-			remaining, "accepted chunk atomically persists the remaining range");
+		const gapRange = (gap: any) => ({ firstRef: gap?.firstRef, lastRef: gap?.lastRef, count: gap?.count });
+		assert.deepEqual(gapRange(mom.gaps[0]), range(remaining), "accepted chunk leaves an explicit in-memory suffix");
+		assert.deepEqual(gapRange((await readSidecar(h)).findLast(record => record.type === "map" && record.data.gap?.action === "open")?.data.gap),
+			range(remaining), "accepted chunk atomically persists the remaining range");
 
 		mom.close(); await h.runtime.session.reload(); mom = h.createMom(); await mom.open();
-		assert.deepEqual(mom.gaps[0]?.refs, remaining, "cold restore resumes from the durable suffix");
+		assert.deepEqual(gapRange(mom.gaps[0]), range(remaining), "cold restore resumes from the durable suffix");
 		while (mom.gaps.length) {
 			const calls = h.requests().length; await mom.update(undefined, undefined, 0, true);
 			assert.equal(h.requests().length, calls + 1, "each healthy chunk uses one background call");

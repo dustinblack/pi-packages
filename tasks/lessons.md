@@ -127,3 +127,9 @@ When pi-plugins state points at a cache/bridge path (for example `.cache/blackbo
 - the bridge/cache copy used at install time,
 - the real repo/path the user is referring to.
 Before answering “where did this come from,” grep state/history/config for the cached path and inspect marketplace manifests and timestamps.
+
+## Orchestrate from the current Amp thread with Task subagents, not pi agents or new threads
+When Scott says "manage and monitor via subagents", he means Task subagents dispatched and integrated from this thread: bounded coding/verification units, with review, combined `npm run check`, and the user report done here. Do not hand the work to pi agents (he then manages that context himself), do not spawn new Amp threads for it, and do not offer or escalate to ultra mode — he explicitly declined it (2026-10-01, Mom speed/accuracy session).
+
+## Name the exact session and purpose before any Mom repro or check command
+Scott asked "Why are you looking at those? This is for mom." when a command mixed a pi-delegate tsc filter with a repro on a session he had not named. For Mom work, state up front which session file is being fed to the repro and why (size, compaction count), and keep unrelated-package noise (e.g. pi-delegate cross-import errors) out of the command or explain it in one clause (2026-10-01).

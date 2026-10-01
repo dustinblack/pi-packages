@@ -71,12 +71,13 @@ function checkpointValue(x: unknown, allowCutover: boolean): { checkpoint: Check
 
 export function isCheckpoint(x: unknown): x is Checkpoint { return Boolean(checkpointValue(x, false)); }
 
-export interface CursorFailure { key: string; from: Cut; through: Cut; refs: string[]; error: string; failures: number }
+export interface CursorFailure { key: string; from: Cut; through: Cut; firstRef: string; lastRef: string; count: number; error: string; failures: number }
 export interface SkippedGap extends CursorFailure { id: string }
 export interface MomState { checkpoint?: Checkpoint; checkpointId?: string; coverageCut?: Cut; enabled: boolean; unresolvedNotices: string[]; usage?: Usage; error?: string; failure?: CursorFailure; gaps: SkippedGap[]; screen?: AdvisorScreenRecord; cutover?: boolean }
 
 const failureLike = (x: unknown): x is CursorFailure => record(x) && typeof x.key === "string" && cutLike(x.from) && cutLike(x.through) &&
-	Array.isArray(x.refs) && x.refs.every((ref: unknown) => typeof ref === "string") && typeof x.error === "string" && integer(x.failures);
+	typeof x.firstRef === "string" && typeof x.lastRef === "string" && integer(x.count) && x.count > 0 &&
+	typeof x.error === "string" && integer(x.failures);
 const mapKeys = new Set(["snapshot", "base", "cut", "enabled", "failure", "gap", "resolvedNotices", "screen"]);
 
 /** Full map snapshots valid for the selected branch; map patches never become history handles. */

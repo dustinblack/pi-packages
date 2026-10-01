@@ -14,6 +14,8 @@ export interface FeedEvent {
 	actor: string;
 	kind: string;
 	text?: string;
+	/** Provider-authored compaction summary; labelled as a claim only by bootstrap rendering. */
+	claim?: string;
 	name?: string;
 	callId?: string;
 	isError?: boolean;
@@ -62,6 +64,13 @@ export const textBlocks = (content: unknown): string => typeof content === "stri
 const dialogs = new Set(["ask_user", "gather_input"]);
 const digest = (data: string | Buffer) => createHash("sha256").update(data).digest("hex");
 
+function todoText(phases: unknown): string {
+	if (!Array.isArray(phases)) return "";
+	return phases.flatMap((phase: any) => Array.isArray(phase?.tasks) ? phase.tasks : [])
+		.map((task: any) => `${typeof task?.status === "string" ? task.status.slice(0, 4) : "?"}: ${String(task?.content ?? "").replace(/\s+/g, " ").trim().slice(0, 110)}`)
+		.filter((line: string) => !line.endsWith(": ")).join(" | ");
+}
+
 function dialogPrompt(args: any): string | undefined {
 	const option = (o: any) => [`- ${o?.title ?? o?.label ?? String(o)}`,
 		...(typeof o?.description === "string" ? [o.description] : []), ...(typeof o?.markdown === "string" ? [o.markdown] : [])].join("\n");
@@ -82,8 +91,17 @@ export function extractEvents(stream: Pick<Stream, "key" | "actor">, e: Entry): 
 	};
 	if (isCorrection(e)) { emit({ kind: "user", text: textBlocks(e.content), correction: true }); return events; }
 	if (["compaction", "context_edit", "branch_summary"].includes(e.type)) {
-		emit({ kind: e.type, fromRef: e.fromId ? `${stream.key}:${e.fromId}` : undefined });
+		emit({ kind: e.type, fromRef: e.fromId ? `${stream.key}:${e.fromId}` : undefined,
+			...(e.type === "compaction" && typeof e.summary === "string" && e.summary ? { claim: e.summary } : {}) });
 		return events; // Original history remains available; never substitute a generated summary.
+	}
+	if (e.type === "custom" && e.customType === "file_op" && typeof e.data?.path === "string" && e.data.path) {
+		emit({ kind: "file_op", name: typeof e.data.op === "string" ? e.data.op : undefined, text: e.data.path });
+		return events;
+	}
+	if (e.type === "custom" && e.customType === "pi_omp.todo") {
+		emit({ kind: "todo", text: todoText(e.data?.phases) });
+		return events;
 	}
 	const m = e.type === "message" ? e.message : e.type === "custom_message" ? { ...e, role: "custom" } : undefined;
 	if (!m) return events;
