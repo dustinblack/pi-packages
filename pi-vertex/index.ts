@@ -31,8 +31,8 @@
  *   pi --provider vertex --model llama-4-maverick
  */
 
-import type { ExtensionAPI, ProviderModelConfig } from "@mariozechner/pi-coding-agent";
-import type { Model, Api } from "@mariozechner/pi-ai";
+import type { ExtensionAPI, ProviderModelConfig } from "@earendil-works/pi-coding-agent";
+import type { Model, Api } from "@earendil-works/pi-ai";
 import { ALL_MODELS, getModelById } from "./models/index.js";
 import { hasAdcCredentials, resolveProjectId } from "./auth.js";
 import { loadConfig, getConfigPath } from "./config.js";

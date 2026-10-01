@@ -3,7 +3,7 @@
  */
 
 import type { VertexModelConfig, Context, StreamOptions } from "../types.js";
-import type { AssistantMessageEventStream } from "@mariozechner/pi-ai";
+import type { AssistantMessageEventStream } from "@earendil-works/pi-ai";
 import { streamGemini } from "./gemini.js";
 import { streamMaaS } from "./maas.js";
 import { installSseCommentFilter } from "./sse-comment-filter.js";

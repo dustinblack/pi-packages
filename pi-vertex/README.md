@@ -249,8 +249,8 @@ export GOOGLE_CLOUD_LOCATION=us-central1
 - `@google/genai`: Google GenAI SDK for Gemini models
 - `@anthropic-ai/vertex-sdk`: Official Anthropic-on-Vertex SDK for Claude models (native streaming)
 - `google-auth-library`: ADC authentication for all models
-- `@mariozechner/pi-ai`: Peer dependency
-- `@mariozechner/pi-coding-agent`: Peer dependency
+- `@earendil-works/pi-ai`: Peer dependency
+- `@earendil-works/pi-coding-agent`: Peer dependency
 
 ## Acknowledgments
 

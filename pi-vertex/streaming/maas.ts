@@ -11,9 +11,11 @@ import {
   createAssistantMessageEventStream,
   type AssistantMessageEventStream,
   type Model,
-  streamSimpleOpenAICompletions,
   calculateCost,
-} from "@mariozechner/pi-ai";
+} from "@earendil-works/pi-ai";
+// Pi 0.99 moved the per-API stream functions off the pi-ai root. The compat
+// entry is what Pi's extension loader maps pi-ai to, so it resolves at runtime.
+import { openAICompletionsApi } from "@earendil-works/pi-ai/compat";
 import { AnthropicVertex } from "@anthropic-ai/vertex-sdk";
 
 function mapAnthropicEffort(reasoning?: string): "low" | "medium" | "high" | "max" | undefined {
@@ -373,7 +375,7 @@ export function streamMaaS(
         },
       };
 
-      const innerStream = streamSimpleOpenAICompletions(modelForPi, context as any, {
+      const innerStream = openAICompletionsApi().streamSimple(modelForPi, context as any, {
         ...options,
         apiKey: accessToken,
         maxTokens: options?.maxTokens || model.maxTokens,

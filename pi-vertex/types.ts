@@ -22,7 +22,7 @@ export type {
   ToolResultMessage,
   Usage,
   UserMessage,
-} from "@mariozechner/pi-ai";
+} from "@earendil-works/pi-ai";
 
 // Vertex-specific types
 

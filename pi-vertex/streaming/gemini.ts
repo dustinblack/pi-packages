@@ -12,7 +12,7 @@ import { GoogleGenAI, FinishReason, ThinkingLevel } from "@google/genai";
 import type { VertexModelConfig, Context, StreamOptions, AssistantMessage } from "../types.js";
 import { getAuthConfig, resolveLocation } from "../auth.js";
 import { sanitizeText, convertToGeminiMessages, convertToolsForGemini, retainThoughtSignature, calculateCost } from "../utils.js";
-import { createAssistantMessageEventStream, type AssistantMessageEventStream } from "@mariozechner/pi-ai";
+import { createAssistantMessageEventStream, type AssistantMessageEventStream, type JsonObject } from "@earendil-works/pi-ai";
 
 // Module-level counter for generating unique tool call IDs (matches pi-mono pattern)
 let toolCallCounter = 0;
@@ -252,7 +252,8 @@ export function streamGemini(
                 type: "toolCall" as const,
                 id: toolCallId,
                 name: part.functionCall.name || "",
-                arguments: (part.functionCall.args as Record<string, unknown>) ?? {},
+                // Gemini returns tool args as parsed JSON, so they are always JSON values.
+                arguments: (part.functionCall.args as JsonObject | undefined) ?? {},
                 ...(part.thoughtSignature && { thoughtSignature: part.thoughtSignature }),
               };
 
@@ -318,7 +319,11 @@ export function streamGemini(
       if (finalReason === "stop" || finalReason === "length" || finalReason === "toolUse") {
         stream.push({ type: "done", reason: finalReason, message: output });
       } else {
-        stream.push({ type: "error", reason: finalReason, error: output });
+        // Error events only carry "aborted" | "error"; anything else that is
+        // not a successful stop (Pi 0.99 added "pending"/"deferred") is an error.
+        const errorReason = finalReason === "aborted" ? "aborted" : "error";
+        output.stopReason = errorReason;
+        stream.push({ type: "error", reason: errorReason, error: output });
       }
       stream.end();
     } catch (error) {
