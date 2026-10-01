@@ -14,7 +14,7 @@ Claude creation and native-session opening both work through the common `op_*` t
 
 ## Context
 
-[Unified contract and pinned sources](../pi-strings/docs/NATIVE_SESSION_OPENING.md). Published claude-agent-acp 0.60.0 supplies SDK `resume: sessionId`; changing cwd/MCP fingerprint tears down the query. A supplied resume ID alone does not prove the SDK rejects unknown IDs or preserves native settings. Provider-specific fixes belong in the adapter/ACPX path.
+[Unified contract and pinned sources](../pi-delegate/docs/NATIVE_SESSION_OPENING.md). Published claude-agent-acp 0.60.0 supplies SDK `resume: sessionId`; changing cwd/MCP fingerprint tears down the query. A supplied resume ID alone does not prove the SDK rejects unknown IDs or preserves native settings. Provider-specific fixes belong in the adapter/ACPX path.
 
 ## Acceptance criteria
 

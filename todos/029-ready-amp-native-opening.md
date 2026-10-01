@@ -14,7 +14,7 @@ The Amp integration uses the same `op_*` tools to create local/Orb sessions or o
 
 ## Context
 
-[Unified contract](../pi-strings/docs/NATIVE_SESSION_OPENING.md) and [Amp research](../pi-strings/docs/AMP_PARTICIPANT_COORDINATION.md). amp-acp 0.10.0 advertises execution-environment local/orb but load/resume requires an existing S-to-T mapping. Implement arbitrary native-ID admission and metadata in a versioned provider adapter, surfaced through ACPX; no separate CLI coordinator or Amp tool family. Current native CLI history exports are unbounded; plugin capability probe exposed lookup but no authenticated user identity.
+[Unified contract](../pi-delegate/docs/NATIVE_SESSION_OPENING.md) and [Amp research](../pi-delegate/docs/AMP_PARTICIPANT_COORDINATION.md). amp-acp 0.10.0 advertises execution-environment local/orb but load/resume requires an existing S-to-T mapping. Implement arbitrary native-ID admission and metadata in a versioned provider adapter, surfaced through ACPX; no separate CLI coordinator or Amp tool family. Current native CLI history exports are unbounded; plugin capability probe exposed lookup but no authenticated user identity.
 
 ## Acceptance criteria
 

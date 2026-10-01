@@ -14,7 +14,7 @@ Each of the remaining 17 named integrations has a source/capability-backed nativ
 
 ## Context
 
-[019's matrix](../pi-strings/docs/NATIVE_SESSION_OPENING.md) covers 22 named integrations: 21 ACPX registry entries plus Amp. Pi/Codex/Claude/OpenCode/Amp are assigned to 020/026–029. This decision slice covers Gemini, Kimi, Qwen, OpenClaw, cursor, copilot, droid, fast-agent, grok-build, iflow, kilocode, kiro, mux, pool, qoder, trae, zeroclaw. First four have source evidence but no live proof; the last 13 are unverified, not declared unsupported.
+[019's matrix](../pi-delegate/docs/NATIVE_SESSION_OPENING.md) covers 22 named integrations: 21 ACPX registry entries plus Amp. Pi/Codex/Claude/OpenCode/Amp are assigned to 020/026–029. This decision slice covers Gemini, Kimi, Qwen, OpenClaw, cursor, copilot, droid, fast-agent, grok-build, iflow, kilocode, kiro, mux, pool, qoder, trae, zeroclaw. First four have source evidence but no live proof; the last 13 are unverified, not declared unsupported.
 
 ## Acceptance criteria
 
