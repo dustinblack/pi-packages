@@ -3,7 +3,7 @@ import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { Context, Message, Model } from "@earendil-works/pi-ai";
 import type { MomStore } from "./sidecar.ts";
 import type { AdvisorScreenRecord, SessionAdvisor } from "./advisor.ts";
-import { branchCheckpoints, emptyUsage, graphChange, loadState, noticeKey, sumUsage, type AnchorState, type Checkpoint, type CursorFailure, type SkippedGap, type Usage } from "./checkpoint.ts";
+import { branchCheckpoints, emptyUsage, graphChange, loadState, noticeKey, sumUsage, type AnchorState, type Checkpoint, type CursorFailure, type SkippedGap, type Usage, type WindowLive, type WindowOutcome } from "./checkpoint.ts";
 import { LiveFeed, renderEvent, renderEvents, suffix, type Cut, type FeedEvent } from "./feed.ts";
 import type { CompactionReview } from "./compaction.ts";
 import { reconstructThreadMap } from "./audit.ts";
@@ -89,9 +89,13 @@ export class Mom {
 	/** A compaction anchor queued for the next lead request; restored from her sidecar, then consumed by delivery. */
 	pendingAnchor?: AnchorState;
 	lastAnchor?: AnchorState;
+	/** A post-compaction verification window restored from her sidecar, if one was open at reload. */
+	window?: WindowLive;
+	lastWindow?: WindowOutcome;
 	private staged?: StagedBatch;
 	private queued?: StagedBatch;
 	private pendingAudit?: CompactionReview;
+	private windowController?: AbortController;
 
 	constructor(private host: MomHost) { this.feed = new LiveFeed(host.ctx.sessionManager); }
 
@@ -119,6 +123,8 @@ export class Mom {
 		this.failure = state.failure; this.gaps = state.gaps;
 		this.pendingAnchor = state.pendingAnchor;
 		this.lastAnchor = state.lastAnchor;
+		this.window = state.window;
+		this.lastWindow = state.lastWindow;
 		await this.feed.restore(state.failure?.through ?? state.coverageCut ?? this.checkpoint?.cut);
 		if (this.checkpoint) for (const item of [...this.checkpoint.graph.nodes, ...this.checkpoint.graph.edges]) for (const ref of item.sources) {
 			if (!this.feed.byRef.has(ref)) throw new Error(`Checkpoint cites an unknown or unobserved source: ${ref}`);
@@ -527,5 +533,39 @@ export class Mom {
 		}
 	}
 
-	close(): void { this.disposed = true; this.controller?.abort(); }
+	/** One bounded direct model call for a post-compact window check; it is never a graph update. */
+	async windowCall(messages: Message[]): Promise<{ text: string; stopReason: string; errorMessage?: string }> {
+		if (this.disposed || !this.host.current()) throw new Error("Mom update superseded by a session/branch change.");
+		if (JSON.stringify(messages).length > CONTEXT_LIMIT) throw new Error("Mom window check exceeds 90,000 characters; no silent truncation.");
+		const [provider, ...id] = this.host.model.split("/");
+		const model = this.host.ctx.modelRegistry.find(provider, id.join("/"));
+		if (!model) throw new Error(`Mom model unavailable: ${this.host.model}. No fallback selected.`);
+		const started = performance.now();
+		let attempt = emptyUsage();
+		let failure: string | undefined;
+		this.windowController = new AbortController();
+		try {
+			const options = { maxTokens: 1000, sessionId: this.cacheSessionId,
+				signal: AbortSignal.any([this.windowController.signal, AbortSignal.timeout(120000)]) };
+			const reply = model.api === "openai-codex-responses"
+				? await this.host.ctx.modelRegistry.complete(model as Model<"openai-codex-responses">, { messages }, { ...options, reasoningEffort: "low" })
+				: await this.host.ctx.modelRegistry.streamSimple(model, { messages }, { ...options, reasoning: "low" }).result();
+			attempt = sumUsage(attempt, { calls: 1, input: reply.usage.input, output: reply.usage.output,
+				cacheRead: reply.usage.cacheRead, cacheWrite: reply.usage.cacheWrite, nominalCost: reply.usage.cost.total, elapsedMs: 0 });
+			if (reply.stopReason === "error") { failure = reply.errorMessage ?? "Mom check provider failed."; throw new Error(failure); }
+			return { text: reply.content.filter(block => block.type === "text").map(block => block.text).join("\n"), stopReason: reply.stopReason };
+		} catch (error) {
+			failure ??= String(error);
+			throw error;
+		} finally {
+			attempt.elapsedMs = Math.round(performance.now() - started);
+			this.usage = sumUsage(this.usage, attempt);
+			this.windowController = undefined;
+			// Usage is its own compact stream; a failed write never invalidates the check.
+			try { await this.host.store.append("usage", { usage: this.usage, error: failure ?? null }); } catch { /* usage bookkeeping is best-effort */ }
+			if (!this.disposed && this.host.current()) this.host.changed();
+		}
+	}
+
+	close(): void { this.disposed = true; this.controller?.abort(); this.windowController?.abort(); }
 }

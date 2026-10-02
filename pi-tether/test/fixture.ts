@@ -3,6 +3,7 @@ import { rmSync } from "node:fs";
 import { provider, sandbox, harness, deferred } from "../../pi-delegate/test/fixture.ts";
 import { Mom } from "../src/mother.ts";
 import { SidecarStore } from "../src/sidecar.ts";
+import { WINDOW_TASK } from "../src/window.ts";
 
 /** Fresh sidecar read for assertions; the extension keeps its own instance. */
 export const readSidecar = (h: any) => new SidecarStore(() => h.parent as string, h.runtime.session.sessionManager.getSessionId() as string).load();
@@ -13,6 +14,10 @@ export function input(request: any) {
 	const user = request.messages.findLast((m: any) => m.role === "user");
 	return JSON.parse(typeof user.content === "string" ? user.content : user.content.filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n"));
 }
+/** The window check's stage-two request carries no tools and a JSON task body. */
+export const isWindowCheck = (request: any) => {
+	try { return input(request).task === WINDOW_TASK; } catch { return false; }
+};
 export function replacement(request: any, extra: Record<string, unknown> = {}) {
 	const body = input(request);
 	if (body.chapterIds) return { tool: { name: "record_thread_map", arguments: { states: body.chapterIds.map((chapter: string) => ({ chapter,
@@ -65,6 +70,8 @@ export async function setup(automatic = false, flagOverrides: Record<string, str
 		emitExtension: async (name: string, event: any, ctx = context) => { for (const handler of handlers.get(name) ?? []) await handler(event, ctx); },
 		emitPiEvent: async (name: string, event: any) => { for (const handler of piEventHandlers.get(name) ?? []) await handler(event); },
 		requests: () => api.requests.filter(isMomRequest),
+		get pi() { return activePi; },
+		windowRequests: () => api.requests.filter(isWindowCheck),
 		async close() { await h.runtime.dispose(); await api.close(); rmSync(box.root, { recursive: true, force: true }); },
 	};
 }

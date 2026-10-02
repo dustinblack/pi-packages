@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.5
+
+- Watch the first settled lead turns after each successful compaction with a bounded verification window: until the user's next message or three settled turns, whichever comes first. A newer compaction supersedes an open window; the user's next message closes it silently (a pivot right after a compact is correct behavior, not misalignment), and three settled turns close it with one widget line `continuity held after compact` when every check passed.
+- Stage one is deterministic code and free: from the turn's recorded tool activity (file paths and shell commands) it flags a touched standing rule, or parked, settled, or folded work outside the current line of work — never suppressed by a shared source page, because stage two adjudicates — and, only when the whole turn stays outside the current line, a different goal. Stage two is one bounded model check per flagged turn — at most three per window — asking one cited yes/no: does this turn continue the recorded line of work. A reply that is not a cited verdict corrects nothing.
+- On a no verdict, post exactly one continuity correction at the settled boundary — visible in the transcript, never mid-stream, and the correction itself closes the window — containing what the turn did, the matching pre-compact record with sources, the current line, the user's last direction, and the tie-break sentence: if the user's direction has changed, follow the user. A failed compaction audit still opens the window from the last accepted map; a compaction with no accepted map opens none. Every window event — opened, checked, corrected, closed with its reason — is recorded in Mom's sidecar and listed by `/mom log`.
+- Bare status pings (`??`, `status?`, …) are queries, not user direction: they no longer close the open window nor pass as the last user direction inside a check.
+
 ## 0.1.4
 
 - Inject a post-compaction continuity anchor into the first lead request after each successful compaction. The anchor is rendered by code from Mom's saved map — never a model call — and is visible in the transcript: the mother-thread purpose verbatim with its source citation, at most five active standing rules verbatim under their owning endeavors, the current endeavor with a one-line intent, parked work, and the recent recorded side effects (commits and test runs with exit statuses, oldest first). It is descriptive orientation, never new direction.

@@ -8,12 +8,13 @@ import { ANCHOR, clockTime, collectSideEffects, renderAnchor } from "./anchor.ts
 import { SystemOneAdvisor } from "./advisor.ts";
 import { DEFAULT_BOOTSTRAP_POLICY } from "./bootstrap.ts";
 import { LeadCadence } from "./cadence.ts";
-import { NOTICE, noticeKey } from "./checkpoint.ts";
-import { CORRECTION } from "./feed.ts";
+import { NOTICE, noticeKey, type WindowCloseReason } from "./checkpoint.ts";
+import { CORRECTION, isUserDirection, type FeedEvent } from "./feed.ts";
 import { finishCompactionReview, prepareCompactionReview, type PendingCompactionReview } from "./compaction.ts";
 import { DEFAULT_MODEL, Mom } from "./mother.ts";
 import { SidecarStore } from "./sidecar.ts";
 import { FOCUS_KEY, MomConversationView, MomPanel, widgetLines, type MomExchange, type PanelView } from "./panel.ts";
+import { collectTurnSignals, lastDirectionOf, MAX_WINDOW_CHECKS, MAX_WINDOW_TURNS, offeredRefs, parseWindowVerdict, renderCorrection, stageOne, windowMessages, windowPurpose, WINDOW_CORRECTION, type TurnSignal, type WindowFlag, type WindowVerdict } from "./window.ts";
 import { formatElapsed, isStatusPing } from "./status.ts";
 import { coverageProgress, presentGraph, readText, summaryText, type WorkView } from "./presentation.ts";
 
@@ -51,7 +52,9 @@ export default function piTether(pi: ExtensionAPI) {
 	const cadence = new LeadCadence();
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	let timerAt: number | undefined;
-	let flight: Promise<string | undefined> | undefined;
+	let flight: Promise<unknown> | undefined;
+	// The lead's event boundary after the last window check; the next check reads only the turn since.
+	let leadBoundary: number | undefined;
 	let lastStarted = 0;
 	let pendingCompaction: PendingCompactionReview | undefined;
 	let unsubscribe: (() => void) | undefined;
@@ -91,7 +94,9 @@ export default function piTether(pi: ExtensionAPI) {
 		const checked = m?.checkpoint ? `last saved ${formatElapsed(Date.now() - m.checkpoint.at)} ago` : "nothing saved yet";
 		const anchor = m?.pendingAnchor ? "anchor queued after compact"
 			: m?.lastAnchor ? `anchored after compact ${clockTime(m.lastAnchor.at)}` : undefined;
-		const status = `${m?.enabled === false ? "paused" : freshness} · ${checked}${anchor ? ` · ${anchor}` : ""}${ctx && !ctx.isIdle() ? " · agent working" : ""}`;
+		const window = m?.window ? "watching after compact"
+			: m?.lastWindow?.held ? `continuity held after compact ${clockTime(m.lastWindow.at)}` : undefined;
+		const status = `${m?.enabled === false ? "paused" : freshness} · ${checked}${anchor ? ` · ${anchor}` : ""}${window ? ` · ${window}` : ""}${ctx && !ctx.isIdle() ? " · agent working" : ""}`;
 		const saved = savedWork(complete);
 		return { status, complete, work: saved?.work, summary: saved?.summary ?? "", note: complete ? m?.checkpoint?.note?.text : undefined, error, coverage: progress };
 	}
@@ -160,6 +165,149 @@ export default function piTether(pi: ExtensionAPI) {
 			m.error = `Mom could not deliver her continuity anchor: ${String(error)}`;
 			sync();
 		}
+	}
+	/** Serialize one window operation with Mom updates; record order in her sidecar holds across interleaving. */
+	async function serialized(work: () => Promise<void>): Promise<void> {
+		const token = epoch;
+		while (flight) {
+			await flight.catch(() => undefined);
+			if (token !== epoch) return;
+		}
+		let workPromise: Promise<void>;
+		flight = workPromise = work();
+		try { await workPromise; }
+		finally {
+			if (token === epoch && flight === workPromise) {
+				flight = undefined;
+				sync();
+				schedule();
+			}
+		}
+	}
+	/** Close the open window durably; the caller owns serialization with Mom updates. */
+	async function closeWindowRecords(m: Mom, reason: WindowCloseReason) {
+		const win = m.window, destination = store;
+		if (!win || !destination || !ctx) return;
+		// A user pivot right after a compact is correct behavior, not misalignment: a zero-turn
+		// close is silent; watched turns that stayed on the line end held.
+		const held = win.turns > 0;
+		try {
+			await destination.append("injection", { kind: "window", action: "closed", key: win.key, compaction: win.compaction,
+				reason, held, turns: win.turns, parent: ctx.sessionManager.getLeafId() });
+			m.lastWindow = { key: win.key, compaction: win.compaction, at: Date.now(), held, reason };
+			m.window = undefined;
+		} catch (error) {
+			m.error = `Mom could not record closing her post-compact window: ${String(error)}`;
+		}
+		sync();
+	}
+	/** Close the open window; serialized with updates so record order holds, and never blocking user input. */
+	async function closeWindow(reason: WindowCloseReason) {
+		await serialized(async () => {
+			const m = mom;
+			if (m?.window) await closeWindowRecords(m, reason);
+		});
+	}
+	/** The window opens after the compaction audit from the last accepted map; a newer compaction supersedes an open one. */
+	async function openWindow(sessionId: string, compactionEntryId: string) {
+		await serialized(async () => {
+			const m = mom, destination = store;
+			if (!m?.enabled || openingError || !destination || !ctx || !m.checkpoint) return;
+			if (m.window) await closeWindowRecords(m, "superseded");
+			const key = `${sessionId}:${compactionEntryId}`;
+			try {
+				const record = await destination.append("injection", { kind: "window", action: "opened", key, compaction: key,
+					parent: ctx.sessionManager.getLeafId() });
+				m.window = { key, compaction: key, at: record.at, turns: 0, checks: 0 };
+			} catch (error) {
+				m.error = `Mom could not record opening her post-compact window: ${String(error)}`;
+			}
+			sync();
+		});
+	}
+	/** One settled-turn check inside the open window: stage one is free; stage two is one bounded model call. */
+	async function checkWindow() {
+		const token = epoch, start = mom;
+		if (!start?.window || !start.enabled || openingError) return;
+		await ready.catch(() => undefined);
+		if (token !== epoch || mom !== start) return;
+		await serialized(async () => {
+			const m = mom;
+			if (!m?.window || !m.enabled || !m.checkpoint || !store || !ctx) return;
+			const win = m.window;
+			const turns = win.turns + 1;
+			const from = leadBoundary ?? m.feed.events.length;
+			let turnEvents: FeedEvent[] = [];
+			let error: string | undefined;
+			try {
+				await m.feed.capture(24000, true);
+				if (token !== epoch || mom !== m) return;
+				leadBoundary = m.feed.events.length;
+				turnEvents = m.feed.events.slice(from).filter(event => event.actor === "lead");
+				// A user direction after this window's compaction (a mid-turn dialog answer) closes it as the
+				// user's next message; a bare status ping is a query, not direction, and keeps the window open.
+				const compactAt = m.feed.events.findIndex(event => event.ref === win.compaction);
+				const cut = compactAt >= from ? compactAt + 1 : from;
+				if (m.feed.events.slice(cut).some(event => isUserDirection(event) && !isStatusPing(event.text ?? ""))) {
+					await closeWindowRecords(m, "user-message");
+					return;
+				}
+			} catch (captureError) {
+				// A window check that cannot read the turn's evidence still consumes the turn; the window is bounded even when the feed is broken.
+				error = `Mom could not read the turn's evidence: ${String(captureError)}`;
+			}
+			const signals = error ? [] : await collectTurnSignals(m.feed, turnEvents);
+			let flags: WindowFlag[] = [];
+			if (!error) try { flags = await stageOne(m.feed, m.checkpoint!, signals); }
+				catch (flagError) { error = String(flagError); }
+			const lastUserDirection = lastDirectionOf(m.feed);
+			const canCheck = flags.length > 0 && win.checks < MAX_WINDOW_CHECKS;
+			const purpose = windowPurpose(m.checkpoint!);
+			let verdict: WindowVerdict | undefined;
+			if (canCheck) try {
+				const reply = await m.windowCall(windowMessages({ flags, turnEvents, purpose, lastUserDirection }));
+				if (reply.stopReason === "error") error = reply.errorMessage ?? "Mom check provider failed.";
+				else {
+					verdict = parseWindowVerdict(reply.text, offeredRefs({ flags, turnEvents, lastUserDirection }));
+					if (!verdict) error = "The check reply was not a cited verdict; no correction.";
+				}
+			} catch (checkError) { error = String(checkError); }
+			const checks = canCheck ? win.checks + 1 : win.checks;
+			// Record the check after its call resolves: counts stay honest, and a crash leaks at most one check's budget.
+			try {
+				await store.append("injection", { kind: "window", action: "checked", key: win.key, compaction: win.compaction,
+					turns, checks, ...(flags.length ? { flagged: flags.map(({ class: flagClass, node, label, intent, matched, sources }) =>
+						({ class: flagClass, node, label, intent, matched, sources })) } : {}), ...(error ? { error } : {}),
+					parent: ctx.sessionManager.getLeafId() });
+			} catch (recordError) {
+				m.error = `Mom could not record her post-compact check: ${String(recordError)}`;
+				sync();
+				return;
+			}
+			if (token !== epoch || mom !== m) return;
+			if (verdict && !verdict.continues) {
+				const content = renderCorrection({ signals, flags, purpose, lastUserDirection });
+				try {
+					const corrected = await store.append("injection", { kind: "window", action: "corrected", key: win.key,
+						compaction: win.compaction, content, parent: ctx.sessionManager.getLeafId() });
+					if (token !== epoch || mom !== m) return;
+					// Reserve durably before publishing. A crash can lose the correction, but cannot repeat it.
+					// The correction itself closes the window: exactly one per compaction.
+					m.lastWindow = { key: win.key, compaction: win.compaction, at: corrected.at, held: false, reason: "correction" };
+					m.window = undefined;
+					pi.sendMessage({ customType: WINDOW_CORRECTION, content, display: true, details: { key: win.key } }, { triggerTurn: false });
+					await store.append("injection", { kind: "window", action: "closed", key: win.key, compaction: win.compaction,
+						reason: "correction", held: false, turns, parent: ctx.sessionManager.getLeafId() });
+				} catch (correctionError) {
+					m.error = `Mom could not record her post-compact correction: ${String(correctionError)}`;
+				}
+				sync();
+				return;
+			}
+			m.window = { ...win, turns, checks };
+			if (turns >= MAX_WINDOW_TURNS) await closeWindowRecords(m, "turns");
+			sync();
+		});
 	}
 	async function run(question?: string, signal?: AbortSignal, refresh = false, compactionReview?: ReturnType<typeof finishCompactionReview>): Promise<string | undefined> {
 		const requestedEpoch = epoch;
@@ -241,6 +389,7 @@ export default function piTether(pi: ExtensionAPI) {
 		conversationExchanges = [];
 		if (timer) clearTimeout(timer);
 		timer = undefined; timerAt = undefined; flight = undefined;
+		leadBoundary = undefined;
 		cadence.reset();
 		mom?.close();
 		unsubscribe?.();
@@ -279,6 +428,7 @@ export default function piTether(pi: ExtensionAPI) {
 		epoch++;
 		if (timer) clearTimeout(timer);
 		timer = undefined; timerAt = undefined; mom?.close(); flight = undefined;
+		leadBoundary = undefined;
 		cadence.reset();
 		unsubscribe?.(); unsubscribe = undefined;
 		ctx?.ui.setWidget(WIDGET, undefined);
@@ -313,6 +463,8 @@ export default function piTether(pi: ExtensionAPI) {
 		}
 		try { await run(undefined, undefined, false, finishCompactionReview(pending, event)); }
 		catch { sync(); }
+		// The window opens after the audit, from the map the audit left; no map, no window.
+		await openWindow(context.sessionManager.getSessionId(), event.compactionEntry.id).catch(() => sync());
 	});
 	pi.on("before_agent_start", async (event) => {
 		const token = epoch;
@@ -323,8 +475,15 @@ export default function piTether(pi: ExtensionAPI) {
 		else delete event.systemPromptOptions.sections[LEAD_BEHAVIOR_SECTION_KEY];
 	});
 	pi.on("agent_start", () => { sync(); });
-	pi.on("agent_settled", (_event, context) => { ctx = context; wake("lead"); deliver(); });
+	pi.on("agent_settled", (_event, context) => {
+		ctx = context; wake("lead"); deliver();
+		// Checks run at the settled boundary regardless of running workers: they read lead events only.
+		void checkWindow().catch(() => sync());
+	});
 	pi.on("input", async (event, context) => {
+		// The user's next message is a fresh direction and closes the open window; a bare status
+		// ping is a query, not direction, and never blocks input.
+		if (event.source !== "extension" && !isStatusPing(event.text)) void closeWindow("user-message").catch(() => sync());
 		if (event.source !== "extension") await deliver(true);
 		if (event.source === "extension" || !isStatusPing(event.text)) return { action: "continue" as const };
 		if (!context.hasUI) return { action: "continue" as const };
@@ -453,6 +612,16 @@ export default function piTether(pi: ExtensionAPI) {
 							const time = clockTime(r.at);
 							if (r.type === "notice") return `${time} notice (${r.data.note.riskClass}:${r.data.note.target}) — delivered on the next request: ${r.data.note.text}`;
 							const d = r.data;
+						if (d.kind === "window") {
+							const windowCloseText = (reason: string) => reason === "user-message" ? "the user's next message"
+								: reason === "turns" ? "three settled turns" : reason === "correction" ? "the correction" : "a new compaction";
+							if (d.action === "opened") return `${time} window after compact ${d.compaction} — opened (watching the first settled turns)`;
+							if (d.action === "checked") return `${time} window after compact ${d.compaction} — watched turn ${d.turns}/${MAX_WINDOW_TURNS}`
+								+ `${d.flagged ? `, flagged: ${d.flagged.map((flag: any) => `${flag.class} “${flag.label}” (${flag.matched.join(", ")})`).join("; ")}` : ""}`
+								+ `${d.checks ? `, model check ${d.checks}/${MAX_WINDOW_CHECKS}` : ""}${d.error ? `, check failed: ${d.error}` : ""}`;
+							if (d.action === "corrected") return `${time} window after compact ${d.compaction} — corrected:\n${d.content}`;
+							return `${time} window after compact ${d.compaction} — closed (${windowCloseText(d.reason)})${d.held ? ", continuity held" : ""}`;
+						}
 							if (d.action === "delivered") return `${time} anchor after compact ${d.compaction} — delivered:\n${d.content}`;
 							if (d.action === "pending") return `${time} anchor after compact ${d.compaction} — queued (not yet delivered)`;
 							return `${time} anchor after compact ${d.compaction} — skipped: ${d.reason}`;

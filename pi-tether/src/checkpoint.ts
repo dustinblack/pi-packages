@@ -5,6 +5,7 @@ import { isAdvisorScreenRecord, type AdvisorScreenRecord } from "./advisor.ts";
 import type { MomStore, SidecarRecord } from "./sidecar.ts";
 import { Check } from "typebox/value";
 import { checkGraph, normalizeMotherRoot, Unfinished, type WorkGraph, type UnfinishedItems } from "./graph.ts";
+import { WINDOW_FLAG_CLASSES } from "./window.ts";
 
 export const NOTICE = "pi-tether.mom-notice";
 export interface Usage {
@@ -75,7 +76,13 @@ export interface CursorFailure { key: string; from: Cut; through: Cut; firstRef:
 export interface SkippedGap extends CursorFailure { id: string }
 /** One post-compaction anchor queued for (or delivered/skipped on) the next lead request. */
 export interface AnchorState { key: string; compaction: string; at: number }
-export interface MomState { checkpoint?: Checkpoint; checkpointId?: string; coverageCut?: Cut; enabled: boolean; unresolvedNotices: string[]; usage?: Usage; error?: string; failure?: CursorFailure; gaps: SkippedGap[]; screen?: AdvisorScreenRecord; cutover?: boolean; pendingAnchor?: AnchorState; lastAnchor?: AnchorState }
+/** How a post-compaction verification window closed. */
+export type WindowCloseReason = "user-message" | "turns" | "correction" | "superseded";
+/** A post-compaction verification window open at reload; it watches the first settled lead turns. */
+export interface WindowLive { key: string; compaction: string; at: number; turns: number; checks: number }
+/** The outcome of a closed post-compaction verification window. */
+export interface WindowOutcome { key: string; compaction: string; at: number; held: boolean; reason: WindowCloseReason }
+export interface MomState { checkpoint?: Checkpoint; checkpointId?: string; coverageCut?: Cut; enabled: boolean; unresolvedNotices: string[]; usage?: Usage; error?: string; failure?: CursorFailure; gaps: SkippedGap[]; screen?: AdvisorScreenRecord; cutover?: boolean; pendingAnchor?: AnchorState; lastAnchor?: AnchorState; window?: WindowLive; lastWindow?: WindowOutcome }
 
 const failureLike = (x: unknown): x is CursorFailure => record(x) && typeof x.key === "string" && cutLike(x.from) && cutLike(x.through) &&
 	typeof x.firstRef === "string" && typeof x.lastRef === "string" && integer(x.count) && x.count > 0 &&
@@ -118,12 +125,43 @@ export async function loadState(store: MomStore, manager: SessionReader): Promis
 		}
 		if (item.type === "injection") {
 			const d = item.data;
-			if (d.kind !== "anchor" || !["pending", "delivered", "skipped"].includes(d.action) ||
+			if (!["anchor", "window"].includes(d.kind) ||
 				typeof d.key !== "string" || !d.key || typeof d.compaction !== "string" || !d.compaction ||
 				(d.parent !== null && typeof d.parent !== "string") ||
-				(d.action === "delivered" && typeof d.content !== "string") ||
-				(d.action === "skipped" && typeof d.reason !== "string")) throw new Error("Invalid Mom injection state in her sidecar.");
+				(d.kind === "anchor" && !["pending", "delivered", "skipped"].includes(d.action)) ||
+				(d.kind === "anchor" && d.action === "delivered" && typeof d.content !== "string") ||
+				(d.kind === "anchor" && d.action === "skipped" && typeof d.reason !== "string")) throw new Error("Invalid Mom injection state in her sidecar.");
 			if (d.parent !== null && !branch.has(d.parent)) continue;
+			if (d.kind === "window") {
+				const windowAction = d.action;
+				if (!["opened", "checked", "corrected", "closed"].includes(windowAction)) throw new Error("Invalid Mom injection state in her sidecar.");
+				if (windowAction === "opened") {
+					if (state.window) throw new Error("Invalid Mom injection state in her sidecar.");
+					state.window = { key: d.key, compaction: d.compaction, at: item.at, turns: 0, checks: 0 };
+				} else if (windowAction === "checked") {
+					if (!state.window || state.window.key !== d.key || !integer(d.turns) || d.turns < 1 || d.turns > 3 ||
+						!integer(d.checks) || d.checks > 3 || (d.error !== undefined && typeof d.error !== "string")) throw new Error("Invalid Mom injection state in her sidecar.");
+					if (d.flagged !== undefined && (!Array.isArray(d.flagged) || !d.flagged.every((flag: any) => record(flag) &&
+						typeof flag.class === "string" && (WINDOW_FLAG_CLASSES as readonly string[]).includes(flag.class) &&
+						typeof flag.node === "string" && typeof flag.label === "string" && typeof flag.intent === "string" &&
+						Array.isArray(flag.matched) && flag.matched.every((matched: unknown) => typeof matched === "string") &&
+						Array.isArray(flag.sources) && flag.sources.every((source: unknown) => typeof source === "string")))) throw new Error("Invalid Mom injection state in her sidecar.");
+					state.window = { ...state.window, turns: d.turns, checks: d.checks };
+				} else if (windowAction === "corrected") {
+					if (!state.window || state.window.key !== d.key || typeof d.content !== "string") throw new Error("Invalid Mom injection state in her sidecar.");
+					state.lastWindow = { key: d.key, compaction: d.compaction, at: item.at, held: false, reason: "correction" };
+					state.window = undefined;
+				} else {
+					if (!["user-message", "turns", "correction", "superseded"].includes(d.reason) || typeof d.held !== "boolean" ||
+						!integer(d.turns) || d.turns > 3) throw new Error("Invalid Mom injection state in her sidecar.");
+					if (state.window) {
+						if (state.window.key !== d.key) throw new Error("Invalid Mom injection state in her sidecar.");
+						state.window = undefined;
+					} else if (state.lastWindow?.key !== d.key) throw new Error("Invalid Mom injection state in her sidecar.");
+					state.lastWindow = { key: d.key, compaction: d.compaction, at: item.at, held: d.held, reason: d.reason };
+				}
+				continue;
+			}
 			if (d.action === "pending") state.pendingAnchor = { key: d.key, compaction: d.compaction, at: item.at };
 			else {
 				// A delivered or skipped anchor also consumes every older queued anchor.

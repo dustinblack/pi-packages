@@ -140,7 +140,8 @@ test("a compaction queues one visible anchor and delivers it on the next lead re
 		assert.equal(anchorEntries(h).length, 1, "later requests add no second anchor");
 		await h.command("status", context);
 		assert.match(notices[notices.length - 1]!, /anchored after compact \d\d:\d\d/);
-		const injections = (await readSidecar(h)).filter(r => r.type === "injection");
+		// The window lifecycle interleaves here too; its records are window.test.ts's subject.
+		const injections = (await readSidecar(h)).filter(r => r.type === "injection" && r.data.kind !== "window");
 		assert.deepEqual(injections.map(r => r.data.action), ["pending", "delivered"]);
 		assert.equal(injections[1].data.content, anchor);
 		await h.command("log", context);
@@ -163,7 +164,7 @@ test("a failing compaction audit still anchors from the last accepted map", { ti
 		const entries = anchorEntries(h) as any[];
 		assert.equal(entries.length, 1, "the anchor still delivers from the last accepted map");
 		assert.match(String(entries[0].content), /Mother thread — “Main purpose”: “Ship the post-compact anchor/);
-		const injections = (await readSidecar(h)).filter(r => r.type === "injection");
+		const injections = (await readSidecar(h)).filter(r => r.type === "injection" && r.data.kind !== "window");
 		assert.deepEqual(injections.map(r => r.data.action), ["pending", "delivered"]);
 		const notices: string[] = [];
 		const context = { ...h.context, ui: { ...h.context.ui, notify: (text: string) => notices.push(text) } };
@@ -208,7 +209,7 @@ test("the ledger lists the delivered anchor and process notice in one read", { t
 		await compact(h, "The migration continues.");
 		await h.runtime.session.prompt("Continue");
 		await until(() => h.runtime.session.sessionManager.getBranch().some((e: any) => e.customType === NOTICE));
-		const injections = (await readSidecar(h)).filter(r => r.type === "injection" || r.type === "notice");
+		const injections = (await readSidecar(h)).filter(r => (r.type === "injection" || r.type === "notice") && r.data.kind !== "window");
 		assert.deepEqual(injections.map(r => `${r.type}:${r.data.action}`), ["injection:pending", "notice:delivered", "injection:delivered"], "the notice lands at the input event, the anchor at before_agent_start");
 		await h.command("log", context);
 		const log = notices[notices.length - 1]!;
