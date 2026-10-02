@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.6
+
+- Bound the compaction-audit retry. A failed audit update — a rejected reconstruction verdict or a failed proposal — stays pending for one retry on the next update or `/mom refresh`, as before; a second failure now retires the audit for the session, and later updates proceed as regular incremental ones over raw evidence. Previously every failure kind kept the full audit sticky, re-running it on every settled update forever (observed live: four failed audit runs across two hours with the widget latched at `update stopped` and a seven-hour-old saved map).
+
 ## 0.1.5
 
 - Watch the first settled lead turns after each successful compaction with a bounded verification window: until the user's next message or three settled turns, whichever comes first. A newer compaction supersedes an open window; the user's next message closes it silently (a pivot right after a compact is correct behavior, not misalignment), and three settled turns close it with one widget line `continuity held after compact` when every check passed.

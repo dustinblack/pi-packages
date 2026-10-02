@@ -229,3 +229,52 @@ test("a contradicted compaction summary cannot ground a record; the cursor moves
 		assert.deepEqual(h.errors, []); assert.deepEqual(h.api.errors, []);
 	} finally { mom.close(); await h.close(); }
 });
+
+test("a twice-failed compaction audit retires; later updates resume as regular raw-grounded ones", { timeout: 30000 }, async () => {
+	const h = await setup();
+	let mom = h.createMom();
+	let summaryRef = "";
+	h.api.onUnscripted((request) => {
+		if (!isMomRequest(request)) return { text: "Lead continued." };
+		const body = input(request);
+		// Every reconstruction trusts the compaction summary alone, through the initial
+		// submission and its one repair round.
+		if (body.chapterIds) return { tool: { name: "record_thread_map", arguments: { states: body.chapterIds.map((chapter: string) => ({ chapter,
+			goal: [{ text: "Drop KEEP.txt per the compaction summary.", sources: [summaryRef] }],
+			decisions: [], artifacts: [], deadEnds: [], openQuestions: [], discrepancies: [] })) } } };
+		return replacement(request);
+	});
+	try {
+		await h.runtime.session.prompt("Preserve the original purpose. Do not delete KEEP.txt.");
+		await mom.open(); await mom.update();
+		const cutBefore = structuredClone(mom.checkpoint!.cut), idBefore = mom.checkpointId;
+
+		await h.runtime.session.prompt("Continue the migration without touching KEEP.txt.");
+		const manager = h.runtime.session.sessionManager;
+		const branch = manager.getBranch();
+		const firstKept = branch.findLast((entry: any) => entry.type === "message" && entry.message.role === "assistant")!;
+		const pending = prepareCompactionReview(beforeEvent(branch, firstKept.id), manager.getSessionId());
+		const compactionId = manager.appendCompaction("Drop KEEP.txt now that the migration is done.", firstKept.id, 100);
+		const review = finishCompactionReview(pending, { compactionEntry: manager.getEntry(compactionId) } as any);
+		summaryRef = review.triggerRef;
+
+		const audits = () => h.requests().filter((request) => input(request).chapterIds).length;
+		// Attempt one: the compaction-triggered audit rejects after its one repair round.
+		await assert.rejects(() => mom.update(undefined, undefined, 0, false, review), /Thread-map audit rejected/);
+		assert.equal(audits(), 2, "one audit invocation spends its reconstruction and repair");
+		// Attempt two: the sticky retry repeats the audit once across updates.
+		await assert.rejects(() => mom.update(), /Thread-map audit rejected/);
+		assert.equal(audits(), 4, "the failed audit retries once across updates");
+
+		// The second failure retires the audit. The next update is a regular incremental one
+		// over raw evidence; it accepts a cited transaction and heals the session.
+		await h.runtime.session.prompt("A later exchange resumes raw updates.");
+		await mom.update();
+		assert.equal(audits(), 4, "no third audit invocation is scheduled");
+		assert.equal(mom.error, undefined, "a regular raw-grounded update clears the latched error");
+		assert.equal(mom.failure, undefined, "an audit rejection never becomes a skippable incremental range");
+		assert.notDeepEqual(mom.checkpoint!.cut, cutBefore, "the accepted raw-grounded transaction advances the cursor");
+		assert.notEqual(mom.checkpointId, idBefore, "a new map snapshot is published");
+		assert.deepEqual(h.errors, []); assert.deepEqual(h.api.errors, []);
+	} finally { mom.close(); await h.close(); }
+});

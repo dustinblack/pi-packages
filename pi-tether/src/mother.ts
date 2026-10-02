@@ -95,6 +95,8 @@ export class Mom {
 	private staged?: StagedBatch;
 	private queued?: StagedBatch;
 	private pendingAudit?: CompactionReview;
+	/** Failed compaction-audit updates counted against the pending audit; two retire it for the session. */
+	private auditAttempts = 0;
 	private windowController?: AbortController;
 
 	constructor(private host: MomHost) { this.feed = new LiveFeed(host.ctx.sessionManager); }
@@ -171,7 +173,7 @@ export class Mom {
 	async update(question?: string, signal?: AbortSignal, revision = 0, refresh = false, compactionReview?: CompactionReview): Promise<string | undefined> {
 		if (this.busy) throw new Error("Mom already has an update in flight.");
 		if (this.disposed) throw new Error("Mom session is closed.");
-		if (compactionReview) this.pendingAudit = compactionReview;
+		if (compactionReview) { this.pendingAudit = compactionReview; this.auditAttempts = 0; }
 		if (!question) compactionReview = this.pendingAudit;
 		this.busy = true;
 		this.controller = new AbortController();
@@ -518,6 +520,13 @@ export class Mom {
 		} catch (error) {
 			if (!this.disposed && this.host.current()) {
 				this.error = String(error);
+				if (compactionReview && this.pendingAudit === compactionReview) {
+					// A failed compaction-audit update retries once across updates — the reconstruction may
+					// ground its claims in raw evidence on a later pass. A second failure retires the audit:
+					// claims whose raw evidence no longer exists must not re-run a doomed audit forever.
+					this.auditAttempts += 1;
+					if (this.auditAttempts >= 2) this.pendingAudit = undefined;
+				}
 				if (attempt.calls) {
 					attempt.elapsedMs = Math.round(performance.now() - started);
 					this.usage = sumUsage(this.usage, attempt);
