@@ -6,8 +6,8 @@ Away recap extension for [pi](https://github.com/badlogic/pi-mono). Shows a comp
 
 1. After each agent completion, pi-recap starts an idle timer (default: 3 min)
 2. If the user types before the timer fires → timer is cancelled (no recap)
-3. If the timer fires → a side LLM call generates a compact recap of the conversation
-4. The recap appears as an ephemeral widget above the editor — never written to transcript
+3. If the timer fires → a side LLM call summarizes recent user requests, completed assistant answers, and session summaries; tool traffic is excluded
+4. The recap is limited to 40 words and appears as an ephemeral widget above the editor — never written to transcript
 5. The recap is auto-cleared on the user's next input
 
 **Gating** (prevents spam):
@@ -46,11 +46,13 @@ Once installed, the recap runs automatically. No action needed.
 | `/recap 5m` | Set idle threshold to 5 minutes |
 | `/recap 30s` | Set idle threshold to 30 seconds |
 | `/recap status` | Show current settings |
+| `/recap test` | Generate a recap now, bypassing idle gates |
+| `/recap debug` | Show gate and timer diagnostics |
 
 ### Configuration
 
 - **Default threshold:** 3 minutes
-- **First 3 recaps** include a `(disable recaps in /config)` hint
+- **First 3 recaps** include a `(/recap off)` hint
 - Recap count persists across session reloads
 
 ## How it differs from Claude Code

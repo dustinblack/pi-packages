@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Keep tool results, bash output, custom messages, and partial assistant turns out of the recap request
+- Bound recap context and output; reject tool markup instead of displaying it
+
 ## 1.0.0 (2026-06-27)
 
 - Initial release

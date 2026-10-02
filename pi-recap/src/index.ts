@@ -10,10 +10,10 @@
  * 4. Show the recap as an ephemeral widget above the editor
  */
 
-import { complete } from "@earendil-works/pi-ai/compat";
-import type { Message } from "@earendil-works/pi-ai";
+import type { AssistantMessage, Message } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { buildSessionContext, convertToLlm, serializeConversation } from "@earendil-works/pi-coding-agent";
+import { buildSessionContext } from "@earendil-works/pi-coding-agent";
+import { truncateToWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -28,30 +28,53 @@ const MIN_MESSAGES_SINCE_RECAP = 2;
 const DISABLE_HINT_LIMIT = 3;
 const RECAP_CUSTOM_TYPE = "pi-recap";
 const WIDGET_NAME = "pi-recap";
+const MAX_CONTEXT_CHARS = 6000;
+const MAX_MESSAGE_CHARS = 1200;
+const MAX_CONTEXT_MESSAGES = 10;
+const MAX_RECAP_WORDS = 40;
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Filter LLM messages to only human-readable content.
- * Strips tool calls and tool results — keeps only user text and assistant text.
- * Thinking content is excluded (internal reasoning, not user-visible).
- */
-function filterToReadableMessages(messages: Message[]): Message[] {
-  const filtered: Message[] = [];
-  for (const msg of messages) {
-    if (msg.role === "user") {
-      filtered.push(msg);
-    } else if (msg.role === "assistant") {
-      const textOnly = msg.content.filter((c: any) => c.type === "text");
-      if (textOnly.length > 0) {
-        filtered.push({ ...msg, content: textOnly });
-      }
+/** Model-readable session outcomes; never treat bash or custom messages as user turns. */
+function readableConversation(messages: ReturnType<typeof buildSessionContext>["messages"]): string {
+  const lines: string[] = [];
+  let remaining = MAX_CONTEXT_CHARS;
+  for (let i = messages.length - 1; i >= 0 && lines.length < MAX_CONTEXT_MESSAGES; i--) {
+    const message = messages[i];
+    let label: string;
+    let content: string;
+    if (message.role === "compactionSummary" || message.role === "branchSummary") {
+      label = "Session summary";
+      content = message.summary;
+    } else if (message.role === "user" || (message.role === "assistant" && message.stopReason === "stop")) {
+      label = message.role === "user" ? "User" : "Assistant";
+      content = typeof message.content === "string"
+        ? message.content
+        : message.content.filter((part) => part.type === "text").map((part) => part.text).join("\n");
+    } else {
+      continue;
     }
-    // Skip toolResult entirely
+
+    content = content.trim();
+    if (message.role === "user") {
+      content = content.replace(/<tool_call\b[^>]*>[\s\S]*?<\/tool_call>/gi, "");
+    }
+    const artifact = content.search(/<tool_call\b|<function=/i);
+    if (artifact !== -1) {
+      if (message.role !== "user") continue;
+      content = content.slice(0, artifact).trimEnd();
+    }
+    const prefix = `${label}: `;
+    if (remaining <= prefix.length) break;
+    const line = prefix + content.slice(0, Math.min(MAX_MESSAGE_CHARS, remaining - prefix.length));
+    if (line.length > prefix.length) {
+      lines.push(line);
+      remaining -= line.length;
+    }
   }
-  return filtered;
+  return lines.reverse().join("\n\n");
 }
 
 // ---------------------------------------------------------------------------
@@ -130,25 +153,14 @@ export default function piRecap(pi: ExtensionAPI) {
 
     isGenerating = true;
     try {
-      // Build conversation context and serialize to a single user message.
-      // We serialize the conversation to text (like pi-handoff does) rather
-      // than passing the raw message array. Raw messages end with an assistant
-      // message, which causes most LLM APIs (especially Anthropic) to reject
-      // the request — they expect the last message to be from the user.
+      // The side call ends with one user message. Only genuine conversation
+      // turns and compacted summaries enter its context, never tool traffic.
       const branch = ctx.sessionManager.getBranch();
       const leafId = ctx.sessionManager.getLeafId();
       const { messages } = buildSessionContext(branch, leafId);
-      const llmMessages = convertToLlm(messages);
-
-      if (llmMessages.length === 0) {
-        return { ok: false, error: `convertToLlm returned 0 messages (branch has ${branch.length} entries)` };
-      }
-
-      // Filter to readable text only — strip tool calls, tool results, thinking
-      const readableMessages = filterToReadableMessages(llmMessages);
-      const conversationText = serializeConversation(readableMessages);
-      if (!conversationText.trim()) {
-        return { ok: false, error: "serializeConversation returned empty text" };
+      const conversationText = readableConversation(messages);
+      if (!conversationText) {
+        return { ok: false, error: "No readable conversation to recap" };
       }
 
       const userMessage: Message = {
@@ -157,21 +169,11 @@ export default function piRecap(pi: ExtensionAPI) {
         timestamp: Date.now(),
       };
 
-      // Get API key and headers — some providers use headers instead of apiKey
-      const auth = await ctx.modelRegistry.getApiKeyAndHeaders(ctx.model);
-      if (!auth.ok) {
-        return { ok: false, error: `API key retrieval failed: ${auth.error}` };
-      }
-
-      // Make the side LLM call (no tools)
-      // Pass both apiKey and headers — matches how pi's own agent-session.ts works
-      const response = await complete(
+      // The registry handles provider credentials, including header-based auth.
+      const response: AssistantMessage = await ctx.modelRegistry.complete(
         ctx.model,
-        {
-          systemPrompt: RECAP_PROMPT,
-          messages: [userMessage],
-        },
-        { apiKey: auth.apiKey, headers: auth.headers },
+        { systemPrompt: RECAP_PROMPT, messages: [userMessage] },
+        { maxTokens: 160 },
       );
 
       if (response.stopReason === "error") {
@@ -182,21 +184,33 @@ export default function piRecap(pi: ExtensionAPI) {
       }
 
       // Extract text from response
-      const text = response.content
+      const output = response.content
         .filter((c): c is { type: "text"; text: string } => c.type === "text")
         .map((c) => c.text)
-        .join("\n")
+        .join(" ")
         .trim();
 
-      if (!text) {
+      if (!output) {
         return { ok: false, error: `LLM returned empty text. stopReason=${response.stopReason}, content types=[${response.content.map(c => c.type).join(",")}]` };
       }
+      if (/<\/?tool_call\b|<function=|<parameter=|\[Assistant tool calls\]/i.test(output)) {
+        return { ok: false, error: "LLM returned tool markup instead of a recap" };
+      }
+      const words = output.split(/\s+/);
+      const text = words.slice(0, MAX_RECAP_WORDS).join(" ") + (words.length > MAX_RECAP_WORDS ? "…" : "");
 
-      // Format and show recap
-      const suffix = recapCount < DISABLE_HINT_LIMIT ? " (disable recaps in /config)" : "";
+      const suffix = recapCount < DISABLE_HINT_LIMIT ? " (/recap off)" : "";
       const recapLine = `※ recap: ${text}${suffix}`;
 
-      ctx.ui.setWidget(WIDGET_NAME, [recapLine]);
+      ctx.ui.setWidget(WIDGET_NAME, () => ({
+        render(width: number) {
+          const visibleWidth = Math.max(1, width);
+          const lines = wrapTextWithAnsi(recapLine, visibleWidth);
+          if (lines.length <= 2) return lines;
+          return [lines[0], truncateToWidth(lines[1], Math.max(0, visibleWidth - 1), "") + "…"];
+        },
+        invalidate() {},
+      }));
 
       // Update counters
       recapCount++;
