@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3
+
+- Replace the map-prioritized 36,000-character compaction sample with a full independent thread-map reconstruction followed by evidence-backed comparison with Mom's saved graph. Process every normalized history section without the incremental context guard, preserve source chronology across lead and worker streams, permit paginated source inspection, and retain saved state when an audit fails.
+- Retain deferred or failed audits for retry within the running session. Keep routine incremental updates and quiet widget behavior unchanged.
+- Resolve unique shortened entry-and-block source references without conflating sibling blocks or ambiguous sessions.
+
 ## 0.1.2
 
 - Keep the persistent Mom widget visible with 1–6-word work names and states, without narrative paragraphs. Validate new names and allow legacy root-name shortening without changing its durable intent.

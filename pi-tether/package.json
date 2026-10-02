@@ -1,6 +1,6 @@
 {
   "name": "@ssweens/pi-tether",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Mom keeps track of your goal, what's unfinished, and where to return after a detour.",
   "type": "module",
   "license": "MIT",

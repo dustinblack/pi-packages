@@ -46,10 +46,10 @@ test("repeated compaction starts at the previous first-kept entry and retains it
 	];
 	const pending = prepareCompactionReview(beforeEvent(entries, "next-kept"), "session");
 	assert.deepEqual(pending.rawEntries.map(entry => entry.id), ["hold", "work", "prior-compact", "newer"]);
-	const review = finishCompactionReview(pending, { compactionEntry: { id: "next-compact", timestamp: at, firstKeptEntryId: "next-kept", summary: "Migration continued." } } as any,
-		new Set(["session:hold"]));
+	const review = finishCompactionReview(pending, { compactionEntry: { id: "next-compact", timestamp: at, firstKeptEntryId: "next-kept", summary: "Migration continued." } } as any);
 	assert.match(review.rawReplacedEvents, /Do not modify KEEP\.txt/);
 	assert.doesNotMatch(review.rawReplacedEvents, /Already replaced/);
+	assert.equal(review.historyEvents[0].ref, "session:old", "the audit includes history before the replaced segment");
 });
 
 test("SDK preparation can put the new boundary before the latest prior compaction record", () => {
@@ -71,8 +71,7 @@ test("SDK preparation can put the new boundary before the latest prior compactio
 		"Pi validly selected a new boundary before the latest prior compaction record");
 	const pending = prepareCompactionReview({ ...beforeEvent(entries, preparation.firstKeptEntryId), preparation }, "session");
 	assert.deepEqual(pending.rawEntries.map(entry => entry.id), ["hold"]);
-	assert.match(finishCompactionReview(pending, { compactionEntry: { id: "next", timestamp: at, firstKeptEntryId: "middle", summary: "" } } as any,
-		new Set(["session:hold"])).rawReplacedEvents, /Do not modify KEEP\.txt/);
+	assert.match(finishCompactionReview(pending, { compactionEntry: { id: "next", timestamp: at, firstKeptEntryId: "middle", summary: "" } } as any).rawReplacedEvents, /Do not modify KEEP\.txt/);
 });
 
 test("a compaction that drops an active decision causes one deferred process advisory and no lead call", { timeout: 15000 }, async () => {
@@ -85,18 +84,21 @@ test("a compaction that drops an active decision causes one deferred process adv
 		h.api.onUnscripted((request) => {
 			if (!isMomRequest(request)) return { text: "Lead continued." };
 			const body = input(request);
+			if (body.chapterIds) return replacement(request);
 			const trigger = body.compactionReview.triggerRef;
 			return replacement(request, { note: { text: "Record the KEEP decision now before its instruction is lost.", riskClass: "compaction_decisions", target: "main", riskRefs: [body.original.ref, trigger], actionRefs: [body.original.ref] } });
 		});
 		await compact(h, "Migration work continues.");
-		assert.equal(h.requests().length, 2, "one Mom update for the compaction");
+		assert.equal(h.requests().length, 3, "independent reconstruction, then one graph reconciliation");
 		assert.equal(h.runtime.session.sessionManager.getBranch().filter((entry: any) => entry.customType === NOTICE).length, 0, "notice waits for the next request");
 		await h.emitExtension("input", { type: "input", text: "Continue", source: "interactive" });
 		await until(() => h.runtime.session.sessionManager.getBranch().some((entry: any) => entry.customType === NOTICE));
 		assert.equal(h.api.requests.filter((request: any) => !isMomRequest(request)).length, leadCalls, "notice starts no lead turn");
-		const review = input(h.requests()[1]).compactionReview;
-		assert.match(review.rawReplacedEvents, /keep KEEP\.txt unchanged/);
-		assert.equal(review.summary, "Migration work continues.");
+		const reconstruction = input(h.requests()[1]);
+		assert.equal(reconstruction.graph, undefined, "the reconstruction cannot see Mom's current map");
+		assert.match(reconstruction.evidence, /keep KEEP\.txt unchanged/);
+		assert.match(reconstruction.evidence, /CLAIM \(not evidence\): Migration work continues/);
+		assert(input(h.requests()[2]).independentThreadMap);
 		const notices = h.runtime.session.sessionManager.getBranch().filter((entry: any) => entry.customType === NOTICE);
 		assert.equal(notices.length, 1);
 		await h.runtime.session.reload();
@@ -114,8 +116,8 @@ test("a compaction retaining active material produces no notice", { timeout: 150
 		await h.command("refresh");
 		await until(() => h.requests().length === 1);
 		await compact(h, "The migration continues. KEEP.txt must remain unchanged.");
-		assert.equal(h.requests().length, 2);
-		assert.equal(input(h.requests()[1]).compactionReview.summary, "The migration continues. KEEP.txt must remain unchanged.");
+		assert.equal(h.requests().length, 3);
+		assert.match(input(h.requests()[1]).evidence, /The migration continues\. KEEP.txt must remain unchanged/);
 		assert.equal(h.runtime.session.sessionManager.getBranch().filter((entry: any) => entry.customType === NOTICE).length, 0);
 	} finally { await h.close(); }
 });

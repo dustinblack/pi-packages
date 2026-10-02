@@ -26,7 +26,7 @@ test("the update contract carries the fixed chapter-state schema, provisional ch
 	assert.match(MOM_PROMPT, /host keeps them unchanged on later updates unless the root cites a new lead user direction/);
 	assert.match(MOM_PROMPT, /never promote a claim into an observation or a settled state/);
 	assert.match(MOM_PROMPT, /never a second ledger — they are written nowhere except the graph, and no record may exist per message, event, or tool result/);
-	assert.match(MOM_PROMPT, /the raw events win, and every changed claim must cite its raw source/);
+	assert.match(MOM_PROMPT, /Compaction summaries remain claims, not evidence; every changed claim must cite its raw source/);
 	// 038's narrowing obligation and 049's bounded-backlog chapter chain stay intact.
 	assert.match(MOM_PROMPT, /When the user narrows or drops scope, retire what no longer holds in the same transaction/);
 	assert.match(MOM_PROMPT, /A narrowing that leaves the node set unchanged is not recorded/);
@@ -147,11 +147,12 @@ test("a contradicted compaction summary cannot ground a record; the cursor moves
 	h.api.onUnscripted((request) => {
 		if (!isMomRequest(request)) return { text: "Lead continued." };
 		const body = input(request);
+		if (body.chapterIds) return replacement(request);
 		if (body.compactionReview) {
 			// Round one and its repair both trust the provider summary alone.
 			if (++attempts <= 2) return transaction(body, [{ id: "dropKeep", kind: "choice", parent: "main", state: "settled",
 				label: "Drop KEEP.txt after migration", intent: "Drop KEEP.txt after migration", observed: "Per the compaction summary.", actor: "", sources: [summaryRef] }]);
-			// Unreachable in this test: the retained batch retries without a review payload.
+			// A later retry repeats the audit before accepting the raw-grounded correction.
 		}
 		if (body.graph.nodes.length) return transaction(body, [{ id: "keepHold", kind: "rule", parent: "main", state: "active",
 			label: "Do not delete KEEP.txt", intent: "Do not delete KEEP.txt.", observed: "The raw exchange survives the compaction.",
@@ -180,26 +181,24 @@ test("a contradicted compaction summary cannot ground a record; the cursor moves
 			return /rests only on compaction summaries/.test(message) && message.includes(summaryRef)
 				&& /a summary is a claim/.test(message);
 		}, "a record grounded only in the summary is rejected even though the summary ref is known and citable");
-		assert.equal(h.requests().length, 3, "one bounded proposal plus one repair, no extra model pass");
+		assert.equal(h.requests().length, 4, "independent reconstruction, one proposal, and one repair");
 
 		// Cursor/checkpoint never advance on a rejected proposal.
 		assert.deepEqual(mom.checkpoint!.cut, cutBefore, "a rejected proposal leaves coverage untouched");
 		assert.equal(mom.checkpointId, idBefore, "no new map snapshot is published");
-		assert.equal(mom.failure?.failures, 1);
+		assert.equal(mom.failure, undefined, "audit rejection must never become a skippable incremental range");
 		const rejected = await readSidecar(h);
 		assert.equal(rejected.filter((record) => record.type === "map" && record.data.snapshot).length, 1, "the prior snapshot is retained");
 		assert.equal(rejected.filter((record) => record.type === "map" && record.data.cut !== undefined).length, 0, "no cursor record was written");
-		assert.equal(rejected.filter((record) => record.type === "map" && record.data.failure !== null && record.data.failure !== undefined).length, 1,
-			"the deterministic rejection is recorded as a failure, not as coverage");
+		assert.equal(rejected.filter((record) => record.type === "usage" && record.data.error).length, 1,
+			"the audit failure is recorded without changing map coverage");
 
 		// The review the model saw carries the claim and the raw authority side by side.
 		const reviewBody = input(h.requests()[1]);
-		assert.equal(reviewBody.compactionReview.summary, "Drop KEEP.txt now that the migration is done.");
-		assert.match(reviewBody.compactionReview.rawReplacedEvents, /Do not delete KEEP\.txt/);
-		assert(reviewBody.compactionReview.rawEventCount > 0);
-		assert.equal(reviewBody.chapters.length, 1);
-		assert.equal(reviewBody.chapters[0].status, "closed");
-		assert.equal(reviewBody.chapters[0].closedBy, summaryRef, "the chapter names its closing summary claim");
+		assert.match(reviewBody.evidence, /CLAIM \(not evidence\): Drop KEEP.txt now that the migration is done/);
+		assert.match(reviewBody.evidence, /Do not delete KEEP\.txt/);
+		assert.equal(reviewBody.graph, undefined);
+		assert(input(h.requests()[2]).compactionReview.rawEventCount > 0);
 
 		// The retained batch retries; the raw replaced evidence grounds the accepted record.
 		await h.runtime.session.prompt("A later exchange releases the retained batch.");

@@ -270,8 +270,7 @@ export default function piTether(pi: ExtensionAPI) {
 		if (!pending || !mom?.enabled || openingError) return;
 		if (timer) clearTimeout(timer);
 		timer = undefined; timerAt = undefined; dirty = true; revision++; sync();
-		const activeRefs = new Set(mom.graph.nodes.filter(node => node.state === "active" || node.state === "parked").flatMap(node => node.sources));
-		try { await run(undefined, undefined, false, finishCompactionReview(pending, event, activeRefs)); }
+		try { await run(undefined, undefined, false, finishCompactionReview(pending, event)); }
 		catch { sync(); }
 	});
 	pi.on("before_agent_start", async (event) => {

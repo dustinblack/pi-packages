@@ -1,5 +1,22 @@
 # Tasks
 
+## Current Task: full thread-map audit at compaction
+
+- [x] Remove map-prioritized sampling and retain full selected-branch evidence.
+- [x] Reconstruct chapter state independently of Mom, then reconcile with the current graph using source inspection.
+- [x] Preserve graph/history on audit failure and keep ordinary updates unchanged.
+- [x] Verify beyond the old cap, earlier chapters, genuine omissions and false links, and run a real-model replay.
+- [x] Review the diff, update documentation, and propose the verified change for commit.
+
+### Review (full compaction audit)
+
+- Removed the 36,000-character sample and the ordinary 90,000-character context guard from audits. All normalized selected-branch and linked-worker sections are reconstructed independently before graph comparison. Provider context errors retain the saved map; evidence is never silently truncated.
+- Pages retain actor/chapter boundaries and summary-claim labels, including oversized records. Earlier independent chapter findings carry forward. Original source timestamps and record types accompany the reconstruction: a live replay exposed a stale worker review being treated as newer than the subsequent fix report, and the corrected replay preserves the actual chronology.
+- TypeScript and all 187 tests pass. Regressions cover full evidence beyond the old cap, oversized events, comparisons over 90,000 characters, cross-page decisions, worker boundaries, source validation/repair, four-page source reads, failure/retry, and session invalidation. Scoped `git diff --check` passes.
+- The real Luna replay on the supplied `01a0f835` session and saved bad-link cache completed all nine sections in 28 calls / 384.6 seconds. It removed the unsupported footer/deals alternative and preserved all nine node IDs, parents, kinds, states, work/rule/choice intents, focus, no-model requirement, Pacific-time rule, and footer result. It correctly retained the later report that the two review defects were fixed and marked the older verification report as historical. Evidence: `.amp/in/artifacts/mom-compaction-audit-live-v10/`.
+- Replays wrote only disposable session/cache copies. The original transcript prefix and input cache were checked byte-for-byte. This is one real semantic case, not a general accuracy or low-overhead claim; a full audit currently takes minutes. Mom implements the thread-map workflow internally rather than launching the Python script, and checks recorded evidence rather than rerunning project commands. Pending audit retries survive within the running session, not reload.
+- Version 0.1.3 remains local and uncommitted; reload is required to load it. Proposed commit: `fix(tether): audit full thread history at compaction`.
+
 ## Current Task: correct unsupported Mom alternatives
 
 - [x] Clarify that alternatives compete for the same outcome; pivots and sibling tasks need no cross-link.

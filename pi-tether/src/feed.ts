@@ -228,7 +228,7 @@ export class LiveFeed {
 
 	private fits(events: FeedEvent[]): boolean {
 		const size = renderEvents(events).length;
-		if (size > 24000) throw new Error("One narrative entry exceeds Mom's 24,000-character batch limit; nothing was truncated.");
+		if (size > 24000 && Number.isFinite(this.remaining)) throw new Error("One narrative entry exceeds Mom's 24,000-character batch limit; nothing was truncated.");
 		if (size > this.remaining) { this.full = true; return false; }
 		this.remaining -= size;
 		return true;
@@ -313,10 +313,11 @@ export class LiveFeed {
 		} } finally { c.hash = reader.hash.copy().digest("hex"); }
 	}
 
-	/** Byte caches advance as observed; only the returned immutable cut may be committed with a snapshot. */
+	/** Byte caches advance as observed; only the returned immutable cut may be committed with a snapshot.
+	 * Infinity drains a full audit locally; its model input is paginated separately, never sampled. */
 	async capture(limit = 24000, deferRunningWorkers = false): Promise<{ events: FeedEvent[]; cut: Cut; gaps: string[]; more: boolean }> {
 		const start = this.events.length;
-		this.remaining = Math.max(0, Math.min(24000, limit)); this.full = false;
+		this.remaining = limit === Infinity ? Infinity : Math.max(0, Math.min(24000, limit)); this.full = false;
 		const leaf = this.manager.getLeafId();
 		const entries = suffix(this.manager, leaf, this.parentCursor);
 		this.gaps.delete("parent");

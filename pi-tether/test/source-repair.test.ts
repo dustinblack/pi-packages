@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { acceptGraph } from "../src/contract.ts";
-import { emptyGraph } from "../src/graph.ts";
+import { emptyGraph, sourceSuggestion } from "../src/graph.ts";
 import type { FeedEvent } from "../src/feed.ts";
 
 const observed = "01a0e020-12a4-7474-819f-ad784bb5febd:5d21d97a";
@@ -14,6 +14,13 @@ const transaction = { revision: 0, purpose: "root", focus: "root", unfinished: [
 	removeEdges: [], merges: [], folds: [], removeNodes: [], supersessions: [], note: null };
 const accept = (value: unknown, evidence = known, question?: string) =>
 	acceptGraph(value, emptyGraph(), undefined, evidence, new Set(evidence.keys()), new Set(), question);
+
+test("shortened entry:block references resolve exactly or remain ambiguous", () => {
+	const sources = ["lead:58f1150b", "lead:58f1150b:b2", "lead:58f1150b:b4"];
+	assert.equal(sourceSuggestion("58f1150b:b4", sources), "lead:58f1150b:b4");
+	assert.equal(sourceSuggestion("58f1150b:b4", [...sources, "worker:58f1150b:b4"]), undefined);
+	assert.equal(sourceSuggestion("58f1150b:b7", sources), undefined);
+});
 
 test("acceptGraph repairs the production mangled UUID source", () => {
 	const result = accept(transaction);

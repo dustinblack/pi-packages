@@ -157,7 +157,7 @@ test("explicit questions and compaction bypass the ordinary cadence gate", { tim
 		await h.emitExtension("session_before_compact", { branchEntries, preparation: { firstKeptEntryId } });
 		await h.emitExtension("session_compact", { compactionEntry: { id: "fixture-compaction", firstKeptEntryId,
 			summary: "The purpose remains active.", timestamp: new Date().toISOString() } });
-		await until(() => h.requests().length === 2, "one direct compaction review despite fewer than five lead exchanges");
+		await until(() => h.requests().length === 3, "independent reconstruction and comparison bypass the ordinary cadence");
 		assert.equal(input(h.requests().at(-1)).compactionReview?.kind, "compaction_review");
 		assert.deepEqual(h.errors, []); assert.deepEqual(h.api.errors, []);
 	} finally { await h.close(); }

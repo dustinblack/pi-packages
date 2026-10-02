@@ -8,13 +8,15 @@ import { SidecarStore } from "../src/sidecar.ts";
 export const readSidecar = (h: any) => new SidecarStore(() => h.parent as string, h.runtime.session.sessionManager.getSessionId() as string).load();
 export { deferred };
 
-export const isMomRequest = (request: any) => request.tools?.some((t: any) => ["commit_graph", "inspect_evidence", "search_history"].includes(t.function?.name));
+export const isMomRequest = (request: any) => request.tools?.some((t: any) => ["commit_graph", "record_thread_map", "inspect_evidence", "search_history"].includes(t.function?.name));
 export function input(request: any) {
 	const user = request.messages.findLast((m: any) => m.role === "user");
 	return JSON.parse(typeof user.content === "string" ? user.content : user.content.filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n"));
 }
 export function replacement(request: any, extra: Record<string, unknown> = {}) {
 	const body = input(request);
+	if (body.chapterIds) return { tool: { name: "record_thread_map", arguments: { states: body.chapterIds.map((chapter: string) => ({ chapter,
+		goal: [], decisions: [], artifacts: [], deadEnds: [], openQuestions: [], discrepancies: [] })) } } };
 	const ref = /\[src:([^\]]+)\]/.exec(body.newEvents)?.[1] ?? body.original.ref;
 	const previous = body.graph.nodes?.find((node: any) => node.id === "main"), prior = previous?.sources ?? [];
 	return { tool: { name: "commit_graph", arguments: { focus: "main",

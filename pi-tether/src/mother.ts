@@ -1,14 +1,15 @@
 import { randomUUID } from "node:crypto";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import type { Message, Model } from "@earendil-works/pi-ai";
+import type { Context, Message, Model } from "@earendil-works/pi-ai";
 import type { MomStore } from "./sidecar.ts";
 import type { AdvisorScreenRecord, SessionAdvisor } from "./advisor.ts";
 import { branchCheckpoints, emptyUsage, graphChange, loadState, noticeKey, sumUsage, type Checkpoint, type CursorFailure, type SkippedGap, type Usage } from "./checkpoint.ts";
 import { LiveFeed, renderEvent, renderEvents, suffix, type Cut, type FeedEvent } from "./feed.ts";
 import type { CompactionReview } from "./compaction.ts";
+import { reconstructThreadMap } from "./audit.ts";
 import { bootstrapDigest, DEFAULT_BOOTSTRAP_POLICY, type BootstrapPolicy } from "./bootstrap.ts";
 import { acceptGraph, CHAPTER_STATE_FIELDS, MOM_PROMPT, momTools, normalizeEvidence, validateSearchQuery } from "./contract.ts";
-import { emptyGraph, graphSlice } from "./graph.ts";
+import { emptyGraph, graphSlice, sourceSuggestion } from "./graph.ts";
 
 export const DEFAULT_MODEL = "openai-codex/gpt-5.6-luna";
 export const CONTEXT_LIMIT = 90000;
@@ -87,6 +88,7 @@ export class Mom {
 	gaps: SkippedGap[] = [];
 	private staged?: StagedBatch;
 	private queued?: StagedBatch;
+	private pendingAudit?: CompactionReview;
 
 	constructor(private host: MomHost) { this.feed = new LiveFeed(host.ctx.sessionManager); }
 
@@ -158,6 +160,8 @@ export class Mom {
 	async update(question?: string, signal?: AbortSignal, revision = 0, refresh = false, compactionReview?: CompactionReview): Promise<string | undefined> {
 		if (this.busy) throw new Error("Mom already has an update in flight.");
 		if (this.disposed) throw new Error("Mom session is closed.");
+		if (compactionReview) this.pendingAudit = compactionReview;
+		if (!question) compactionReview = this.pendingAudit;
 		this.busy = true;
 		this.controller = new AbortController();
 		const started = performance.now();
@@ -166,7 +170,14 @@ export class Mom {
 		this.host.changed();
 		try {
 			let newer: StagedBatch | undefined;
-			if (!this.staged) {
+			if (compactionReview) {
+				const from = this.checkpoint?.cut ?? this.feed.cut();
+				const captured = await this.feed.capture(Infinity, true);
+				this.staged = { ...captured, events: this.feed.events.slice(this.committed), revision, from,
+					startIndex: this.committed, endIndex: this.feed.events.length };
+				this.queued = undefined;
+				if (captured.gaps.length) throw new Error(`Thread-map audit cannot read all evidence: ${captured.gaps.join("; ")}`);
+			} else if (!this.staged) {
 				const from = this.checkpoint?.cut ?? this.feed.cut(), startIndex = this.feed.events.length;
 				const captured = await this.feed.capture(24000, true);
 				this.staged = { ...captured, revision, from, startIndex, endIndex: this.feed.events.length };
@@ -187,7 +198,7 @@ export class Mom {
 				newer = this.queued;
 				if (!newer && !refresh) return undefined;
 			}
-			if (refresh && this.gaps.length) {
+			if (refresh && this.gaps.length && !compactionReview) {
 				const gap = this.gaps[0], pending = this.staged!;
 				const old = recordedRange(this.feed.events, gap, "Mom cannot retry a skipped range because its recorded sources are unreadable.");
 				const chunk = boundedGapEvents(old);
@@ -275,11 +286,34 @@ export class Mom {
 			const [provider, ...id] = this.host.model.split("/");
 			const model = this.host.ctx.modelRegistry.find(provider, id.join("/"));
 			if (!model) throw new Error(`Mom model unavailable: ${this.host.model}. No fallback selected.`);
+			const complete = async (context: Context) => {
+				this.valid(batch.cut);
+				if (!compactionReview && (context.systemPrompt?.length ?? 0) + JSON.stringify(context.messages).length > CONTEXT_LIMIT) throw new Error("Mom context exceeds 90,000 characters. Last checkpoint retained; no silent truncation.");
+				const options = { maxTokens: 6000, sessionId: this.cacheSessionId,
+					signal: AbortSignal.any([this.controller!.signal, AbortSignal.timeout(120000), ...(signal ? [signal] : [])]), maxRetryDelayMs: 1000 };
+				const reply = model.api === "openai-codex-responses"
+					? await this.host.ctx.modelRegistry.complete(model as Model<"openai-codex-responses">, context, { ...options, reasoningEffort: "low", toolChoice: "required",
+						onPayload: (payload) => { (payload as { parallel_tool_calls: boolean }).parallel_tool_calls = false; },
+					})
+					: await this.host.ctx.modelRegistry.streamSimple(model, context, { ...options, reasoning: "low" }).result();
+				attempt = sumUsage(attempt, { calls: 1, input: reply.usage.input, output: reply.usage.output,
+					cacheRead: reply.usage.cacheRead, cacheWrite: reply.usage.cacheWrite, nominalCost: reply.usage.cost.total, elapsedMs: 0 });
+				this.valid(batch.cut);
+				if (reply.stopReason === "error") throw new Error(reply.errorMessage ?? "Mom provider failed.");
+				return reply;
+			};
+			let audit;
+			if (compactionReview) {
+				const captured = new Map(compactionReview.historyEvents.map(event => [event.ref, event]));
+				for (const event of this.feed.events) if (!captured.has(event.ref)) captured.set(event.ref, event);
+				audit = await reconstructThreadMap([...captured.values()], this.feed, complete);
+			}
 			const newRefs = new Set(batch.events.map((e) => e.ref));
 			const known = compactionReview ? new Map(this.feed.byRef).set(compactionReview.triggerRef, compactionReview.triggerEvent) : this.feed.byRef;
 			if (compactionReview) newRefs.add(compactionReview.triggerRef);
 			const inspected = new Set<string>();
-			let readPages = question ? 2 : 0, searches = question ? 2 : 0;
+			let readPages = compactionReview ? Infinity : question ? 2 : 0, searches = question ? 2 : 0;
+			const auditReads = new Set<string>();
 			let emptySearch: string | undefined;
 			let searchRetryOnly = false;
 			const original = this.feed.events.find((e) => e.actor === "lead" && e.kind === "user");
@@ -290,49 +324,42 @@ export class Mom {
 			const normalized = batch.digest ? undefined : normalizeEvidence(batch.events, this.chapterBoundary);
 			const messages: Message[] = [{ role: "user", timestamp: Date.now(), content: JSON.stringify({
 				task: question ? "Answer the explicit question using the graph and evidence."
+					: audit ? "Compare the independent thread map with the saved graph. Diff chapter states within each actor's stream, then use sourceMetadata timestamps to order evidence across actors: presentation order is not chronology. An earlier worker finding may be resolved by later edits and checks; inspect original sources before treating it as still open. Reconcile material errors in one transaction. Neither map is authoritative. Preserve node identities and historical work; do not reopen resolved work merely because the audit mentions it."
 					: "Update the work graph from newEvents. This is background maintenance, not a request to answer the recorded conversation.",
 				original: original ? { ref: original.ref, ...(!this.checkpoint || question ? { text: original.text } : {}) } : null,
 				graph: this.graph, contextBeforeBatch: prior ? renderEvent(prior) : null,
-				newEvents: batch.digest ?? normalized!.text,
+				newEvents: audit ? "Pending evidence is included in the full thread-map audit." : batch.digest ?? normalized!.text,
+				independentThreadMap: audit,
 				...(normalized ? { chapters: normalized.chapters } : {}),
 				chapterState: CHAPTER_STATE_FIELDS,
 				gaps: batch.gaps, pendingMore: batch.more,
-				compactionReview: compactionReview ?? null,
+				compactionReview: compactionReview ? { kind: compactionReview.kind, triggerRef: compactionReview.triggerRef,
+					firstKeptEntryId: compactionReview.firstKeptEntryId, rawEntryCount: compactionReview.rawEntryCount,
+					rawEventCount: compactionReview.rawEventCount, omittedRawEventCount: 0 } : null,
 				unresolvedProcessRisks: [...unresolved],
 				question: question ?? null, evidencePagesRemaining: readPages, metadataSearchesRemaining: searches,
 			}) }];
 			let mustInspect = false;
 			const read = async (ref: string, offset: number, limit: number) => {
 				try { const result = await this.feed.lookup(ref, offset, limit); inspected.add(ref); return result; }
-				catch (error) { return { ref, error: String(error) }; }
+				catch (error) { if (compactionReview) throw error; return { ref, error: String(error) }; }
 			};
-			const maxCalls = question ? 5 : 2;
+			const maxCalls = compactionReview ? Infinity : question ? 5 : 2;
+			let auditRepairs = 0;
 			let deterministicFailure: Error | undefined;
 			for (let round = 0; round < maxCalls; round++) {
 				this.valid(batch.cut);
-				if (MOM_PROMPT.length + JSON.stringify(messages).length > CONTEXT_LIMIT) throw new Error("Mom context exceeds 90,000 characters. Last checkpoint retained; no silent truncation.");
 				const availableSearches = question && readPages === 0 ? 0 : searches;
-				const context = { systemPrompt: MOM_PROMPT, messages, tools: question
-					? momTools(readPages, availableSearches, mustInspect, searchRetryOnly, true)
+				const context = { systemPrompt: MOM_PROMPT, messages, tools: question || compactionReview
+					? momTools(readPages, availableSearches, mustInspect, searchRetryOnly, Boolean(question))
 					: momTools(0, 0, false, false) };
-				const options = { maxTokens: 6000, sessionId: this.cacheSessionId,
-					signal: AbortSignal.any([this.controller.signal, AbortSignal.timeout(120000), ...(signal ? [signal] : [])]), maxRetryDelayMs: 1000 };
-				const reply = model.api === "openai-codex-responses"
-					? await this.host.ctx.modelRegistry.complete(model as Model<"openai-codex-responses">, context, { ...options, reasoningEffort: "low", toolChoice: "required",
-						// The SDK defaults to parallel calls; this protocol accepts one operation.
-						onPayload: (payload) => { (payload as { parallel_tool_calls: boolean }).parallel_tool_calls = false; },
-					})
-					: await this.host.ctx.modelRegistry.streamSimple(model, context, { ...options, reasoning: "low" }).result();
-				attempt = sumUsage(attempt, { calls: 1, input: reply.usage.input, output: reply.usage.output,
-					cacheRead: reply.usage.cacheRead, cacheWrite: reply.usage.cacheWrite, nominalCost: reply.usage.cost.total, elapsedMs: 0 });
-				this.valid(batch.cut);
+				const reply = await complete(context);
 				const operations = reply.content.filter((b) => b.type === "toolCall");
-				const callsRemaining = maxCalls - round - 1;
-				// Provider/API failures are transient transport outcomes, not deterministic model-output defects.
-				if (reply.stopReason === "error") throw new Error(reply.errorMessage ?? "Mom provider failed.");
+				const callsRemaining = compactionReview ? 1 - auditRepairs : maxCalls - round - 1;
 				if (reply.stopReason !== "toolUse" || operations.length !== 1) {
 					const invalid = new Error(reply.errorMessage ?? `Mom returned ${reply.stopReason}; expected one operation.`);
 					if (question || callsRemaining === 0) { deterministicFailure = invalid; break; }
+					auditRepairs++;
 					messages.push(reply, { role: "user", content: `The proposal was not a single commit_graph operation. ${invalid.message} One repair call remains; return commit_graph only.`, timestamp: Date.now() });
 					continue;
 				}
@@ -348,6 +375,7 @@ export class Mom {
 							if (question) throw error;
 							deterministicFailure = error instanceof Error ? error : new Error(String(error)); break;
 						}
+						auditRepairs++;
 						messages.push(reply, { role: "toolResult", toolCallId: operation.id, toolName: operation.name, isError: true,
 							content: [{ type: "text", text: `Graph transaction rejected; last checkpoint unchanged. ${String(error)} Correct all reported defects and resubmit once. ${callsRemaining} model call remains in this background update.` }], timestamp: Date.now() });
 						continue;
@@ -397,12 +425,13 @@ export class Mom {
 					// Usage is its own compact stream; a failed write never invalidates an accepted map.
 					try { await this.host.store.append("usage", { usage: this.usage, error: null }); } catch { /* usage bookkeeping is best-effort */ }
 					this.failure = undefined;
+					if (compactionReview) this.pendingAudit = undefined;
 					this.advanceChapterBoundary(batch.events);
 					this.coveredRevision = batch.revision;
 					this.committed = batch.endIndex; this.staged = newer; this.queued = undefined;
 					return next.answer;
 				}
-				if (!question) {
+				if (!question && !compactionReview) {
 					const invalid = new Error(`Background Mom may call commit_graph only, not ${operation.name}.`);
 					if (callsRemaining === 0) { deterministicFailure = invalid; break; }
 					messages.push(reply, { role: "toolResult", toolCallId: operation.id, toolName: operation.name, isError: true,
@@ -412,6 +441,12 @@ export class Mom {
 				let result: unknown;
 				if (operation.name === "inspect_evidence" && readPages > 0 && !searchRetryOnly) {
 					if (typeof args.ref !== "string" || typeof args.offset !== "number" || typeof args.limit !== "number" || !Number.isSafeInteger(args.offset) || args.offset < 0 || !Number.isSafeInteger(args.limit) || args.limit < 1 || args.limit > 4000) throw new Error("Invalid evidence request.");
+					if (compactionReview) {
+						args.ref = this.feed.byRef.has(args.ref) ? args.ref : sourceSuggestion(args.ref, this.feed.byRef.keys()) ?? args.ref;
+						const key = JSON.stringify([args.ref, args.offset, args.limit]);
+						if (auditReads.has(key)) throw new Error("Thread-map reconciliation repeated an evidence page.");
+						auditReads.add(key);
+					}
 					readPages--;
 					const paired = this.feed.pairedSource(args.ref);
 					// Either entry point supplies the pair within one page's character budget.
@@ -443,6 +478,7 @@ export class Mom {
 			}
 			if (question) throw deterministicFailure ?? new Error("Mom did not produce an accepted graph transaction within five calls. Last checkpoint retained.");
 			const failureError = deterministicFailure ?? new Error("Mom did not produce an accepted background graph transaction within two calls.");
+			if (compactionReview) throw failureError;
 			if (batch.gaps.length) throw new Error(`Mom evidence remained unreadable; cursor retained and no skipped gap recorded. ${batch.gaps.join("; ")}`);
 			if (batch.retryGapId) {
 				// The existing durable gap remains authoritative. A failed refresh neither

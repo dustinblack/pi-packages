@@ -142,3 +142,6 @@ Scott wants the persistent widget kept, including when Mom is up to date. Only t
 
 ## Check installed shortcuts and terminal encoding before choosing a binding
 Scott already uses Alt+T outside Mom. Respect reported conflicts even when local Pi registrations do not reveal their owner. Check installed extensions and built-in keys, then exercise the actual terminal encoding before choosing a replacement; a supported key identifier does not imply its legacy byte sequence is recognized (2026-10-01).
+
+## Compaction audits should compare an independent thread map with Mom
+For Mom's compaction audit proposal, Scott wants the full thread-map workflow followed by comparison with the current Mom map. Do not substitute a capped sample prioritized by the existing map, or assume a separate occasional audit is necessary without measuring the actual cost. Reconstruct from session evidence first so the audit can find omissions and unsupported links in Mom itself (2026-10-01).

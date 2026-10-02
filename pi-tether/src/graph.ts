@@ -59,6 +59,11 @@ export function sourceSuggestion(mangled: string, known: Iterable<string>): stri
 	if (ref !== mangled && candidates.includes(ref)) return ref;
 	const prefix = candidates.filter(observed => observed.startsWith(ref));
 	if (prefix.length === 1) return prefix[0];
+	// A shortened entry:block reference still identifies the exact block, not its siblings.
+	if (ref.includes(":")) {
+		const suffix = candidates.filter(observed => observed.endsWith(`:${ref}`));
+		if (suffix.length) return suffix.length === 1 ? suffix[0] : undefined;
+	}
 	const base = ref.replace(/(:[^:]+):b\d+$/, "$1"), terminal = base.slice(base.lastIndexOf(":") + 1);
 	if (!terminal) return undefined;
 	const matches = candidates.filter(observed => {
