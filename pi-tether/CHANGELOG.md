@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4
+
+- Inject a post-compaction continuity anchor into the first lead request after each successful compaction. The anchor is rendered by code from Mom's saved map — never a model call — and is visible in the transcript: the mother-thread purpose verbatim with its source citation, at most five active standing rules verbatim under their owning endeavors, the current endeavor with a one-line intent, parked work, and the recent recorded side effects (commits and test runs with exit statuses, oldest first). It is descriptive orientation, never new direction.
+- Queue the anchor durably before the compaction audit starts, so a crashed or failing audit never loses it; a failed audit still anchors from the last accepted map, and a compaction with no accepted map skips the anchor durably with a recorded reason instead of injecting. Delivery is deduplicated across reloads: a crash can lose an anchor, but never repeat one.
+- Record every injection into the lead conversation — continuity anchors and existing process advisories — in Mom's append-only sidecar, surface the anchor state in the widget status line (`anchor queued after compact` / `anchored after compact HH:MM`), and list all injections with their full rendered text or skip reasons through the new `/mom log` command. Nothing enters the lead's context that the user cannot see in one read.
+
 ## 0.1.3
 
 - Replace the map-prioritized 36,000-character compaction sample with a full independent thread-map reconstruction followed by evidence-backed comparison with Mom's saved graph. Process every normalized history section without the incremental context guard, preserve source chronology across lead and worker streams, permit paginated source inspection, and retain saved state when an audit fails.

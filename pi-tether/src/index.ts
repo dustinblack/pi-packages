@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { SettingsManager, type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
+import { ANCHOR, clockTime, collectSideEffects, renderAnchor } from "./anchor.ts";
 import { SystemOneAdvisor } from "./advisor.ts";
 import { DEFAULT_BOOTSTRAP_POLICY } from "./bootstrap.ts";
 import { LeadCadence } from "./cadence.ts";
@@ -88,7 +89,9 @@ export default function piTether(pi: ExtensionAPI) {
 		const freshness = m?.busy ? "updating" : blocked ? "update stopped"
 			: !complete ? `catching up${progress ? ` · ${progress.percent}% read` : ""}` : "up to date";
 		const checked = m?.checkpoint ? `last saved ${formatElapsed(Date.now() - m.checkpoint.at)} ago` : "nothing saved yet";
-		const status = `${m?.enabled === false ? "paused" : freshness} · ${checked}${ctx && !ctx.isIdle() ? " · agent working" : ""}`;
+		const anchor = m?.pendingAnchor ? "anchor queued after compact"
+			: m?.lastAnchor ? `anchored after compact ${clockTime(m.lastAnchor.at)}` : undefined;
+		const status = `${m?.enabled === false ? "paused" : freshness} · ${checked}${anchor ? ` · ${anchor}` : ""}${ctx && !ctx.isIdle() ? " · agent working" : ""}`;
 		const saved = savedWork(complete);
 		return { status, complete, work: saved?.work, summary: saved?.summary ?? "", note: complete ? m?.checkpoint?.note?.text : undefined, error, coverage: progress };
 	}
@@ -131,6 +134,32 @@ export default function piTether(pi: ExtensionAPI) {
 			if (token === epoch && m === mom) { m.error = `Mom could not deliver her advisory: ${String(error)}`; sync(); }
 		});
 		await noticePersistence;
+	}
+	/** The post-compaction continuity anchor rides the next lead request; it never waits for or gates on the audit. */
+	async function deliverAnchor() {
+		const m = mom, pending = m?.pendingAnchor, destination = store;
+		if (!m || !pending || !ctx || !m.enabled || openingError || !destination) return;
+		const token = epoch;
+		try {
+			if (!m.checkpoint) {
+				m.pendingAnchor = undefined;
+				await destination.append("injection", { kind: "anchor", action: "skipped", key: pending.key, compaction: pending.compaction, reason: "Mom had no saved map to anchor from", parent: ctx.sessionManager.getLeafId() });
+				sync();
+				return;
+			}
+			const effects = await collectSideEffects(m.feed);
+			const content = renderAnchor(m.checkpoint, effects, formatElapsed(Date.now() - m.checkpoint.at));
+			// Reserve durably before publishing. A crash can lose the anchor, but cannot repeat it.
+			const record = await destination.append("injection", { kind: "anchor", action: "delivered", key: pending.key, compaction: pending.compaction, content, parent: ctx.sessionManager.getLeafId() });
+			if (token !== epoch || m !== mom) return;
+			m.pendingAnchor = undefined;
+			m.lastAnchor = { key: pending.key, compaction: pending.compaction, at: record.at };
+			pi.sendMessage({ customType: ANCHOR, content, display: true, details: { key: pending.key } }, { triggerTurn: false });
+			sync();
+		} catch (error) {
+			m.error = `Mom could not deliver her continuity anchor: ${String(error)}`;
+			sync();
+		}
 	}
 	async function run(question?: string, signal?: AbortSignal, refresh = false, compactionReview?: ReturnType<typeof finishCompactionReview>): Promise<string | undefined> {
 		const requestedEpoch = epoch;
@@ -270,12 +299,25 @@ export default function piTether(pi: ExtensionAPI) {
 		if (!pending || !mom?.enabled || openingError) return;
 		if (timer) clearTimeout(timer);
 		timer = undefined; timerAt = undefined; dirty = true; revision++; sync();
+		// Queue the continuity anchor before the audit starts, so a crashed or failing audit never loses it.
+		const m = mom, destination = store, anchorKey = `${context.sessionManager.getSessionId()}:${event.compactionEntry.id}`;
+		if (m && destination) {
+			try {
+				const record = await destination.append("injection", { kind: "anchor", action: "pending", key: anchorKey, compaction: anchorKey, parent: context.sessionManager.getLeafId() });
+				m.pendingAnchor = { key: anchorKey, compaction: anchorKey, at: record.at };
+				sync();
+			} catch (error) {
+				m.error = `Mom could not record her post-compaction anchor: ${String(error)}`;
+				sync();
+			}
+		}
 		try { await run(undefined, undefined, false, finishCompactionReview(pending, event)); }
 		catch { sync(); }
 	});
 	pi.on("before_agent_start", async (event) => {
 		const token = epoch;
 		await ready.catch(() => undefined);
+		if (token === epoch) await deliverAnchor();
 		if (token === epoch) await deliver(true);
 		if (token === epoch && mom?.enabled) event.systemPromptOptions.sections[LEAD_BEHAVIOR_SECTION_KEY] = LEAD_BEHAVIOR_SECTION;
 		else delete event.systemPromptOptions.sections[LEAD_BEHAVIOR_SECTION_KEY];
@@ -361,7 +403,7 @@ export default function piTether(pi: ExtensionAPI) {
 			}
 		},
 	});
-	pi.registerCommand("mom", { description: "Talk to Mom (Alt+J) · overview · status · map|graph [endeavor] [depth] · detail · ask <question> · correct <text> · source <id> [offset] · refresh · pause · resume",
+	pi.registerCommand("mom", { description: "Talk to Mom (Alt+J) · overview · status · map|graph [endeavor] [depth] · detail · ask <question> · correct <text> · source <id> [offset] · log · refresh · pause · resume",
 		handler: async (args, context) => {
 			const [command, ...parts] = args.trim().split(/\s+/);
 			const text = parts.join(" ");
@@ -400,9 +442,29 @@ export default function piTether(pi: ExtensionAPI) {
 					const source = await mom.feed.lookup(parts[0], Number(parts[1] ?? 0));
 					context.ui.notify(`Original recorded evidence, not new work:\n${JSON.stringify(source, null, 2)}`, "info"); return;
 				}
+				if (command === "log") {
+					await ready;
+					if (openingError || !mom || !store) throw new Error(openingError ?? "Mom session is unavailable.");
+					const branch = new Set(context.sessionManager.getBranch().map(e => e.id));
+					const lines = (await store.load())
+						.filter(r => (r.type === "injection" || r.type === "notice")
+							&& (r.data.parent === null || (typeof r.data.parent === "string" && branch.has(r.data.parent))))
+						.map(r => {
+							const time = clockTime(r.at);
+							if (r.type === "notice") return `${time} notice (${r.data.note.riskClass}:${r.data.note.target}) — delivered on the next request: ${r.data.note.text}`;
+							const d = r.data;
+							if (d.action === "delivered") return `${time} anchor after compact ${d.compaction} — delivered:\n${d.content}`;
+							if (d.action === "pending") return `${time} anchor after compact ${d.compaction} — queued (not yet delivered)`;
+							return `${time} anchor after compact ${d.compaction} — skipped: ${d.reason}`;
+						});
+					context.ui.notify(lines.length
+						? `Mom injections into the lead conversation (oldest first, from her sidecar):\n${lines.join("\n")}`
+						: "Mom has not injected anything into the lead conversation yet.", "info");
+					return;
+				}
 				if (command === "refresh") { await run(undefined, undefined, true); return; }
 				if (command === "ask" && text) { const answer = await run(text); context.ui.notify(answer ?? "Mom returned no answer.", "info"); return; }
-				throw new Error("Use /mom, overview, status, map, graph, detail, ask, correct, source, refresh, pause, or resume.");
+				throw new Error("Use /mom, overview, status, map, graph, detail, ask, correct, source, log, refresh, pause, or resume.");
 			} catch (error) {
 				readError = String(error);
 				context.ui.notify("Mom couldn't complete that request. Your last saved view is unchanged. Use /mom detail for the reason and /mom for your place in the work.", "error");

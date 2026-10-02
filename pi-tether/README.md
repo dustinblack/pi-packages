@@ -32,6 +32,8 @@ Mom implements the thread-map workflow internally; it does not launch the extern
 
 The independent reconstruction is then compared with Mom's current map. The comparison checks missing work or constraints, forgotten decisions, incorrect completion states, duplicate work, and unsupported cross-links. Neither account automatically wins: original evidence resolves disagreements. Accepted corrections use one atomic graph transaction, preserving stable node identities and historical records. Compaction summaries are claims, never replacement evidence.
 
+After each successful compaction, Mom also injects a **continuity anchor** into the first lead request after it. The anchor is rendered by code from her saved map — never a model call — and is visible in the transcript. It states the mother-thread purpose verbatim with its source citation, the active standing rules (at most five, verbatim), the current endeavor with a one-line intent, parked work, and the recent recorded side effects (commits and test runs with their exit statuses). It is descriptive orientation, never new direction; Mom never edits files, starts turns, or interrupts running tools through it. If a compaction audit fails, the anchor still injects from the last accepted map; while Mom has no accepted map, the anchor is skipped durably with a recorded reason. Every injection — anchors and process advisories — is recorded in her sidecar, surfaced in the widget status line (`anchor queued after compact` / `anchored after compact HH:MM`), and listed with full text by `/mom log`.
+
 There is no 36,000-character sample and no preference for sources Mom already cites. Large normalized histories are paginated into complete sections for reconstruction; no section is dropped. Pages respect chapter and actor boundaries, retain record types when oversized records span pages, and carry earlier independent findings within the same chapter. This audit can take multiple model calls, unlike routine one-proposal updates. Unreadable evidence, invalid reconstruction, or context overflow fails visibly and retains the saved map and coverage. Within the running session, a deferred or failed audit stays pending for the next update or `/mom refresh`. Ordinary scheduling, cached reads, and quiet completion behavior are unchanged.
 
 ### Optional pre-wake Kev/JEV screen
@@ -67,6 +69,7 @@ The default threshold is `0.25`, calibrated on the preserved todo-008 evidence: 
 | `/mom source <id> [offset]` | Read original evidence. Use the bare source ID, without `src:` or brackets. |
 | `/mom ask <question>` | Ask Mom to reason about recorded history with bounded source lookup. |
 | `/mom correct <text>` | Record your correction without starting a lead turn. |
+| `/mom log` | List every message Mom injected into the lead conversation — post-compaction continuity anchors and process advisories — oldest first, with their full rendered text or skip reasons. |
 | `/mom refresh` | Read pending activity, or explicitly retry the oldest skipped evidence gap. Updates the persistent widget without printing a completion report. No model call when already caught up and no gap exists. |
 | `/mom pause` | Stop background inference; keep the saved view. |
 | `/mom resume` | Resume reading pending activity. |

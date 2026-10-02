@@ -73,7 +73,9 @@ export function isCheckpoint(x: unknown): x is Checkpoint { return Boolean(check
 
 export interface CursorFailure { key: string; from: Cut; through: Cut; firstRef: string; lastRef: string; count: number; error: string; failures: number }
 export interface SkippedGap extends CursorFailure { id: string }
-export interface MomState { checkpoint?: Checkpoint; checkpointId?: string; coverageCut?: Cut; enabled: boolean; unresolvedNotices: string[]; usage?: Usage; error?: string; failure?: CursorFailure; gaps: SkippedGap[]; screen?: AdvisorScreenRecord; cutover?: boolean }
+/** One post-compaction anchor queued for (or delivered/skipped on) the next lead request. */
+export interface AnchorState { key: string; compaction: string; at: number }
+export interface MomState { checkpoint?: Checkpoint; checkpointId?: string; coverageCut?: Cut; enabled: boolean; unresolvedNotices: string[]; usage?: Usage; error?: string; failure?: CursorFailure; gaps: SkippedGap[]; screen?: AdvisorScreenRecord; cutover?: boolean; pendingAnchor?: AnchorState; lastAnchor?: AnchorState }
 
 const failureLike = (x: unknown): x is CursorFailure => record(x) && typeof x.key === "string" && cutLike(x.from) && cutLike(x.through) &&
 	typeof x.firstRef === "string" && typeof x.lastRef === "string" && integer(x.count) && x.count > 0 &&
@@ -112,6 +114,22 @@ export async function loadState(store: MomStore, manager: SessionReader): Promis
 			}
 			state.usage = item.data.usage;
 			state.error = typeof item.data.error === "string" ? item.data.error : undefined;
+			continue;
+		}
+		if (item.type === "injection") {
+			const d = item.data;
+			if (d.kind !== "anchor" || !["pending", "delivered", "skipped"].includes(d.action) ||
+				typeof d.key !== "string" || !d.key || typeof d.compaction !== "string" || !d.compaction ||
+				(d.parent !== null && typeof d.parent !== "string") ||
+				(d.action === "delivered" && typeof d.content !== "string") ||
+				(d.action === "skipped" && typeof d.reason !== "string")) throw new Error("Invalid Mom injection state in her sidecar.");
+			if (d.parent !== null && !branch.has(d.parent)) continue;
+			if (d.action === "pending") state.pendingAnchor = { key: d.key, compaction: d.compaction, at: item.at };
+			else {
+				// A delivered or skipped anchor also consumes every older queued anchor.
+				if (state.pendingAnchor && item.at >= state.pendingAnchor.at) delete state.pendingAnchor;
+				if (d.action === "delivered") state.lastAnchor = { key: d.key, compaction: d.compaction, at: item.at };
+			}
 			continue;
 		}
 		if (Object.keys(item.data).some(key => !mapKeys.has(key)) || !Object.keys(item.data).length) throw new Error("Invalid Mom map state in her sidecar.");

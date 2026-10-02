@@ -2,7 +2,7 @@ import { appendFile, readFile, truncate } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 
 /** The only durable Mom record families. Map records also own cursor/failure/control state. */
-export type SidecarType = "map" | "notice" | "usage";
+export type SidecarType = "map" | "notice" | "usage" | "injection";
 /** `control` is an input command translated to a map patch; it is never persisted as a record type. */
 export type SidecarWriteType = SidecarType | "control";
 export interface SidecarRecord { id: string; sessionId: string; type: SidecarType; at: number; data: Record<string, any> }
@@ -17,7 +17,7 @@ export interface MomStore {
 // Pi's session lister scans every *.jsonl file in the session directory; the sidecar must not match.
 export const sidecarFile = (sessionFile: string) => sessionFile.replace(/\.jsonl$/, "") + ".mom";
 
-const types: readonly SidecarType[] = ["map", "notice", "usage"];
+const types: readonly SidecarType[] = ["map", "notice", "usage", "injection"];
 const recordKeys = ["at", "data", "id", "sessionId", "type"];
 
 export interface SidecarIO {

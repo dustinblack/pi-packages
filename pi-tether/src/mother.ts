@@ -3,7 +3,7 @@ import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { Context, Message, Model } from "@earendil-works/pi-ai";
 import type { MomStore } from "./sidecar.ts";
 import type { AdvisorScreenRecord, SessionAdvisor } from "./advisor.ts";
-import { branchCheckpoints, emptyUsage, graphChange, loadState, noticeKey, sumUsage, type Checkpoint, type CursorFailure, type SkippedGap, type Usage } from "./checkpoint.ts";
+import { branchCheckpoints, emptyUsage, graphChange, loadState, noticeKey, sumUsage, type AnchorState, type Checkpoint, type CursorFailure, type SkippedGap, type Usage } from "./checkpoint.ts";
 import { LiveFeed, renderEvent, renderEvents, suffix, type Cut, type FeedEvent } from "./feed.ts";
 import type { CompactionReview } from "./compaction.ts";
 import { reconstructThreadMap } from "./audit.ts";
@@ -86,6 +86,9 @@ export class Mom {
 	private checkpoints: { id: string; data: Checkpoint }[] = [];
 	failure?: CursorFailure;
 	gaps: SkippedGap[] = [];
+	/** A compaction anchor queued for the next lead request; restored from her sidecar, then consumed by delivery. */
+	pendingAnchor?: AnchorState;
+	lastAnchor?: AnchorState;
 	private staged?: StagedBatch;
 	private queued?: StagedBatch;
 	private pendingAudit?: CompactionReview;
@@ -114,6 +117,8 @@ export class Mom {
 		this.screen = state.screen;
 		this.error = state.error;
 		this.failure = state.failure; this.gaps = state.gaps;
+		this.pendingAnchor = state.pendingAnchor;
+		this.lastAnchor = state.lastAnchor;
 		await this.feed.restore(state.failure?.through ?? state.coverageCut ?? this.checkpoint?.cut);
 		if (this.checkpoint) for (const item of [...this.checkpoint.graph.nodes, ...this.checkpoint.graph.edges]) for (const ref of item.sources) {
 			if (!this.feed.byRef.has(ref)) throw new Error(`Checkpoint cites an unknown or unobserved source: ${ref}`);
