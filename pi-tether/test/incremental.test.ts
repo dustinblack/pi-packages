@@ -230,7 +230,7 @@ test("a contradicted compaction summary cannot ground a record; the cursor moves
 	} finally { mom.close(); await h.close(); }
 });
 
-test("a twice-failed compaction audit retires; later updates resume as regular raw-grounded ones", { timeout: 30000 }, async () => {
+test("a repeated summary-only compaction claim is dropped; later updates stay raw-grounded", { timeout: 30000 }, async () => {
 	const h = await setup();
 	let mom = h.createMom();
 	let summaryRef = "";
@@ -241,7 +241,7 @@ test("a twice-failed compaction audit retires; later updates resume as regular r
 		// submission and its one repair round.
 		if (body.chapterIds) return { tool: { name: "record_thread_map", arguments: { states: body.chapterIds.map((chapter: string) => ({ chapter,
 			goal: [{ text: "Drop KEEP.txt per the compaction summary.", sources: [summaryRef] }],
-			decisions: [], artifacts: [], deadEnds: [], openQuestions: [], discrepancies: [] })) } } };
+			decisions: [], artifacts: [], deadEnds: [], openQuestions: [] })) } } };
 		return replacement(request);
 	});
 	try {
@@ -259,22 +259,21 @@ test("a twice-failed compaction audit retires; later updates resume as regular r
 		summaryRef = review.triggerRef;
 
 		const audits = () => h.requests().filter((request) => input(request).chapterIds).length;
-		// Attempt one: the compaction-triggered audit rejects after its one repair round.
-		await assert.rejects(() => mom.update(undefined, undefined, 0, false, review), /Thread-map audit rejected/);
+		// The audit gets one deterministic repair, then safely drops the unsupported claim
+		// instead of blocking Mom's cursor or turning provider prose into evidence.
+		await mom.update(undefined, undefined, 0, false, review);
 		assert.equal(audits(), 2, "one audit invocation spends its reconstruction and repair");
-		// Attempt two: the sticky retry repeats the audit once across updates.
-		await assert.rejects(() => mom.update(), /Thread-map audit rejected/);
-		assert.equal(audits(), 4, "the failed audit retries once across updates");
+		assert.equal(mom.error, undefined, "unsupported summary prose does not brick the audit");
+		assert.equal(mom.failure, undefined, "an audit rejection never becomes a skippable incremental range");
+		assert.notDeepEqual(mom.checkpoint!.cut, cutBefore, "the audit advances coverage after dropping unsupported prose");
+		assert.notEqual(mom.checkpointId, idBefore, "a new map snapshot is published");
 
-		// The second failure retires the audit. The next update is a regular incremental one
-		// over raw evidence; it accepts a cited transaction and heals the session.
+		// Later evidence remains a regular raw-grounded update, never another independent audit.
 		await h.runtime.session.prompt("A later exchange resumes raw updates.");
 		await mom.update();
-		assert.equal(audits(), 4, "no third audit invocation is scheduled");
-		assert.equal(mom.error, undefined, "a regular raw-grounded update clears the latched error");
-		assert.equal(mom.failure, undefined, "an audit rejection never becomes a skippable incremental range");
+		assert.equal(audits(), 2, "no second audit invocation is scheduled");
+		assert.equal(mom.error, undefined, "the regular raw-grounded update remains healthy");
 		assert.notDeepEqual(mom.checkpoint!.cut, cutBefore, "the accepted raw-grounded transaction advances the cursor");
-		assert.notEqual(mom.checkpointId, idBefore, "a new map snapshot is published");
 		assert.deepEqual(h.errors, []); assert.deepEqual(h.api.errors, []);
 	} finally { mom.close(); await h.close(); }
 });

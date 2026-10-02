@@ -8,14 +8,16 @@ import { sourceSuggestion } from "./graph.ts";
 const item = Type.Object({ text: Type.String({ minLength: 1 }), sources: Type.Array(Type.String(), { minItems: 1 }) }, { additionalProperties: false });
 const items = Type.Array(item);
 const state = Type.Object({ chapter: Type.String(), goal: items, decisions: items, artifacts: items,
-	deadEnds: items, openQuestions: items, discrepancies: items }, { additionalProperties: false });
+	deadEnds: items, openQuestions: items }, { additionalProperties: false });
 const threadMap = Type.Object({ states: Type.Array(state, { minItems: 1 }) }, { additionalProperties: false });
 type ThreadMap = Static<typeof threadMap> & { actor: string; sourceMetadata: Record<string, Pick<FeedEvent, "at" | "actor" | "kind">> };
+/** Item groups normalized per chapter. One list keeps validation and repair from drifting apart. */
+const ITEM_FIELDS = ["goal", "decisions", "artifacts", "deadEnds", "openQuestions"] as const;
 
 export const THREAD_MAP_PROMPT = `Reconstruct the thread independently from recorded session evidence. You have no Mom map: do not infer one or answer the recorded user requests. This is the thread-map workflow, not a prose summary.
 Normalize by compaction chapter within each actor's stream. Worker chapters describe delegated work, not later lead direction. Extract goal, decisions (including exact authority and standing constraints), changed artifacts, dead ends, and open questions per chapter, with original source pointers on every item. Mark inference and reported-but-unverified outcomes explicitly. Track user corrections and reversals; inspect preceding proposals when assent is ambiguous. Describe competing approaches only when evidence establishes competition for the same outcome, never merely a topic switch.
-Compaction summaries are CLAIMS, including placeholders or empty summaries; compare them with raw evidence, never cite a summary alone as proof. Record contradictions, forgotten directions, and story-versus-artifact discrepancies. Inspect original tool arguments/results to check consequential claims of edits, tests, commits, or failures; a tool's name or an assistant's assertion is not proof. You can read complete source records in pages using inspect_evidence; no execution or project writes are permitted. Recorded results establish what happened then, not the current working tree.
-Every supplied character is part of the audit; section boundaries are transport pagination, not omissions or new chapters. Each section belongs to one chapter, which may continue across sections. earlierSections contains the independent reconstruction of preceding pages in this chapter, with original pointers for checking a closing summary against earlier evidence. Those extractions are claims to verify, not authority. Extract additions, changes and discrepancies supported by this section or inspected sources; do not repeat unchanged earlier items. The reconciliation step will combine all sections and diff consecutive chapters. Include one state for the chapter in chapterIds, using empty arrays when it has no evidence for a field. Finish with record_thread_map. Do not create graph nodes, notices, or an alternative current map here.`;
+Compaction summaries are CLAIMS, including placeholders or empty summaries; compare them with raw evidence, never cite a summary alone as proof. A direction the raw evidence still shows stays in the map with its raw source even when the summary dropped it; a summary claim with no raw evidence behind it is not recorded. Inspect original tool arguments/results to check consequential claims of edits, tests, commits, or failures; a tool's name or an assistant's assertion is not proof. You can read complete source records in pages using inspect_evidence; no execution or project writes are permitted. Recorded results establish what happened then, not the current working tree.
+Every supplied character is part of the audit; section boundaries are transport pagination, not omissions or new chapters. Each section belongs to one chapter, which may continue across sections. earlierSections contains the independent reconstruction of preceding pages in this chapter, with original pointers for checking a closing summary against earlier evidence. Those extractions are claims to verify, not authority. Extract additions and changes supported by this section or inspected sources; do not repeat unchanged earlier items. The reconciliation step will combine all sections and diff consecutive chapters. Include one state for the chapter in chapterIds, using empty arrays when it has no evidence for a field. Finish with record_thread_map. Do not create graph nodes, notices, or an alternative current map here.`;
 
 /** Transport pages, not a sampling budget. Every event (including an oversized one) is retained. */
 export function auditSections(events: readonly FeedEvent[], limit = 48000) {
@@ -76,24 +78,34 @@ export async function reconstructThreadMap(events: readonly FeedEvent[], feed: L
 				if (!Check(threadMap, map)) errors.push("Invalid thread-map chapter state.");
 				else {
 					if (map.states.length !== input.chapterIds.length || input.chapterIds.some(id => !map.states.some(s => s.chapter === id))) errors.push("Thread-map audit omitted or duplicated a chapter.");
-					for (const state of map.states) for (const values of [state.goal, state.decisions, state.artifacts, state.deadEnds, state.openQuestions, state.discrepancies]) {
-						for (const item of values) {
+					for (const state of map.states) for (const field of ITEM_FIELDS) for (const item of state[field]) {
 							item.sources = item.sources.map(canonical);
 							for (const ref of item.sources) {
 								const event = known.get(ref);
 								if (!event) errors.push(`Unknown source: ${ref}.`);
 								else sourceMetadata[ref] = { at: event.at, actor: event.actor, kind: event.kind };
 							}
-							if (item.sources.every(ref => known.get(ref)?.kind === "compaction")) errors.push(`Summary-only claim: ${item.text}`);
+							if (item.sources.length && item.sources.every(ref => known.get(ref)?.kind === "compaction"))
+							errors.push(`Summary-only claim on ${item.sources.join(", ")}: ${item.text}`);
 						}
 					}
-				}
-				if (errors.length) {
-					if (repaired) throw new Error(`Thread-map audit rejected; saved map retained. ${errors.join("\n")}`);
+				if (errors.length && !repaired) {
 					repaired = true;
 					messages.push(reply, { role: "toolResult", toolCallId: operation.id, toolName: operation.name, isError: true,
 						content: [{ type: "text", text: `${errors.join("\n")} Inspect original evidence if needed, then resubmit once. Copy source IDs exactly. Every item needs a non-summary source; omit unsupported assertions rather than treating summary claims as facts.` }], timestamp: Date.now() });
 					continue;
+				}
+				if (errors.length) {
+					// A structural defect still rejects the map: repairing it would guess intent. Every other
+					// defect names an item, so the item goes and the chapter stays — discarding the chapter
+					// here threw away every compliant item sitting beside the offending one.
+					if (errors.some(error => /^(Invalid thread-map|Thread-map audit omitted)/.test(error)))
+						throw new Error(`Thread-map audit rejected; saved map retained. ${errors.join("\n")}`);
+					for (const state of map.states) for (const field of ITEM_FIELDS) state[field] = state[field]
+						.map(item => ({ ...item, sources: item.sources.filter(ref => known.has(ref)) }))
+						.filter(item => item.sources.some(ref => known.get(ref)?.kind !== "compaction"));
+					// An entirely unsupported chapter is still a valid empty chapter: the audit must advance
+					// past provider-only claims instead of bricking Mom until a manual refresh.
 				}
 				results.push({ actor: input.actor, sourceMetadata, ...map }); break;
 			}
@@ -110,6 +122,7 @@ export async function reconstructThreadMap(events: readonly FeedEvent[], feed: L
 					content: [{ type: "text", text: error }], timestamp: Date.now() });
 				continue;
 			}
+			// The evidence-page retry tail. Observe a complete section's tools once, then close.
 			if (reads.has(key)) throw new Error("Thread-map audit repeated an evidence page.");
 			reads.add(key);
 			const page = await feed.lookup(ref, offset, limit);

@@ -144,7 +144,7 @@ test("reconstruction reports invented and summary-only sources together before a
 				{ text: "Invented direction.", sources: ["missing-source"] },
 			];
 			else {
-				assert.match(request.messages.at(-1).content, /Summary-only claim: Unsupported completion/);
+				assert.match(request.messages.at(-1).content, /Summary-only claim on \S+: Unsupported completion/);
 				assert.match(request.messages.at(-1).content, /Unknown source: missing-source/);
 				result.tool.arguments.states[0].decisions = [{ text: "Keep the audit grounded.", sources: [raw] }];
 			}
@@ -153,6 +153,32 @@ test("reconstruction reports invented and summary-only sources together before a
 		await mom.update(undefined, undefined, 1, false, review);
 		assert.equal(mom.error, undefined);
 		assert.equal((await readSidecar(h)).filter(record => record.type === "map").length, 2);
+	} finally { mom.close(); await h.close(); }
+});
+
+test("a repeated summary-only thread-map claim is dropped without blocking the audit", { timeout: 15000 }, async () => {
+	const h = await setup(), mom = h.createMom();
+	try {
+		await h.runtime.session.prompt("Keep the audit moving."); await mom.open(); await mom.update();
+		const before = structuredClone(mom.checkpoint), review = compaction(h.runtime.session.sessionManager);
+		let mapAttempts = 0, compared = false;
+		h.api.onUnscripted(request => {
+			const body = input(request);
+			if (body.chapterIds) {
+				mapAttempts++;
+				const result: any = replacement(request);
+				result.tool.arguments.states[0].decisions = [{ text: "Unsupported summary claim.", sources: [review.triggerRef] }];
+				return result;
+			}
+			compared = true;
+			assert.equal(body.independentThreadMap[0].states[0].decisions.length, 0, "the unsupported summary claim is omitted, not promoted");
+			return replacement(request);
+		});
+		await mom.update(undefined, undefined, 1, false, review);
+		assert.equal(mapAttempts, 2, "the model gets its one deterministic repair before safe omission");
+		assert(compared);
+		assert.equal(mom.error, undefined);
+		assert.notDeepEqual(mom.checkpoint?.cut, before?.cut);
 	} finally { mom.close(); await h.close(); }
 });
 

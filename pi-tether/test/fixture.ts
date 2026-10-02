@@ -21,7 +21,7 @@ export const isWindowCheck = (request: any) => {
 export function replacement(request: any, extra: Record<string, unknown> = {}) {
 	const body = input(request);
 	if (body.chapterIds) return { tool: { name: "record_thread_map", arguments: { states: body.chapterIds.map((chapter: string) => ({ chapter,
-		goal: [], decisions: [], artifacts: [], deadEnds: [], openQuestions: [], discrepancies: [] })) } } };
+		goal: [], decisions: [], artifacts: [], deadEnds: [], openQuestions: [] })) } } };
 	const ref = /\[src:([^\]]+)\]/.exec(body.newEvents)?.[1] ?? body.original.ref;
 	const previous = body.graph.nodes?.find((node: any) => node.id === "main"), prior = previous?.sources ?? [];
 	return { tool: { name: "commit_graph", arguments: { focus: "main",
