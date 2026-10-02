@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { visibleWidth } from "@earendil-works/pi-tui";
 import { coverageProgress, coverageSentence } from "../src/presentation.ts";
 import { widgetLines } from "../src/panel.ts";
 
@@ -22,7 +23,7 @@ test("persistent widget shows short node names and states, not narrative or rule
 	assert.match(lines, /~Scout NOTES\.md~ · done/);
 	assert.doesNotMatch(lines, /Found two proposals/, "finished work shows as done without its detail");
 	assert.match(lines, /Decide wording · parked/);
-	assert.match(lines, /Alt\+J or \/mom/);
+	assert.match(lines, /Alt\+J focus mom · \/mom/);
 });
 
 test("catch-up widget suppresses the you-are-here marker until coverage is complete", () => {
@@ -40,7 +41,8 @@ test("catch-up widget suppresses the you-are-here marker until coverage is compl
 test("catch-up widget shows the durable evidence percentage", () => {
 	const theme: any = { fg: (_color: string, text: string) => text, bold: (text: string) => text };
 	const line = widgetLines({ status: "catching up · 43% read", summary: "", coverage: { consumed: 562, total: 1307, percent: 43 } }, theme, 100).join("\n");
-	assert.match(line, /Mom · Alt\+J or \/mom · catching up · 43% read/);
+	assert.match(line, /╭─ Mom · catching up · 43% read/);
+	assert.match(line, /Alt\+J focus mom · \/mom/);
 	assert.doesNotMatch(line, /562 of 1307/); // counts belong to the read text, not the one-line widget
 });
 
@@ -63,7 +65,13 @@ test("the catching-up sentence reports durable coverage and disappears once comp
 
 test("cached widget shows freshness and one advisory without source-ID clutter", () => {
 	const theme: any = { fg: (_color: string, text: string) => text, bold: (text: string) => text, strikethrough: (text: string) => text };
-	assert.deepEqual(widgetLines({ status: "caught up", summary: "# Purpose\nPreserve the return path. [src:session:entry]", note: "Keep user files untouched." }, theme, 100), [
-		"", "Mom · Alt+J or /mom · caught up", "Preserve the return path.", "↳ Keep user files untouched.",
+	const lines = widgetLines({ status: "caught up", summary: "# Purpose\nPreserve the return path. [src:session:entry]", note: "Keep user files untouched." }, theme, 100);
+	// Agents-panel frame: header in the top border, framed body rows, legend in the bottom border.
+	assert.deepEqual(lines, [
+		`╭─ Mom · caught up ${"─".repeat(80)}╮`,
+		`│ Preserve the return path.${" ".repeat(71)} │`,
+		`│ ↳ Keep user files untouched.${" ".repeat(68)} │`,
+		`╰─ Alt+J focus mom · /mom ${"─".repeat(73)}╯`,
 	]);
+	assert.ok(lines.every(l => visibleWidth(l) === 100), "every framed line spans the full widget width");
 });

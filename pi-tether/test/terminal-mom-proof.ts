@@ -43,13 +43,14 @@ try {
 	await expect(/LEAD-ANSWER-UNCHANGED/);
 	text("/mom refresh"); key("Enter");
 	await expect(/Main purpose.*you are here/);
-	const refreshed = await expect(/Mom · Alt\+J or \/mom · up to date/);
+	const refreshed = await expect(/╭─ Mom · up to date/);
+	assert.match(refreshed, /╰─ Alt\+J focus mom · \/mom/, "the framed widget carries its focus hint in the bottom border");
 	assert.doesNotMatch(refreshed, /Mom \(session\):|Mother thread:/, "refresh must not dump a completion report");
 	saveScreen("persistent-widget");
 	text("/mom"); key("Enter");
 	await expect(/Questions and answers stay out of the lead conversation/);
 	key("Escape");
-	await expect(/Mom · Alt\+J or \/mom · up to date/);
+	await expect(/╭─ Mom · up to date/);
 	text("LEAD-DRAFT-014");
 	const session = join(box.root, "parents", readdirSync(join(box.root, "parents")).find(name => name.endsWith(".jsonl"))!);
 	const before = readFileSync(session, "utf8");
@@ -59,7 +60,7 @@ try {
 	assert.match(momScreen, /Main purpose/);
 	saveScreen("mom-conversation");
 	key("M-j"); const leadScreen = await expect(/LEAD-DRAFT-014/);
-	assert.match(leadScreen, /Mom · Alt\+J or \/mom · up to date/);
+	assert.match(leadScreen, /╭─ Mom · up to date/);
 	key("M-j"); await expect(/From the saved map: Ship the dedicated Mom view is the current work/);
 	key("Escape"); await expect(/LEAD-DRAFT-014/);
 	tmux("resize-window", "-t", "pi", "-x", "60", "-y", "24");

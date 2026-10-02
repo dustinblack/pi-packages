@@ -135,15 +135,44 @@ function hierarchy(work: WorkView, theme: Theme, width: number, expanded: boolea
 	return lines;
 }
 
-/** Cached hierarchy in the same tree, color and header style as pi-omp's todo widget. */
+/** Rounded frame with the header embedded in the top border — the Agents panel's construction (pi-delegate src/render.ts). */
+function frame(header: string, body: string[], theme: Theme, width: number): string[] {
+	if (width < 6) return [header, ...body].map(line => truncateToWidth(line, Math.max(0, width), ""));
+	const border = (text: string) => theme.fg("borderMuted", text);
+	const inner = width - 4;
+	const label = truncateToWidth(` ${header} `, width - 4, "…");
+	const rows = [border("╭─") + label + border("─".repeat(Math.max(0, width - 3 - visibleWidth(label))) + "╮")];
+	for (const line of body) {
+		const clipped = truncateToWidth(line, inner, "…");
+		rows.push(`${border("│")} ${clipped}${" ".repeat(Math.max(0, inner - visibleWidth(clipped)))} ${border("│")}`);
+	}
+	rows.push(border(`╰${"─".repeat(width - 2)}╯`));
+	return rows;
+}
+
+/** Replace the frame's bottom border with its navigation legend — the Agents panel's construction (pi-delegate src/inspector.ts). */
+function withLegend(lines: string[], legend: string, theme: Theme, width: number): string[] {
+	if (width < 8) return lines;
+	const label = truncateToWidth(` ${legend} `, width - 4, "…");
+	lines[lines.length - 1] = theme.fg("borderMuted", "╰─") + theme.fg("dim", label) + theme.fg("borderMuted", "─".repeat(Math.max(0, width - 3 - visibleWidth(label))) + "╯");
+	return lines;
+}
+
+/**
+ * Cached hierarchy framed like the Agents panel: the bold-accent `Mom` title with
+ * its muted status in the top border, the tree (or fallback summary, note, error)
+ * as the framed body, and the focus hint in the bottom border's legend.
+ */
 export function widgetLines(view: PanelView, theme: Theme, width: number): string[] {
 	const w = Math.max(0, Math.floor(width));
-	const lines = ["", clip(theme.bold(theme.fg("accent", "Mom")) + theme.fg("dim", ` · Alt+J or /mom · ${view.status}`), w)];
-	if (view.work?.endeavors.length) lines.push(...hierarchy(view.work, theme, w, false));
-	else lines.push(clip(theme.fg("muted", fallback(view.summary) || "Following your conversation; no saved work yet."), w));
-	if (view.error) lines.push(clip(theme.fg("warning", view.error), w));
-	else if (view.note) lines.push(clip(theme.fg("accent", `↳ ${clean(view.note)}`), w));
-	return lines;
+	const inner = Math.max(0, w - 4);
+	const header = theme.bold(theme.fg("accent", "Mom")) + theme.fg("muted", ` · ${view.status}`);
+	const body: string[] = [];
+	if (view.work?.endeavors.length) body.push(...hierarchy(view.work, theme, inner, false));
+	else body.push(clip(theme.fg("muted", fallback(view.summary) || "Following your conversation; no saved work yet."), inner));
+	if (view.error) body.push(clip(theme.fg("warning", view.error), inner));
+	else if (view.note) body.push(clip(theme.fg("accent", `↳ ${clean(view.note)}`), inner));
+	return withLegend(frame(header, body, theme, w), "Alt+J focus mom · /mom", theme, w);
 }
 
 /** Full-viewport, sidecar-backed conversation. It owns neither the lead editor nor lead messages. */
