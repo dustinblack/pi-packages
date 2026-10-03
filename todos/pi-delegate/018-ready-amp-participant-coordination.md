@@ -15,7 +15,7 @@ tangents: 020 common/Pi core, 026–029 primary providers, 030 remaining17 cover
 ## Findings
 
 - User requires one `op_*` / ACPX interface for create and native open across all22 named integrations. Amp local/Orb is an execution option, not a separate product.
-- [Current contract and matrix](../pi-delegate/docs/NATIVE_SESSION_OPENING.md): ACPX already loads external IDs; Coordinator rejects them. Amp additionally requires an S-to-T adapter mapping today.
+- [Current contract and matrix](../../pi-delegate/docs/NATIVE_SESSION_OPENING.md): ACPX already loads external IDs; Coordinator rejects them. Amp additionally requires an S-to-T adapter mapping today.
 - Real isolated Pi 0.99.1 idle load found a synthetic native session without prior mapping. Recorded thinking survived; absent thinking gained a default entry. Not live-terminal attachment or proof for other providers.
 - Preserve owned-worker behavior; opened work needs explicit identity/settings and lifecycle policy. Disconnect is not cancel. No remote contribution without an approved scratch target/message; no uncertain resend. Amp owns participant identity/presence; pi-strings does not certify multiplayer attribution.
 
@@ -29,7 +29,7 @@ tangents: 020 common/Pi core, 026–029 primary providers, 030 remaining17 cover
 - [021](021-ready-amp-approved-contribution.md) — ready — authorized contribution
 - [022](022-complete-amp-multiplayer-recovery.md) — complete — multiplayer attribution rejected as provider-owned scope
 - [023](023-complete-amp-plugin-bridge.md) — complete — least-authority observation bridge design
-- [031](031-ready-amp-plugin-work-controls.md) — ready — explicit observation, append/steer, and cancel controls; no visibility/multiplayer access changes
+- [031](031-complete-amp-plugin-work-controls.md) — complete — superseded when the controls moved to native paths
 - [024](024-ready-amp-evidence-handoff.md) — ready — provenance-preserving handoff
 
 ## Outcome
@@ -38,7 +38,7 @@ Every supported agent integration creates sessions and opens existing provider-n
 
 ## Context
 
-User approved provider-wide scope and delegated parallelism; rejected separate Amp packaging. File closure requires a user-approved closing commit on main; session progress is separate. The [old ADR](../pi-delegate/docs/2026-09-29-AMP_PARTICIPANT_BOUNDARY.md) is superseded, but its probe ledger remains evidence.
+User approved provider-wide scope and delegated parallelism; rejected separate Amp packaging. File closure requires a user-approved closing commit on main; session progress is separate. The [old ADR](../../pi-delegate/docs/2026-09-29-AMP_PARTICIPANT_BOUNDARY.md) is superseded, but its probe ledger remains evidence.
 
 ## Acceptance criteria
 

@@ -9,8 +9,8 @@ dependencies: []
 
 ## Where we are
 
-trunk:    049 — cold catch-up bootstrap committed at `8473018`, stable-SHA Tether checks pass; real-model semantic capture remains open
-tangents: 050 — Mom map maintenance hub (051 cadence and 052 incremental thread-map implementation committed at `8473018`; 051 replay analysis remains); 038 — pending live narrowing/redirection proof; 016 — ready (buried-history recall experiment); 008/011/012/014/015/036 — complete
+trunk:    049 — bounded cold catch-up and stable-SHA Tether checks pass at `8473018`; 2026-10-01 live capture verified a durable cut in 3 model calls but exposed a stale sidecar-state claim and missing worker/tangent branches, so semantic acceptance remains open
+tangents: 050 — Mom map maintenance hub (051 replay complete; 052 incremental thread-map implementation complete at `8473018`); 038 — pending live narrowing/redirection proof; 016 — ready (buried-history recall experiment); 008/011/012/014/015/036 — complete
 
 008 is pending/inconclusive; resume only after the user promotes it once a stable bounded replay path is available.
 
@@ -27,13 +27,13 @@ tangents: 050 — Mom map maintenance hub (051 cadence and 052 incremental threa
 - Waking on every event cost 787 calls and $2.02 in one session [6766]. The settled-boundary runtime now measures 132 replies and $0.2532 nominal across ~68 hours of source-session activity in the live-cadence replay (69.7% cache share edge over the lead) → 015 complete at `d512be8`. Evidence: `pi-tether/experiments/evidence/todo-015/`.
 - Todo 015 live-cadence replay (`d512be8`): 92 wakes / 132 Luna replies; Mom 690,426 input + 82,961 output and $0.2532 nominal vs lead 102,175,945 + 617,452 and $37.3901; cache share 52.99% vs 44.75%; worst-case-uncached Mom $0.4088. Seven deterministic failures and six no-op wakes are included as real production cost.
 - Dead end: per-message and per-fragment classification. Removed at the user's direction [5315][5325]. Do not reintroduce it.
-- User-approved cadence direction: accumulate several completed exchanges rather than waking Mom per message/turn. Astra's unvalidated starting gate is five exchanges, or at least two pending for ten minutes; compaction and explicit refresh flush. Todo 051 implements the batched gate with delegate exclusion and a one-shot timer. Todo 052 applies normalized cited state/diffs and summary-vs-raw checks to incremental updates. Both are committed at `8473018`; `cd pi-tether && npm run check` passes typecheck and 158/158 at that SHA. 051's replay-based threshold analysis remains open.
+- User-approved cadence direction: accumulate several completed exchanges rather than waking Mom per message/turn. Astra's unvalidated starting gate is five exchanges, or at least two pending for ten minutes; compaction and explicit refresh flush. Todo 051 implements the batched gate with delegate exclusion and a one-shot timer. Todo 052 applies normalized cited state/diffs and summary-vs-raw checks to incremental updates. Both are committed at `8473018`; `cd pi-tether && npm run check` passes typecheck and 158/158 at that SHA. Todo 051's no-provider replay estimated 46 ordinary + 14 compaction update opportunities in a 79.39-hour active window (successful-stop scenario), zero Kev calls by default, with maximum observed oldest-evidence age 477.9 minutes because one pending exchange does not start the age timer. Thresholds remain unvalidated. The pi-delegate cross-package check was expressly excluded by the user and was not rerun.
 
 ## Children
 
-- 049 — ready — bounded long-history catch-up committed at `8473018`; real-model cold-catch-up capture remains open
-- 050 — ready — coordination hub for cold catch-up, live cadence, and incremental thread-map updates
-- 051 — ready — cadence implementation committed at `8473018`; replay-based evidence/tuning remains open
+- 049 — ready — bounded cold catch-up committed at `8473018`; real-model checkpoint passed but semantic reconciliation failed; `todos/pi-tether/049-ready-mom-cold-catchup.md`
+- 050 — ready — coordination hub for cold catch-up, live cadence, and incremental thread-map updates; semantic map-quality gate remains open
+- 051 — complete — cadence implementation and no-provider replay complete at `8473018`; thresholds remain unvalidated; pi-delegate checks excluded by user direction
 - 052 — complete — incremental thread-map state/diff implementation at `8473018`
 - 002 — complete — `65856a8` + closure commit — working tree landed and pushed
 - 003 — complete — `17e508b` + closure commit — one-call routine updates, bounded repair, durable visible gap and refresh recovery

@@ -14,7 +14,7 @@ OpenCode creation and native-session opening use the common `op_*` interface whi
 
 ## Context
 
-[Unified contract and pinned sources](../pi-delegate/docs/NATIVE_SESSION_OPENING.md). OpenCode 1.18.33 load/resume calls `session.get` for the exact ID before restoring session configuration; resume reads 20 messages, load full history. MCP registration and active-turn/disconnect semantics still need live proof. The registry currently resolves an unpinned command.
+[Unified contract and pinned sources](../../pi-delegate/docs/NATIVE_SESSION_OPENING.md). OpenCode 1.18.33 load/resume calls `session.get` for the exact ID before restoring session configuration; resume reads 20 messages, load full history. MCP registration and active-turn/disconnect semantics still need live proof. The registry currently resolves an unpinned command.
 
 ## Acceptance criteria
 

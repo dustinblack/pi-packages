@@ -182,6 +182,33 @@ test("a repeated summary-only thread-map claim is dropped without blocking the a
 	} finally { mom.close(); await h.close(); }
 });
 
+test("reconstruction keeps compliant items when another item repeats an unrepairable citation", { timeout: 15000 }, async () => {
+	const h = await setup(), mom = h.createMom();
+	try {
+		await h.runtime.session.prompt("Keep the audit grounded."); await mom.open(); await mom.update();
+		const review = compaction(h.runtime.session.sessionManager);
+		const raw = review.historyEvents.find(event => event.kind === "user")!.ref;
+		let attempts = 0;
+		h.api.onUnscripted(request => {
+			if (!input(request).chapterIds) return replacement(request);
+			const result = replacement(request);
+			// One repair round is spent, and the model repeats the same summary-only citation: the
+			//// compliant item must survive instead of the whole chapter being discarded.
+			result.tool.arguments.states[0].decisions = [
+				{ text: "Unsupported completion.", sources: [review.triggerRef] },
+				{ text: "Grounded direction.", sources: [raw] },
+			];
+			attempts++;
+			return result;
+		});
+		await mom.update(undefined, undefined, 0, false, review);
+		assert.equal(attempts, 2, "reconstruction and its one repair round both ran");
+		assert.equal(mom.error, undefined, "an unrepairable item is dropped, not fatal");
+		const saved = (await readSidecar(h)).filter(record => record.type === "map");
+		assert.equal(saved.length, 2, "the map is published");
+	} finally { mom.close(); await h.close(); }
+});
+
 test("audit repairs an unknown source and reads beyond two pages, including shortened source IDs", { timeout: 15000 }, async () => {
 	const h = await setup(), mom = h.createMom();
 	try {

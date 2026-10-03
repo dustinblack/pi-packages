@@ -14,7 +14,7 @@ Codex creation and native-thread opening both work through the common `op_*` too
 
 ## Context
 
-[Unified contract and pinned sources](../pi-delegate/docs/NATIVE_SESSION_OPENING.md). Published codex-acp 1.1.5 uses the native thread ID in ACP `loadSession`/`resumeSession`, but passes cwd/config/model-provider to `threadResume`. pi-strings currently sets Codex worker mode on ensure. Neither path proves preserved native policy without a live check. Provider-specific logic stays in the adapter/ACPX path.
+[Unified contract and pinned sources](../../pi-delegate/docs/NATIVE_SESSION_OPENING.md). Published codex-acp 1.1.5 uses the native thread ID in ACP `loadSession`/`resumeSession`, but passes cwd/config/model-provider to `threadResume`. pi-strings currently sets Codex worker mode on ensure. Neither path proves preserved native policy without a live check. Provider-specific logic stays in the adapter/ACPX path.
 
 ## Acceptance criteria
 

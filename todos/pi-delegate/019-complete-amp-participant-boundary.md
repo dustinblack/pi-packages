@@ -14,7 +14,7 @@ A reviewed unified session contract supports creating new and opening existing s
 
 ## Context
 
-User clarified that all agent integrations must open existing provider-native threads, not just Amp. No separate Amp extension/tool family. [Research](../pi-strings/docs/AMP_PARTICIPANT_COORDINATION.md) supplies Amp evidence; its earlier packaging proposal is superseded. `Coordinator` currently assumes owned work, decorates prompts, cancels on deadlines/shutdown, and rejects unknown resume provenance. Evolve these policies explicitly for opening external sessions while preserving owned-worker guarantees. Existing local/Orb execution is separate from create/open-existing and authority. No arbitrary remote mutations authorized.
+User clarified that all agent integrations must open existing provider-native threads, not just Amp. No separate Amp extension/tool family. [Research](../../pi-delegate/docs/AMP_PARTICIPANT_COORDINATION.md) supplies Amp evidence; its earlier packaging proposal is superseded. `Coordinator` currently assumes owned work, decorates prompts, cancels on deadlines/shutdown, and rejects unknown resume provenance. Evolve these policies explicitly for opening external sessions while preserving owned-worker guarantees. Existing local/Orb execution is separate from create/open-existing and authority. No arbitrary remote mutations authorized.
 
 ## Acceptance criteria
 
@@ -33,11 +33,11 @@ Production changes, remote contributions, plugin installation, permission change
 
 Closed by user-approved main-branch commit `382b9e9` (`docs(strings): define unified native session opening`). This closes the decision/proof slice, not production native-opening support. No push performed.
 
-- [Unified contract/matrix](../pi-strings/docs/NATIVE_SESSION_OPENING.md) supersedes the separate-extension ADR. Three Codex-2 Luna recon lanes investigated internal/primary/registry adapters; source links and exact versions are in the matrix. 13 providers remain unverified, explicitly tracked by030.
+- [Unified contract/matrix](../../pi-delegate/docs/NATIVE_SESSION_OPENING.md) supersedes the separate-extension ADR. Three Codex-2 Luna recon lanes investigated internal/primary/registry adapters; source links and exact versions are in the matrix. 13 providers remain unverified, explicitly tracked by030.
 - `npm run check` baseline:96 pass,19 skipped,0 fail. Skipped live-provider/worktree cases are not claimed passed; no production behavior changed.
 - Current Coordinator rejected synthetic external T-ID with `RESUME_PROVENANCE_UNKNOWN`, runtime calls0. Actual ACPX subprocess fixture loaded an externally seeded exact ID and rejected unknown ID without creating.
 - `node scripts/probe-native-pi-opening.mjs` exit0 on Pi0.99.1: isolated synthetic native transcripts, no prompt; exact native ID/mapping, original entries preserved, exact unknown-session error(-32602), one native JSONL across the session tree. Recorded thinking off remained byte-identical; absent thinking gained default high. Initial blanket byte-identical predicate failed and was narrowed honestly. Idle close only, not active shared execution.
 - Fresh Codex-2 Astra architecture/probe review `reviewer-610408d9-9283-4215-9fde-93a9aabe7cda`: accepted. P2 probe specificity corrected (exact error plus recursive native inventory), parent reran successfully, reviewer verified syntax/source. Active disconnect/provider proof gates remain.
-- [Earlier Amp ledger](../pi-strings/docs/2026-09-29-AMP_PARTICIPANT_BOUNDARY.md): CLI0.0.1790712063-gb89205 capability-only probe exit0, lookup exposed, user-present false(null or missing); no thread method invoked. No authenticated bounded Orb read is claimed.
+- [Earlier Amp ledger](../../pi-delegate/docs/2026-09-29-AMP_PARTICIPANT_BOUNDARY.md): CLI0.0.1790712063-gb89205 capability-only probe exit0, lookup exposed, user-present false(null or missing); no thread method invoked. No authenticated bounded Orb read is claimed.
 - Cleanup: final `pgrep -fl 'pi-strings-native-pi-probe-'` found no process; experiment deletes only its isolated temp roots.
 - Revised020–024 and filed026–030; session todos mirror the dependencies. No production, Orb contribution, plugin deployment, or permission change performed.

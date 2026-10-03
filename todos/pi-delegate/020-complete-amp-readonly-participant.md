@@ -14,7 +14,7 @@ The common `op_*` interface creates owned workers and opens an independently cre
 
 ## Context
 
-Implement [the unified contract](../pi-strings/docs/NATIVE_SESSION_OPENING.md), not the superseded separate Amp participant proposal. ACPX already loads exact external IDs; Coordinator admission, owned-worker launch defaults, persistence, prompt decoration, and cancellation policy are the barriers. The vendored Pi adapter already finds native sessions absent its mapping. The real Pi 0.99.1 experiment preserved recorded thinking but appended a default when none was recorded; load is not universally read-only.
+Implement [the unified contract](../../pi-delegate/docs/NATIVE_SESSION_OPENING.md), not the superseded separate Amp participant proposal. ACPX already loads exact external IDs; Coordinator admission, owned-worker launch defaults, persistence, prompt decoration, and cancellation policy are the barriers. The vendored Pi adapter already finds native sessions absent its mapping. The real Pi 0.99.1 experiment preserved recorded thinking but appended a default when none was recorded; load is not universally read-only.
 
 ## Acceptance criteria
 
