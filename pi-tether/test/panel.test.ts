@@ -64,7 +64,14 @@ test("the catching-up sentence reports durable coverage and disappears once comp
 });
 
 test("cached widget shows freshness and one advisory without source-ID clutter", () => {
-	const theme: any = { fg: (_color: string, text: string) => text, bold: (text: string) => text, strikethrough: (text: string) => text };
+	const borders: string[] = [];
+	const theme: any = {
+		fg: (color: string, text: string) => {
+			if (/^[╭╮╰╯─│]+$/.test(text)) borders.push(color);
+			return text;
+		},
+		bold: (text: string) => text, strikethrough: (text: string) => text,
+	};
 	const lines = widgetLines({ status: "caught up", summary: "# Purpose\nPreserve the return path. [src:session:entry]", note: "Keep user files untouched." }, theme, 100);
 	// Agents-panel frame: header in the top border, framed body rows, legend in the bottom border.
 	assert.deepEqual(lines, [
@@ -74,4 +81,5 @@ test("cached widget shows freshness and one advisory without source-ID clutter",
 		`╰─ Alt+J focus mom · /mom ${"─".repeat(73)}╯`,
 	]);
 	assert.ok(lines.every(l => visibleWidth(l) === 100), "every framed line spans the full widget width");
+	assert.ok(borders.length > 0 && borders.every(color => color === "borderAccent"), "all frame edges, including the legend, use the visible focused-Agents border");
 });

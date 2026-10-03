@@ -138,7 +138,8 @@ function hierarchy(work: WorkView, theme: Theme, width: number, expanded: boolea
 /** Rounded frame with the header embedded in the top border — the Agents panel's construction (pi-delegate src/render.ts). */
 function frame(header: string, body: string[], theme: Theme, width: number): string[] {
 	if (width < 6) return [header, ...body].map(line => truncateToWidth(line, Math.max(0, width), ""));
-	const border = (text: string) => theme.fg("borderMuted", text);
+	// Like focused Agents, use the accent border: borderMuted can disappear on the terminal background.
+	const border = (text: string) => theme.fg("borderAccent", text);
 	const inner = width - 4;
 	const label = truncateToWidth(` ${header} `, width - 4, "…");
 	const rows = [border("╭─") + label + border("─".repeat(Math.max(0, width - 3 - visibleWidth(label))) + "╮")];
@@ -154,7 +155,7 @@ function frame(header: string, body: string[], theme: Theme, width: number): str
 function withLegend(lines: string[], legend: string, theme: Theme, width: number): string[] {
 	if (width < 8) return lines;
 	const label = truncateToWidth(` ${legend} `, width - 4, "…");
-	lines[lines.length - 1] = theme.fg("borderMuted", "╰─") + theme.fg("dim", label) + theme.fg("borderMuted", "─".repeat(Math.max(0, width - 3 - visibleWidth(label))) + "╯");
+	lines[lines.length - 1] = theme.fg("borderAccent", "╰─") + theme.fg("dim", label) + theme.fg("borderAccent", "─".repeat(Math.max(0, width - 3 - visibleWidth(label))) + "╯");
 	return lines;
 }
 
