@@ -356,12 +356,19 @@ export default function piTether(pi: ExtensionAPI) {
 		const due = mom.more ? now : cadence.deadline(now);
 		return due === undefined ? undefined : Math.max(due, lastStarted + interval());
 	}
+	/** A busy session must not lose a batch that is already due. The next settle is not
+	 * guaranteed to arrive before the user stops, and this extension has no idle event, so
+	 * dropping the deadline strands the batch until they prompt again. Re-check on a bounded
+	 * backoff instead; ordinary scheduling stays one-shot, which is why only the miss path
+	 * re-arms. */
+	const MISS_BACKOFF_MS = 30_000, MAX_MISSES = 120;
+	let misses = 0;
 	function schedule() {
 		if (!mom?.enabled || openingError || flight) return;
 		const due = automaticDueAt();
 		if (due === undefined) {
 			if (timer) clearTimeout(timer);
-			timer = undefined; timerAt = undefined;
+			timer = undefined; timerAt = undefined; misses = 0;
 			return;
 		}
 		if (timer && timerAt === due) return;
@@ -371,12 +378,17 @@ export default function piTether(pi: ExtensionAPI) {
 		// One one-shot deadline batches settled exchanges; there is no idle polling.
 		timer = setTimeout(() => {
 			timer = undefined; timerAt = undefined;
-			if (token !== epoch || (ctx && (!ctx.isIdle() || (ctx.hasPendingMessages?.() ?? false)))) return;
+			if (token !== epoch) return;
 			const nextDue = automaticDueAt();
-			if (nextDue === undefined) return;
-			if (nextDue > Date.now()) { schedule(); return; }
+			if (nextDue === undefined) { misses = 0; return; }
+			if (nextDue > Date.now()) { misses = 0; schedule(); return; }
+			if (ctx && (!ctx.isIdle() || (ctx.hasPendingMessages?.() ?? false))) {
+				if (++misses <= MAX_MISSES) schedule(); else misses = 0;
+				return;
+			}
+			misses = 0;
 			void run().catch(() => sync());
-		}, Math.max(150, due - Date.now()));
+		}, misses ? MISS_BACKOFF_MS : Math.max(150, due - Date.now()));
 	}
 	function wake(kind: "lead" | "delegate" = "delegate") {
 		dirty = true; revision++;

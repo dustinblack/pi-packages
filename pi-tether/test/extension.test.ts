@@ -373,6 +373,31 @@ test("tree navigation cancels stale inference and rebuilds only the selected bra
 	} finally { gate.resolve(); await h.close(); }
 });
 
+test("a busy session re-checks instead of stranding an already-due batch", { timeout: 20000 }, async (t) => {
+	const h = await setup(true);
+	try {
+		t.mock.timers.enable({ apis: ["Date", "setTimeout"], now: Date.now() });
+		let idle = true;
+		const uiContext = { hasUI: true, mode: "tui", isIdle: () => idle, sessionManager: h.runtime.session.sessionManager, ui: { setWidget() {}, notify() {} } };
+		await h.runtime.session.prompt("Record one exchange, then keep the session busy.");
+		await h.emitExtension("agent_settled", {}, uiContext);
+		// The deadline arrives while the agent is working: the batch is due but cannot run.
+		t.mock.timers.tick(599_999); await setImmediate();
+		idle = false;
+		t.mock.timers.tick(1); await setImmediate();
+		assert.equal(h.requests().length, 0, "a busy session stays batched");
+		// The missed window re-arms. Still busy, so it must not run yet.
+		t.mock.timers.tick(30_000); await setImmediate();
+		assert.equal(h.requests().length, 0, "the re-check re-arms while the session is busy");
+		// The user stops. Nothing new arrives — no settle, no input — and Mom still catches up.
+		idle = true;
+		t.mock.timers.tick(30_000); await setImmediate();
+		t.mock.timers.reset();
+		await until(async () => (await snapshots(h)).length === 1, "catch-up runs once the session goes idle");
+		assert.equal(h.requests().length, 1);
+	} finally { t.mock.timers.reset(); await h.close(); }
+});
+
 test("the widget shows durable catch-up progress while evidence is pending", { timeout: 20000 }, async () => {
 	const h = await setup(true);
 	try {
