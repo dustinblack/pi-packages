@@ -63,12 +63,10 @@ export default function (pi: ExtensionAPI) {
     const piVersion = getPiVersion();
     const vulgarityCount = countVulgarityUsage(ctx);
     const jarAmount = vulgarityCount * 0.25;
-    const jarColor = vulgarityCount >= 5 ? "error" : vulgarityCount > 0 ? "warning" : "muted";
-
-    const text =
-      `${ctx.ui.theme.fg("text", `${host}@${ip}`)}` +
-      `${ctx.ui.theme.fg("dim", " • ")}${ctx.ui.theme.fg("muted", `pi ${piVersion}`)}` +
-      `${ctx.ui.theme.fg("dim", " • ")}${ctx.ui.theme.fg("muted", "swear jar:")}${ctx.ui.theme.fg(jarColor, `$${jarAmount.toFixed(2)}`)}`;
+    const text = ctx.ui.theme.fg(
+      "dim",
+      `${host}@${ip} • pi ${piVersion} • swear jar:$${jarAmount.toFixed(2)}`,
+    );
 
     ctx.ui.setStatus("footsie", text);
   }

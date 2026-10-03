@@ -45,12 +45,9 @@ Toggle the system info status dynamically inside any active session:
 /sysinfo           # Toggles between on and off
 ```
 
-## Customization
+## Footer style
 
-The swear jar meter is color-coded by vulgarity count:
-- `0` → muted
-- `1-4` → warning
-- `5+` → error
+Footsie's entire status uses Pi's `dim` theme color to match the built-in footer and Yono's status. The swear jar amount carries the count; severity is no longer color-coded.
 
 ## License
 
