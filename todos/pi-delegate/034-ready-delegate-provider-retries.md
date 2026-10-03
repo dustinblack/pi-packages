@@ -1,5 +1,5 @@
 ---
-status: ready
+status: in_progress
 issue_id: "034"
 tags: [pi-delegate, providers, retries, errors]
 dependencies: []
@@ -33,3 +33,6 @@ Transient provider retries are bounded, visible, and accounted separately from t
 - Provider-specific network repair
 
 ## Evidence
+
+- 2026-10-02: pi children now expose live `auto_retry_start` state in `delegate_ctl status`, accumulate provider retry wall time, and stop after 3 retries or 120 seconds independently of the task timeout. Loopback coverage proves the live status and terminal ceiling; `npm run typecheck` and the full `npm test` pass (333 passed, 19 skipped).
+- Remaining: recovery, provider-header timeout, post-recovery task timeout, cancellation during backoff, and the final time split for model/tool work.

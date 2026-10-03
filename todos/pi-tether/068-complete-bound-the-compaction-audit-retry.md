@@ -1,5 +1,5 @@
 ---
-status: ready
+status: complete
 issue_id: "068"
 tags: [mom, pi-tether]
 dependencies: ["066"]
@@ -32,6 +32,8 @@ A compaction-audit update that fails twice — the compaction-triggered run plus
 - Updates during a continuous multi-hour lead turn: Mom updates only at settled boundaries by settled design.
 
 ## Evidence
+
+- Closing commit `f1e2af8` on `main` (pushed 2026-10-02): the counter, the regression test, README, CHANGELOG 0.1.6, and the version bump, pathspec-limited to the pi-tether files and this ledger's 068/069 files.
 
 - `cd pi-tether && npm run check` passed 2026-10-02: typecheck clean and 210/210 tests (209 before + the new retirement regression). The 068 slice adds one test in `test/incremental.test.ts` ("a twice-failed compaction audit retires; later updates resume as regular raw-grounded ones") and the counter in `src/mother.ts` (`auditAttempts`, reset when a fresh review arrives at update entry, incremented in `update()`'s catch, retiring `pendingAudit` at two). `src/audit.ts` is untouched: any failure inside a compaction-audit update counts, matching both observed live doom loops (the rejected verdicts at 23:27/23:49/01:02 and the failed proposal at 00:58).
 - The regression test proves the fix both ways: on unfixed code it fails exactly as the live session did — the third `mom.update()` re-runs the doomed audit and rejects (`audit.ts:92` → `mother.ts:320`). With the fix, attempt one rejects after its repair round (2 audit requests), the sticky retry rejects again (4 total), and the third update makes no audit request, accepts a raw-grounded `commit_graph` transaction, advances the cursor, publishes a new snapshot, and clears the latched error.

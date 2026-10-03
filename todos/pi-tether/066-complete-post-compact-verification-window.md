@@ -1,5 +1,5 @@
 ---
-status: ready
+status: complete
 issue_id: "066"
 tags: [mom, pi-tether]
 dependencies: ["065"]
@@ -40,4 +40,4 @@ After a compaction, Mom checks each of the first settled lead turns — until th
 - Budget and close conditions hold: each flagged turn spends one model check (`checks` 1→3), a fourth flagged turn after the three-turn close spends none, the user's next message closes the window with zero turns and zero window requests (a pivot is correct behavior, never corrected, silent in status), and the check request carries no tools with a strict JSON body keyed by the task marker — only a cited verdict among the offered refs counts; anything else records an error and corrects nothing.
 - Flagged interpretations, all settled in code and tests: the correction itself closes the window (exactly one per compaction, the `corrected` field was dropped from the live window state because correction is structurally a close); a zero-turn close is silent while watched turns that stayed on the line end held (`continuity held after compact HH:MM`); checks run at settled boundaries regardless of running workers because they read lead events only; parked/settled/folded flags are never suppressed by a shared source page or by line overlap — over-inclusive by design, stage two adjudicates — while off-goal fires only when the whole turn stays outside the current line; the `checked` record is appended after the model call resolves so counts stay honest (a crash leaks at most one check's budget, accepted); bare status pings are queries, not direction, so they neither close the window nor pass as the last user direction.
 - Forward-compat caveat: pre-0.1.5 builds (0.1.4) throw on `kind === "window"` sidecar records — an old build opening a session whose sidecar carries window records fails visibly rather than silently misreading; upgrading resolves it. No migration was added because the sidecar is per-session evidence, not a durable store.
-- Not yet committed: the source, tests, README window section, `CHANGELOG.md` 0.1.5, and the 0.1.5 version bump are presented for approval together; the todos/ ledger rename for 066 is left for the ledger commit, not the pi-tether pathspec commit.
+- Closing commit: `35421ab` (`feat(pi-tether): watch the first post-compact turns and correct one misalignment`), pushed to `origin/main` on 2026-10-02. The todos/ ledger rename (ready → complete) is left for the ledger commit, not the pi-tether pathspec commit.

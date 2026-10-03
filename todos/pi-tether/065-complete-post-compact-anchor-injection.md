@@ -1,5 +1,5 @@
 ---
-status: ready
+status: complete
 issue_id: "065"
 tags: [mom, pi-tether]
 dependencies: []
@@ -40,4 +40,4 @@ After a successful compaction, the lead's next request carries a code-rendered a
 - Render is pure code from the last accepted checkpoint, no model call: verbatim mother-thread purpose with its `purposeSource` citation, at most five verbatim rules with sources, the current endeavor (annotation focus noted as attention), at most six parked labels, at most three recent side effects (commits and test runs, oldest first, 600-event window, 160-char clip). A failing-audit test confirms the fallback injects from the last accepted map.
 - "Omitted while catching up" is resolved as: durably skipped with the reason `Mom had no saved map to anchor from` while Mom has no accepted checkpoint (her cold catch-up). The widget's full `complete` gate was deliberately not reused: it contradicts the settled design's audit-failure clause (inject from the last accepted checkpoint) and would strand the first post-compact request whenever Mom is merely behind on incremental reading. `openingError` and `mom.enabled` still gate delivery, and a queued-but-undeliverable anchor stays visible as `anchor queued after compact`.
 - Injection ledger: every anchor and notice appends a sidecar record (`injection` pending → delivered/skipped; `notice` delivered) and surfaces in one read — widget footer (`anchor queued after compact` / `anchored after compact HH:MM`) and the new `/mom log` (delivered anchor content, delivered notices with `riskClass:target`, skips with reason). Verified ledger order: `injection:pending` → `notice:delivered` (input event) → `injection:delivered` (`before_agent_start`).
-- Closing commit: pending user approval; cite the SHA here and rename to `065-complete-…` when it lands. No adjacent todos filed; 066 and 067 already cover the follow-on window and controls.
+- Closing commit: `31744d5` (`feat(pi-tether): inject a post-compaction continuity anchor with an injection ledger`), pushed to `origin/main` on 2026-10-02. No adjacent todos filed; 066 and 067 already cover the follow-on window and controls.
