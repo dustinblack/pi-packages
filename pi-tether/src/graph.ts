@@ -258,7 +258,11 @@ export function checkUnfinished(previous: WorkGraph, upserts: readonly GraphNode
 			errors.push(`Unknown unfinished disposition source for ${item.node}: ${ref}.${suggestion ? ` Use the exact observed source ${suggestion}.` : ""}`);
 		}
 		if (item.disposition === "resolved") {
-			if (item.target !== null || (live && live.state !== "settled")) errors.push(`Resolved disposition needs ${item.node} closed and target=null.`);
+			// A folded endeavor retires its settled descendants, so a node with no surviving record is
+			// the compliant case and cannot be state-checked. Only a surviving node can. Each half
+				// reports separately: one message covering both cannot say which one was wrong.
+			if (live && live.state !== "settled") errors.push(`Resolved disposition needs ${item.node} settled in this transaction; it is ${live.state}.`);
+			if (item.target !== null) errors.push(`Resolved disposition needs ${item.node} target=null, closing its scope; it names surviving thread ${item.target}.`);
 		} else {
 			if (!item.target || !result.has(item.target) || !isEndeavor(result.get(item.target)!) || !live || !["active", "parked"].includes(live.state)) {
 				errors.push(`${item.disposition} disposition needs ${item.node} active/parked under surviving thread ${item.target}.`);

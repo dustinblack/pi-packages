@@ -20,7 +20,11 @@ test("fold requires each active/parked descendant's declared disposition and pre
 	assert.equal(after.nodes.find(n => n.id === "hold")!.state, "active");
 	assert.equal(after.nodes.find(n => n.id === "hold")!.parent, "main");
 	assert.throws(() => checkUnfinished(before, updates, folds, after, [item("hold", "carried", "other"), item("pending")], refs), /Carried disposition needs hold in the closing thread's surviving parent\/root/);
-	assert.throws(() => checkUnfinished(before, updates, folds, after, [item("hold", "resolved", null), item("pending")], refs), /Resolved disposition needs hold closed/);
+	assert.throws(() => checkUnfinished(before, updates, folds, after, [item("hold", "resolved", null), item("pending")], refs),
+		/Resolved disposition needs hold settled in this transaction; it is active\./);
+	// Each half reports on its own: naming a survivor and leaving the node open are different defects.
+	assert.throws(() => checkUnfinished(before, updates, folds, after, [{ ...item("hold", "resolved", "other") }, item("pending")], refs),
+		/Resolved disposition needs hold target=null, closing its scope; it names surviving thread other\./);
 	assert.throws(() => checkUnfinished(before, updates, folds, after, [{ ...item("hold"), sources: ["unknown"] }, item("pending")], refs), /Unknown unfinished disposition source for hold: unknown/);
 	assert.throws(() => checkUnfinished(before, updates, folds, after, [{ ...item("hold"), sources: ["s:ret"] }, item("pending")], refs), /Use the exact observed source s:return/);
 });
