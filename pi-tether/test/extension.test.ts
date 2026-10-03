@@ -398,6 +398,39 @@ test("a busy session re-checks instead of stranding an already-due batch", { tim
 	} finally { t.mock.timers.reset(); await h.close(); }
 });
 
+test("closing a session never starts inference the cadence had not scheduled", { timeout: 20000 }, async (t) => {
+	const h = await setup(true);
+	try {
+		t.mock.timers.enable({ apis: ["Date", "setTimeout"], now: Date.now() });
+		const uiContext = { hasUI: true, mode: "tui", isIdle: () => true, sessionManager: h.runtime.session.sessionManager, ui: { setWidget() {}, notify() {} } };
+		await h.runtime.session.prompt("Leave an undued batch before quitting.");
+		await h.emitExtension("agent_settled", {}, uiContext);
+		await h.emitExtension("session_shutdown", undefined);
+		await setImmediate();
+		assert.equal(h.requests().length, 0, "an undued batch is not started by shutdown");
+		assert.equal((await snapshots(h)).length, 0, "no checkpoint is written when nothing is due");
+	} finally { t.mock.timers.reset(); await h.close(); }
+});
+
+test("closing a session saves a batch that is already due", { timeout: 20000 }, async (t) => {
+	const h = await setup(true);
+	try {
+		t.mock.timers.enable({ apis: ["Date", "setTimeout"], now: Date.now() });
+		let idle = false;
+		const uiContext = { hasUI: true, mode: "tui", isIdle: () => idle, sessionManager: h.runtime.session.sessionManager, ui: { setWidget() {}, notify() {} } };
+		await h.runtime.session.prompt("Leave a due batch before quitting.");
+		await h.emitExtension("agent_settled", {}, uiContext);
+		// Age past the deadline while busy, so the timer cannot run it, then quit: a short session
+		// must not lose its map just because the user stopped working before ten minutes passed.
+		// Mocked time stays enabled: the deadline is only past under the clock the batch ages against.
+		t.mock.timers.tick(10 * 60 * 1000); await setImmediate();
+		idle = true;
+		await h.emitExtension("session_shutdown", undefined);
+		assert.equal((await snapshots(h)).length, 1, "the due batch is saved at shutdown");
+		assert.equal(h.requests().length, 1);
+	} finally { t.mock.timers.reset(); await h.close(); }
+});
+
 test("the widget shows durable catch-up progress while evidence is pending", { timeout: 20000 }, async () => {
 	const h = await setup(true);
 	try {

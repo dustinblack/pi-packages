@@ -449,7 +449,17 @@ export default function piTether(pi: ExtensionAPI) {
 
 	pi.on("session_start", (_event, context) => { reset(context); });
 	pi.on("session_tree", (_event, context) => { reset(context); });
-	pi.on("session_shutdown", async () => { await noticePersistence; close(); });
+	pi.on("session_shutdown", async () => {
+		await noticePersistence;
+		// A session that closes before its aged deadline would leave Mom with no map at all. Run the
+		// batch only when it is already due: shutdown must never start inference the cadence had not
+		// already scheduled, so exit gains no latency beyond what it already owed.
+		if (mom?.enabled && !openingError && !flight) {
+			const due = automaticDueAt();
+			if (due !== undefined && due <= Date.now()) await run().catch(() => undefined);
+		}
+		close();
+	});
 	pi.on("session_before_compact", (event, context) => {
 		pendingCompaction = prepareCompactionReview(event, context.sessionManager.getSessionId());
 	});
