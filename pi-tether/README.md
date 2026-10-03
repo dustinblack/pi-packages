@@ -28,7 +28,7 @@ Mom batches five completed lead exchanges, or updates when the oldest pending ex
 
 ### Compaction: thread map → compare → reconcile
 
-Mom implements the thread-map workflow internally; it does not launch the external Python skill script. Compaction audits reconstruct chapter state from the entire selected branch and linked worker evidence **without seeing Mom's saved graph first**. Each chapter records goals, decisions and constraints, artifacts, dead ends, open questions, and discrepancies with source pointers. The audit can inspect original records, including tool arguments and results, in pages. Recorded results prove what was recorded then; Mom does not execute project commands or independently rerun tests.
+Mom implements the thread-map workflow internally; it does not launch the external Python skill script. Compaction audits reconstruct chapter state from the entire selected branch and linked worker evidence **without seeing Mom's saved graph first**. Each chapter records goals, decisions and constraints, artifacts, dead ends, and open questions with source pointers. The audit can inspect original records, including tool arguments and results, in pages. Recorded results prove what was recorded then; Mom does not execute project commands or independently rerun tests.
 
 The independent reconstruction is then compared with Mom's current map. The comparison checks missing work or constraints, forgotten decisions, incorrect completion states, duplicate work, and unsupported cross-links. Neither account automatically wins: original evidence resolves disagreements. Accepted corrections use one atomic graph transaction, preserving stable node identities and historical records. Compaction summaries are claims, never replacement evidence.
 

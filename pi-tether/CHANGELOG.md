@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.7
+
+- Prune the audit's chapter schema to the same five fields ordinary updates use, deleting the `discrepancies` field. Nothing downstream read it — the anchor, widget, window checks, and sidecar never consumed it — and honest "the summary claims this but no raw evidence verifies it" items could only cite the summary inside it, so the absolute citation rule rejected them deterministically and bricked live sessions (with 0.1.6's cap bounding the damage). The rule is now uniformly correct: a direction the raw evidence still shows stays recorded with its raw source even when the summary dropped it; a summary claim with no raw evidence behind it is not recorded at all. A reply carrying the old sixth key is rejected by the strict schema and repaired in one round, like any invalid shape.
+
 ## 0.1.6
 
 - Bound the compaction-audit retry. A failed audit update — a rejected reconstruction verdict or a failed proposal — stays pending for one retry on the next update or `/mom refresh`, as before; a second failure now retires the audit for the session, and later updates proceed as regular incremental ones over raw evidence. Previously every failure kind kept the full audit sticky, re-running it on every settled update forever (observed live: four failed audit runs across two hours with the widget latched at `update stopped` and a seven-hour-old saved map).
