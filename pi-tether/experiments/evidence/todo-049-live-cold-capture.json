@@ -1,0 +1,61 @@
+{
+  "todo": "049",
+  "runDate": "2026-10-01",
+  "method": "Fresh sidecar and two bounded Mom.update() passes over a private copy of the selected real Pi session; production DEFAULT_BOOTSTRAP_POLICY enabled; no advisor configured.",
+  "source": {
+    "path": "/Users/ssweens/.pi/agent/sessions/--Users-ssweens-src-pi-packages--/2026-09-26T23-49-53-444Z_01a0e020-12a4-7474-819f-ad784bb5febd.jsonl",
+    "bytes": 66250829,
+    "sha256": "a712252d49abc109ab8b308f2b17e3109443ec551f3a9cb24230adba462dbadc",
+    "unchangedAfterRun": true
+  },
+  "model": {
+    "provider": "openai-codex",
+    "api": "openai-codex-responses",
+    "model": "openai-codex/gpt-5.6-luna",
+    "reasoning": "low",
+    "advisorKevCalls": 0
+  },
+  "result": {
+    "updatePasses": 2,
+    "providerCalls": 3,
+    "providerCallsPerPass": [2, 1],
+    "inputTokens": 22160,
+    "outputTokens": 2644,
+    "cacheReadTokens": 11904,
+    "cacheWriteTokens": 0,
+    "nominalCostUsd": 0.00784288,
+    "modelElapsedMs": 55093,
+    "checkpointId": "ea520040-39a2-4a3a-82a5-0dc51763a480",
+    "durableCutMatchesObservedCutEachPass": true,
+    "more": false,
+    "failure": null,
+    "durableGapRecords": 0,
+    "feedGapsVisible": 25,
+    "sidecarRecords": 4,
+    "sidecarBytesBeforeCleanup": 90657
+  },
+  "semanticOutput": {
+    "nodeCount": 5,
+    "nodes": [
+      { "id": "mother", "kind": "feature", "state": "active", "parent": null },
+      { "id": "catch_up", "kind": "feature", "state": "active", "parent": "mother" },
+      { "id": "no_session_jsonl", "kind": "rule", "state": "active", "parent": "catch_up" },
+      { "id": "graph_underneath", "kind": "rule", "state": "active", "parent": "catch_up" },
+      { "id": "repair_or_leave_paused", "kind": "choice", "state": "proposed", "parent": "catch_up" }
+    ],
+    "review": "The graph captures the original purpose, current catch-up priority, two durable user rules, and an unresolved repair/pause choice. That choice is stale/wrong: the last assistant diagnosis says there is no active sidecar and only an archived obsolete-layout file; the user's next instruction is to delete obsolete sessions. The graph instead asserts a live malformed sidecar and leaves repair-versus-pause proposed. It also omits worker/tangent branches. This is a failed semantic result, despite correct durable checkpointing.",
+      "rawEvidencePointers": ["assistant:9462", "user:9463"],
+      "fullCoverage": false
+  },
+  "integrity": {
+    "privateCopyUnchangedDuringRun": true,
+    "sourceAndPrivateCopyCleanedAfterRun": true,
+    "providerCallHardStop": 4,
+    "maxUpdatePasses": 2
+  },
+  "limitations": [
+    "Nominal provider metadata is not an invoice.",
+    "The map has only five nodes and omits worker/tangent branches; feed gaps prevent a full semantic-coverage claim.",
+    "The result verifies bounded real-model catch-up and durable cursor alignment, but fails semantic reconciliation on current sidecar state; it does not establish production-grade map quality."
+  ]
+}

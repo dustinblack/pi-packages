@@ -1,0 +1,76 @@
+{
+  "todo": "051",
+  "runDate": "2026-10-01",
+  "method": "Deterministic, no-provider, virtual-time replay using production LeadCadence plus the 15-second minimum-spacing and safe-idle scheduling rules from src/index.ts. Events were read from the raw parent transcript; delegate streams were intentionally excluded because delegate settlements do not count toward this gate.",
+  "source": {
+    "path": "/Users/ssweens/.pi/agent/sessions/--Users-ssweens-src-pi-packages--/2026-09-26T23-49-53-444Z_01a0e020-12a4-7474-819f-ad784bb5febd.jsonl",
+    "bytes": 66250829,
+    "sha256": "a712252d49abc109ab8b308f2b17e3109443ec551f3a9cb24230adba462dbadc",
+    "normalization": "slim-replay export against the original parent initially stopped on a missing linked worker transcript (ENOENT). A private parent-only copy changed only the session-header cwd so the exporter would not follow worker pointers. Narrative records and timestamps were preserved; no worker settlement was counted."
+  },
+  "feed": {
+    "parentEvents": 9193,
+    "userMessages": 211,
+    "assistantMessages": 3004,
+    "toolCalls": 4089,
+    "linkedWorkerStreams": 0,
+    "exportGaps": 0,
+    "momToolReads": 9,
+    "momToolCallsWithQuestion": 0,
+    "loggedMomAskRefreshCorrectCommands": 0
+  },
+  "cadence": {
+    "leadBatch": 5,
+    "agedBatch": 2,
+    "agedDelayMs": 600000,
+    "minimumSpacingMs": 15000,
+    "advisorConfiguredByDefault": false,
+    "windowStart": "2026-09-28T00:14:33.698Z",
+    "windowEnd": "2026-10-01T07:37:41.714Z",
+    "windowHours": 79.39,
+    "compactionBypassUpdates": 14,
+    "advisorCalls": 0,
+    "providerCallsMadeByReplay": 0,
+    "actualReplayCostUsd": 0,
+    "successfulStopScenario": {
+      "successfulLeadStops": 129,
+      "ordinaryUpdateOpportunities": 46,
+      "totalMomUpdateOpportunitiesIncludingCompaction": 60,
+      "updatesPerDay": 18.1,
+      "ordinaryBatchSizeMin": 2,
+      "ordinaryBatchSizeMax": 5,
+      "oldestEvidenceLagMinutes": { "p50": 10.0, "p90": 55.5, "max": 477.9 },
+      "newestEvidenceLagMaxMinutes": 9.1,
+      "pendingAtTranscriptEnd": 2,
+      "oldestPendingAgeMinutes": 9.5
+    },
+    "terminalSensitivity": {
+      "allAssistantTerminalRecords": 257,
+      "errorOrAbortRecords": 128,
+      "ordinaryUpdateOpportunities": 75,
+      "totalMomUpdateOpportunitiesIncludingCompaction": 89,
+      "updatesPerDay": 26.9,
+      "oldestEvidenceLagMinutes": { "p50": 10.0, "p90": 54.4, "max": 477.9 }
+    }
+  },
+  "costInterpretation": {
+    "measuredCadenceReplayCostUsd": 0,
+    "referenceOnly": "Todo 049 cold catch-up used 3 provider calls across 2 update passes and cost $0.00784288 nominal. That is a two-pass cold-backlog sample, not a measured ordinary-update unit price.",
+    "illustrative60UpdateProjectionUsd": 0.2352864,
+    "projectionFormula": "60 update opportunities × ($0.00784288 / 2 observed cold-catch-up passes)",
+    "projectionIsForecast": false,
+    "momProviderCallsPerUpdate": "1 proposal, with at most one repair call; thus 60 opportunities imply 60–120 provider calls in the stop-only scenario, before any cold-start catch-up.",
+    "kev": "Zero by default. If the optional advisor is configured, it screens ordinary batches only; compaction and explicit requests bypass it."
+  },
+  "interpretation": [
+    "Five/two/ten-minute coalescing yields about 14 ordinary updates per day in this busy session, plus compaction bypasses. It is far below per-message wakeups, but still a high update rate; the thresholds remain a starting point, not best practice.",
+    "The ten-minute age is not a hard maximum from the first event: one pending exchange never starts the timer. In this replay an isolated exchange waited up to 7.97 hours for a second exchange; once the second arrived, the batch flushed. A timer that expires while the lead is busy also waits for the next safe settlement.",
+    "Raw JSONL does not encode agent_settled events. The main estimate counts successful assistant stop records; the sensitivity includes error/abort terminal records. These are counterfactual call opportunities, not measured historical Mom calls."
+  ],
+  "verification": {
+    "productionHelperImported": "pi-tether/src/cadence.ts",
+    "noModelOrKevRequests": true,
+    "existingTetherSuiteEvidence": "cd pi-tether && npm run check passed typecheck and 158/158 tests at stable SHA 8473018 (recorded in todo 051).",
+    "piDelegate": "Not inspected, edited, or tested; user explicitly excluded it."
+  }
+}
