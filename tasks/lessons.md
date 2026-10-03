@@ -145,3 +145,6 @@ Scott already uses Alt+T outside Mom. Respect reported conflicts even when local
 
 ## Compaction audits should compare an independent thread map with Mom
 For Mom's compaction audit proposal, Scott wants the full thread-map workflow followed by comparison with the current Mom map. Do not substitute a capped sample prioritized by the existing map, or assume a separate occasional audit is necessary without measuring the actual cost. Reconstruct from session evidence first so the audit can find omissions and unsupported links in Mom itself (2026-10-01).
+
+## Mom structure stays at the cord; prune fields that feed nothing the user sees
+Scott correction (2026-10-02): "Stop structuring stuff so much. Stick to the cord. Do we really need everything that is in there? Prune back aggressively." Every field in an intermediate schema must trace to something the user sees or a decision Mom makes. The audit discrepancies field fed nothing downstream, duplicated the graph vocabulary, and its summary-only rejection bricked a live session. Run the-algorithm (question requirements, delete, simplify) before adding structure to Mom again.

@@ -1,5 +1,20 @@
 # Tasks
 
+## Current Task: visible Mom outline in rootshell
+
+- [x] Inspect the actual Hop Pi window, rather than infer live behavior from tmux tests.
+- [x] Identify the invisible `borderMuted` outline and use the focused Agents border color.
+- [x] Verify the changed widget in rootshell with Pi 1.0.0 and the user's Pi theme; run package checks.
+- [x] Review the diff and propose a commit without changing live sessions or unrelated work.
+
+### Review (Mom outline)
+
+- The live Hop capture contains the full outline, visible after diagnostic contrast expansion. The muted border nearly matches rootshell's Ayu Mirage background; extension loading was not the cause of the missing visible outline.
+- Existing tests stripped theme colors and therefore could not detect this failure. The frame regression now checks every edge's theme color as well as its shape.
+- `npm run check` passed: typechecking and 212 tests. The installed `/opt/homebrew/bin/pi` 1.0.0 passed refresh, pause/resume, conversation, unchanged lead transcript, and 42-column rendering with the user's `github-dark-default` theme and a loopback model in a disposable session. Inspected wide and narrow screenshots with the live proof attached in rootshell; `.amp/in/artifacts/mom-outline-after.png` is the clean widget capture.
+- The actual Hop sidecar records earlier disposition-validation and compaction-audit failures, then two successful map saves with no error. The border fix does not claim to repair those separate failures.
+- Changes remain uncommitted; the user's active Pi sessions were not reloaded or restarted. Proposed commit: `fix(pi-tether): keep Mom outline visible on dark terminals`.
+
 ## Current Task: full thread-map audit at compaction
 
 - [x] Remove map-prioritized sampling and retain full selected-branch evidence.
